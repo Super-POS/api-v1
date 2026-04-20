@@ -1,0 +1,117 @@
+- name: Look up environment variables
+  set_fact:
+    artifact_url: "{{ lookup('env', 'CI_PROJECT_URL') }}/-/jobs/{{ lookup('env', 'CI_JOB_ID') }}/artifacts/download"
+    service_namespace: "{{ lookup('env', 'SERVICE_NAMESPACE') | default('', true) }}"
+    service_type: "{{ lookup('env', 'SERVICE_TYPE') | default('', true) }}"
+    project_name: "{{ lookup('env', 'PROJECT_NAME') | default('', true) }}"
+    repo_path: "{{ lookup('env', 'CI_PROJECT_PATH') | default('', true) }}"
+    ci_project_path: "{{ lookup('env', 'CI_PROJECT_PATH') | default('', true) }}"
+    ip_address: "{{ lookup('env', 'IP_ADDRESS') | default('', true) }}"
+    app_dir: "/app/{{ lookup('env', 'PROJECT_NAME') }}/{{ lookup('env', 'SERVICE_TYPE') }}"
+    ci_branch: "{{ lookup('env', 'CI_COMMIT_REF_NAME') | default('', true) }}"
+
+- name: Debug project_name and app_dir
+  debug:
+    msg:
+      - "Project Name: {{ project_name }}"
+      - "App Directory: {{ app_dir }}"
+      - "Service Type: {{ service_type }}"
+      - "Service Namespace: {{ service_namespace }}"
+
+- name: Create app project directory
+  ansible.builtin.file:
+    path: "{{ app_dir }}"
+    state: directory
+    recurse: yes
+  no_log: true # Temporarily set to false for troubleshooting
+
+- name: Remove existing Docker containers if they exist
+  community.docker.docker_container:
+    name: "{{ item }}"
+    state: absent
+  loop:
+    - pos_api
+  ignore_errors: yes
+
+- name: Clean up unused Docker resources
+  command: docker system prune -a -f
+
+- name: Clone remote repository into server
+  ansible.builtin.git:
+    repo: "git@gitlab.camcyber.com:{{ repo_path }}.git"
+    dest: "{{ app_dir }}"
+    accept_hostkey: false
+    version: "{{ ci_branch }}"
+    force: yes
+  no_log: true
+
+- name: Ensure Docker network exists
+  community.docker.docker_network:
+    name: camcyber
+    state: present
+
+- name: Run docker-compose for {{ service_type }}
+  community.docker.docker_compose_v2:
+    project_name: "{{ service_type }}"
+    recreate: always
+    definition:
+      version: "3.8"
+      services:
+        pos_api:
+          container_name: pos_api
+          build:
+            context: "{{ app_dir }}"
+            dockerfile: Dockerfile
+          volumes:
+            - "{{ app_dir }}:/usr/src/app"
+            # - 'vendor_volume:/var/www/html/vendor'
+          environment:
+            # PORT                : "{{ PORT }}"
+            # ENV                 : "{{ ENV }}"
+
+            # DB Configuration
+            DB_CONNECTION: "{{DB_CONNECTION }}"
+            DB_HOST: "{{ DB_HOST }}"
+            DB_PORT: "{{ DB_PORT }}"
+            DB_USERNAME: "{{ DB_USERNAME }}"
+            DB_PASSWORD: "{{ DB_PASSWORD }}"
+            DB_DATABASE: "{{ DB_DATABASE }}"
+            # DB_TIMEZONE         : "{{ DB_TIMEZONE }}"
+
+            # JWT Configuration
+            JWT_SECRET: "{{ JWT_SECRET }}"
+            JWT_EXPIRES: "{{ JWT_EXPIRES }}"
+
+            # File Service Configuration
+            FILE_BASE_URL: "{{ FILE_BASE_URL }}"
+            # FILE_USERNAME: "{{ FILE_USERNAME }}"
+            # FILE_PASSWORD: "{{ FILE_PASSWORD }}"
+            # FILE_KEY: "{{ FILE_KEY }}"
+
+            # JSReport Configuration
+            JS_BASE_URL: "{{ JS_BASE_URL }}"
+            JS_USERNAME: "{{ JS_USERNAME }}"
+            JS_PASSWORD: "{{ JS_PASSWORD }}"
+            JS_TEMPLATE: "{{ JS_TEMPLATE }}"
+            JS_TEMPLATE_POS: "{{ JS_TEMPLATE_POS }}"
+            JS_TEMPLATE_CASHIER: "{{ JS_TEMPLATE_CASHIER }}"
+            JS_TEMPLATE_PRODUCT: "{{ JS_TEMPLATE_PRODUCT }}"
+            JS_TEMPLATE_SALE_EXCEL: "{{ JS_TEMPLATE_SALE_EXCEL }}"
+            JS_TEMPLATE_PRODUCT_EXCEL: "{{ JS_TEMPLATE_PRODUCT_EXCEL }}"
+
+
+            # Telegram Bot Configuration
+            TELEGRAM_BOT_TOKEN: "{{ TELEGRAM_BOT_TOKEN }}"
+            TELEGRAM_CHAT_ID: "{{ TELEGRAM_CHAT_ID }}"
+            # TELEGRAM_LOGGER_CHAT_ID    : "{{ TELEGRAM_LOGGER_CHAT_ID }}"
+
+          ports:
+            - "8990:3000"
+          networks:
+            - camcyber
+      volumes:
+        volume:
+      networks:
+        camcyber:
+          external: true
+  no_log: true

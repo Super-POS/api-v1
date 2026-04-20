@@ -1,0 +1,17 @@
+image:
+  name: gitlab.camcyber.com:5050/camcyber/registry/node:v20-alpine
+  pull_policy: always
+
+stages:
+  - "audit"
+  - "build:uat"
+  - "build:production"
+  - "deploy:uat"
+  - "deploy:production"
+before_script:
+  - echo $CI_BUILDS_DIR
+include:
+  # - local: 'pipelines/code-quality.gitlab-ci.yml'
+  # - local: 'pipelines/production.gitlab-ci.yml'\
+
+  - local: 'pipelines/uat.gitlab-ci.yml'

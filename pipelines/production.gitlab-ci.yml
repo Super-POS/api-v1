@@ -1,0 +1,7 @@
+deploy:production:
+  stage: deploy:production
+  script:
+    - echo production
+  only:
+    - master
+
