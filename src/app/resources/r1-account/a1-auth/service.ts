@@ -1,22 +1,21 @@
 // ===========================================================================>> Core Library
-import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 
 // ===========================================================================>> Third Party Library
 import * as bcrypt from 'bcryptjs';
 import { DatabaseError, Op } from 'sequelize';
 
 // ===========================================================================>> Costom Library
-// Model
-import Role from '@app/models/user/role.model';
-import User from '@app/models/user/user.model';
-
-import { EmailService } from '@app/services/email.service';
+import { RoleEnum }            from '@app/enums/role.enum';
+import Role                    from '@app/models/user/role.model';
+import User                    from '@app/models/user/user.model';
+import UserOTP                 from '@app/models/user/user_otps.model';
+import UserRoles               from '@app/models/user/user_roles.model';
+import UsersLogs               from '@app/models/user/user_logs.model';
+import { EmailService }        from '@app/services/email.service';
 import { JwtTokenGenerator, TokenGenerator } from '@app/shared/jwt/token';
-import UserOTP from '@app/models/user/user_otps.model';
-import UserRoles from '@app/models/user/user_roles.model';
-import UsersLogs from '@app/models/user/user_logs.model';
-import { ActiveEnum } from 'src/app/enums/active.enum';
-import { LoginRequestOTPDto } from './dto';
+import { ActiveEnum }          from 'src/app/enums/active.enum';
+import { LoginRequestOTPDto, RegisterDto } from './dto';
 
 interface LoginPayload {
     username: string
@@ -253,6 +252,64 @@ export class AuthService {
         } catch (error) {
             // Handle any unexpected errors
             throw new InternalServerErrorException('Failed to process the request. Please try again later.');
+        }
+    }
+
+    async register(body: RegisterDto): Promise<{ token: string; message: string }> {
+        // Check phone uniqueness
+        const existingPhone = await User.findOne({ where: { phone: body.phone } });
+        if (existingPhone) {
+            throw new ConflictException('Phone number is already registered.');
+        }
+
+        // Check email uniqueness (only if provided)
+        if (body.email) {
+            const existingEmail = await User.findOne({ where: { email: body.email } });
+            if (existingEmail) {
+                throw new ConflictException('Email address is already registered.');
+            }
+        }
+
+        // Find the CUSTOMER role
+        const customerRole = await Role.findOne({ where: { id: RoleEnum.CUSTOMER } });
+        if (!customerRole) {
+            throw new InternalServerErrorException('Customer role not configured. Please contact support.');
+        }
+
+        const transaction = await User.sequelize.transaction();
+        try {
+            const user = await User.create({
+                name      : body.name,
+                phone     : body.phone,
+                email     : body.email ?? null,
+                password  : body.password,
+                avatar    : 'static/pos/user/avatar.png',
+                creator_id: null,
+            }, { transaction });
+
+            await UserRoles.create({
+                user_id    : user.id,
+                role_id    : RoleEnum.CUSTOMER,
+                added_id   : user.id,
+                is_default : true,
+                created_at : new Date(),
+            }, { transaction });
+
+            await transaction.commit();
+
+            // Reload with roles for token generation
+            const fullUser = await User.findByPk(user.id, {
+                attributes: ['id', 'name', 'avatar', 'phone', 'email', 'password', 'created_at'],
+                include   : [Role],
+            });
+
+            const token = this.tokenGenerator.getToken(fullUser);
+            return { token, message: 'ចុះឈ្មោះបានដោយជោគជ័យ' };
+
+        } catch (error) {
+            await transaction.rollback();
+            if (error instanceof ConflictException || error instanceof InternalServerErrorException) throw error;
+            throw new InternalServerErrorException('Registration failed. Please try again.');
         }
     }
 
