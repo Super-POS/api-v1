@@ -29,7 +29,7 @@ export class SaleController {
     @Query("page") page?: number,
     @Query("limit") limit?: number,
     @Query("key") key?: string,
-    @Query("platform") platform?: string,
+    @Query("channel") platform?: string,
     @Query("startDate") startDate?: string,
     @Query("endDate") endDate?: string,
     @Query("sort") sort?: "ordered_at" | "total_price",

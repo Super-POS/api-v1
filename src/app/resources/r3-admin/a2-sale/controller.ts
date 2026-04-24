@@ -29,7 +29,7 @@ export class SaleController {
         
         //=========================>> Filter
         @Query('cashier')   cashier?    : number,
-        @Query('platform')  platform?   : string,
+        @Query('channel')   platform?   : string,
         @Query('from')      from?       : string,      
         @Query('to')        to?         : string,
         

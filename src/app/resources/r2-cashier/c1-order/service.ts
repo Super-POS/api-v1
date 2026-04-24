@@ -5,6 +5,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { Sequelize, Transaction } from 'sequelize';
 
 // =========================================================================>> Custom Library
+import { OrderStatusEnum }  from '@app/enums/order-status.enum';
 import { NotificationsGateway } from '@app/utils/notification-getway/notifications.gateway';
 import Notifications from '@app/models/notification/notification.model';
 import User from '@app/models/user/user.model';
@@ -63,11 +64,12 @@ export class OrderService {
 
             // Create an order using method create()
             const order = await Order.create({
-                cashier_id: cashierId,
-                platform: body.platform,
-                total_price: 0, // Initialize with 0, will update later
+                cashier_id   : cashierId,
+                channel      : body.channel,
+                status       : OrderStatusEnum.PENDING,
+                total_price  : 0,
                 receipt_number: await this._generateReceiptNumber(),
-                ordered_at: null, // Will be updated later
+                ordered_at   : null,
             }, { transaction });
 
             // Find Total Price & Order Details
@@ -109,7 +111,7 @@ export class OrderService {
 
             // Get order details for client response
             const data: Order = await Order.findByPk(order.id, {
-                attributes: ['id', 'receipt_number', 'total_price', 'platform', 'ordered_at'],
+                attributes: ['id', 'receipt_number', 'total_price', 'channel', 'status', 'ordered_at'],
                 include: [
                     {
                         model: OrderDetails,
@@ -146,7 +148,7 @@ export class OrderService {
             htmlMessage += `-អ្នកគិតលុយ`;
             htmlMessage += `\u2003\u2003 ៖ ${data.cashier?.name || ''}\n`;
             htmlMessage += `-តាមរយះ`;
-            htmlMessage += `\u2003\u2003\u2003 ៖ ${body.platform || ''}\n`;
+            htmlMessage += `\u2003\u2003\u2003 ៖ ${body.channel || ''}\n`;
             htmlMessage += `-កាលបរិច្ឆេទ\u2003\u2003៖ ${currentDateTime}\n`;
 
             // Send
