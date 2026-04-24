@@ -98,8 +98,8 @@ export class CashierExcelReportService {
         const end = new Date(`${endDate}T23:59:59`);
 
         // Adjust for UTC+7 (Cambodia time)
-        start.setHours(start.getHours() - start.getTimezoneOffset() / 60 + 7);
-        end.setHours(end.getHours() - end.getTimezoneOffset() / 60 + 7);
+        start.setHours(start.getHours() - start.getTimezoneOffset() / 60 - 7);
+        end.setHours(end.getHours() - end.getTimezoneOffset() / 60 - 7);
 
         return { start, end };
     }

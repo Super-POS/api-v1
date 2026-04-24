@@ -35,7 +35,7 @@ export class SalePDFReportService {
 
         const reportData = this.buildReportData(user, sumTotalPrice, formattedOrders, start, end);
 
-        return this.generateAndSendReport(reportData, process.env.JS_TEMPLATE_POS, 'Sale Report', 'របាយការណ៍លក់រាយ');
+        return this.generateAndSendReport(reportData, process.env.JS_TEMPLATE_POS, 'Coffee Shop Sale Report', 'របាយការណ៍លក់ហាងកាហ្វេ');
         // return reportData;
     }
 
@@ -106,8 +106,8 @@ export class SalePDFReportService {
         const end = new Date(`${endDate}T23:59:59`);
 
         // Adjust for UTC+7 (Cambodia time)
-        start.setHours(start.getHours() - start.getTimezoneOffset() / 60 + 7);
-        end.setHours(end.getHours() - end.getTimezoneOffset() / 60 + 7);
+        start.setHours(start.getHours() - start.getTimezoneOffset() / 60 - 7);
+        end.setHours(end.getHours() - end.getTimezoneOffset() / 60 - 7);
 
         return { start, end };
     }

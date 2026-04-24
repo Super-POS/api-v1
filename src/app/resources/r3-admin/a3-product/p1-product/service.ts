@@ -11,12 +11,14 @@ import { col, literal, Op, OrderItem } from "sequelize";
 // ===========================================================================>> Costom Library
 import OrderDetails from "@app/models/order/detail.model";
 import Order from "@app/models/order/order.model";
+import Ingredient from "@app/models/product/ingredient.model";
 import User from "@app/models/user/user.model";
 import { Col, Fn, Literal } from "sequelize/types/utils";
 import Product from "src/app/models/product/product.model";
+import RecipeItem from "src/app/models/product/recipe_item.model";
 import ProductType from "src/app/models/product/type.model";
 import { FileService } from "src/app/services/file.service";
-import { CreateProductDto, UpdateProductDto } from "./dto";
+import { CreateProductDto, RecipeIngredientDto, UpdateProductDto } from "./dto";
 export type Orders = Fn | Col | Literal | OrderItem[];
 
 @Injectable()
@@ -35,9 +37,14 @@ export class ProductService {
       const users = await User.findAll({
         attributes: ["id", "name"],
       });
+      const ingredients = await Ingredient.findAll({
+        attributes: ["id", "name", "unit", "stock", "low_stock_threshold"],
+        order: [["name", "ASC"]],
+      });
       return {
         productTypes,
         users,
+        ingredients,
       };
     } catch (error) {
       console.error("Error in setup method:", error); // Log the error for debugging
@@ -142,6 +149,7 @@ export class ProductService {
           "name",
           "image",
           "unit_price",
+          "stock",
           "created_at",
           [
             literal(`(
@@ -156,6 +164,19 @@ export class ProductService {
           {
             model: ProductType,
             attributes: ["id", "name"],
+          },
+          {
+            model: RecipeItem,
+            as: "recipe_items",
+            attributes: ["id", "ingredient_id", "qty_required"],
+            required: false,
+            separate: true,
+            include: [
+              {
+                model: Ingredient,
+                attributes: ["id", "name", "unit", "stock"],
+              },
+            ],
           },
           {
             model: OrderDetails,
@@ -176,9 +197,17 @@ export class ProductService {
 
       // Pagination info
       const totalPages = Math.ceil(count / params?.limit);
+      const data = rows.map((row) => {
+        const product = row.toJSON() as Product;
+        return {
+          ...product,
+          stock: this.calculateAvailableStockByRecipe(product),
+        };
+      });
+
       return {
         status: "success",
-        data: rows,
+        data,
         pagination: {
           page: params?.page,
           limit: params?.limit,
@@ -235,9 +264,12 @@ export class ProductService {
     creator_id: number
   ): Promise<{ data: Product; message: string }> {
     try {
+      const recipePayload = body.recipe ?? [];
+      const { recipe: _recipe, ...createPayload } = body;
+
       // Check if the product code already exists
       const checkExistCode = await Product.findOne({
-        where: { code: body.code },
+        where: { code: createPayload.code },
       });
       if (checkExistCode) {
         throw new BadRequestException(
@@ -247,7 +279,7 @@ export class ProductService {
 
       // Check if the product name already exists
       const checkExistName = await Product.findOne({
-        where: { name: body.name },
+        where: { name: createPayload.name },
       });
       if (checkExistName) {
         throw new BadRequestException(
@@ -258,7 +290,7 @@ export class ProductService {
       //   console.log("Before image upload");
       const result = await this.fileService.uploadBase64Image(
         "product",
-        body.image
+        createPayload.image
       );
       //   console.log("After image upload", result);
 
@@ -267,13 +299,15 @@ export class ProductService {
       }
 
       // Replace base64 string by file URI from FileService
-      body.image = result.data.uri;
+      createPayload.image = result.data.uri;
 
       //   console.log("Before product creation", body);
       const product = await Product.create({
-        ...body,
+        ...createPayload,
         creator_id,
       });
+
+      await this.syncRecipeItems(product.id, recipePayload);
       //   console.log("After product creation", product);
 
       const data = await Product.findByPk(product.id, {
@@ -283,6 +317,7 @@ export class ProductService {
           "name",
           "image",
           "unit_price",
+          "stock",
           "created_at",
           [
             literal(
@@ -297,6 +332,17 @@ export class ProductService {
             attributes: ["id", "name"],
           },
           {
+            model: RecipeItem,
+            as: "recipe_items",
+            attributes: ["id", "ingredient_id", "qty_required"],
+            include: [
+              {
+                model: Ingredient,
+                attributes: ["id", "name", "unit", "stock"],
+              },
+            ],
+          },
+          {
             model: OrderDetails,
             as: "pod",
             attributes: [],
@@ -308,8 +354,15 @@ export class ProductService {
         ],
       });
 
+      if (!data) {
+        throw new Error("Failed to retrieve created product");
+      }
+
+      const productData = data.toJSON() as Product;
+      productData.stock = this.calculateAvailableStockByRecipe(productData);
+
       return {
-        data: data,
+        data: productData,
         message: "Product has been created.",
       };
     } catch (error) {
@@ -324,6 +377,10 @@ export class ProductService {
     id: number
   ): Promise<{ data: Product; message: string }> {
     try {
+      const recipePayload = body.recipe ?? [];
+      const updatePayload: Partial<UpdateProductDto> = { ...body };
+      delete updatePayload.recipe;
+
     //   console.log("Starting product update for ID:", id);
     //   console.log("Update data:", body);
 
@@ -338,7 +395,7 @@ export class ProductService {
       const checkExistCode = await Product.findOne({
         where: {
           id: { [Op.not]: id },
-          code: body.code,
+          code: updatePayload.code,
         },
       });
       if (checkExistCode) {
@@ -352,7 +409,7 @@ export class ProductService {
       const checkExistName = await Product.findOne({
         where: {
           id: { [Op.not]: id },
-          name: body.name,
+          name: updatePayload.name,
         },
       });
       if (checkExistName) {
@@ -363,32 +420,34 @@ export class ProductService {
       }
 
       // Handle image update if provided
-      if (body.image) {
+      if (updatePayload.image) {
         // console.log("Processing image update");
         const result = await this.fileService.uploadBase64Image(
           "product",
-          body.image
+          updatePayload.image
         );
         // console.log("Image upload result:", result);
 
         if (result.message !== "File has been uploaded to file service") {
           throw new BadRequestException("Failed to upload image");
         }
-        body.image = result.data.uri;
+        updatePayload.image = result.data.uri;
       } else {
         // Keep existing image if not provided in update
-        body.image = checkExist.image;
+        updatePayload.image = checkExist.image;
       }
 
       // Perform the update
     //   console.log("Executing update query");
-      const [rowsAffected] = await Product.update(body, {
+      const [rowsAffected] = await Product.update(updatePayload, {
         where: { id: id },
       });
 
       if (rowsAffected === 0) {
         throw new Error("No rows were affected by the update");
       }
+
+      await this.syncRecipeItems(id, recipePayload);
 
       // Retrieve updated product
     //   console.log("Fetching updated product");
@@ -399,6 +458,7 @@ export class ProductService {
           "name",
           "image",
           "unit_price",
+          "stock",
           "created_at",
           [
             literal(
@@ -411,6 +471,17 @@ export class ProductService {
           {
             model: ProductType,
             attributes: ["id", "name"],
+          },
+          {
+            model: RecipeItem,
+            as: "recipe_items",
+            attributes: ["id", "ingredient_id", "qty_required"],
+            include: [
+              {
+                model: Ingredient,
+                attributes: ["id", "name", "unit", "stock"],
+              },
+            ],
           },
           {
             model: OrderDetails,
@@ -428,14 +499,84 @@ export class ProductService {
         throw new Error("Failed to retrieve updated product");
       }
 
+      const productData = data.toJSON() as Product;
+      productData.stock = this.calculateAvailableStockByRecipe(productData);
+
       return {
-        data: data,
+        data: productData,
         message: "Product has been updated.",
       };
     } catch (error) {
       console.error("Error in product update:", error);
       throw error;
     }
+  }
+
+  private calculateAvailableStockByRecipe(product: Product): number {
+    const recipeItems = product.recipe_items || [];
+    if (recipeItems.length === 0) {
+      return Number(product.stock || 0);
+    }
+
+    let available = Number.MAX_SAFE_INTEGER;
+    for (const item of recipeItems) {
+      const ingredientStock = Number(item.ingredient?.stock || 0);
+      const qtyRequired = Number(item.qty_required || 0);
+
+      if (qtyRequired <= 0) {
+        continue;
+      }
+
+      available = Math.min(available, Math.floor(ingredientStock / qtyRequired));
+    }
+
+    return available === Number.MAX_SAFE_INTEGER ? 0 : Math.max(0, available);
+  }
+
+  private normalizeRecipeItems(recipe: RecipeIngredientDto[] = []): { ingredient_id: number; qty_required: number }[] {
+    const normalized = recipe
+      .map((item) => ({
+        ingredient_id: Number(item.ingredient_id),
+        qty_required: Number(item.qty_required),
+      }))
+      .filter((item) => item.ingredient_id > 0 && item.qty_required > 0);
+
+    // Merge duplicates by ingredient id to keep one line per ingredient.
+    const aggregated = new Map<number, number>();
+    for (const item of normalized) {
+      aggregated.set(item.ingredient_id, (aggregated.get(item.ingredient_id) ?? 0) + item.qty_required);
+    }
+
+    return Array.from(aggregated.entries()).map(([ingredient_id, qty_required]) => ({
+      ingredient_id,
+      qty_required,
+    }));
+  }
+
+  private async syncRecipeItems(productId: number, recipe: RecipeIngredientDto[] = []): Promise<void> {
+    const normalized = this.normalizeRecipeItems(recipe);
+
+    if (normalized.length > 0) {
+      const ingredientIds = normalized.map((item) => item.ingredient_id);
+      const ingredientCount = await Ingredient.count({ where: { id: { [Op.in]: ingredientIds } } });
+      if (ingredientCount !== ingredientIds.length) {
+        throw new BadRequestException("Some recipe ingredients are invalid.");
+      }
+    }
+
+    await RecipeItem.destroy({ where: { product_id: productId } });
+
+    if (normalized.length === 0) {
+      return;
+    }
+
+    await RecipeItem.bulkCreate(
+      normalized.map((item) => ({
+        product_id: productId,
+        ingredient_id: item.ingredient_id,
+        qty_required: item.qty_required,
+      }))
+    );
   }
 
   // Method to delete a product by ID

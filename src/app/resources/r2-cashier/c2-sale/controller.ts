@@ -26,8 +26,9 @@ export class SaleController {
   @Get()
   async getAllSale(
     @UserDecorator() auth: User,
-    @Query("page") page?: number,
-    @Query("limit") limit?: number,
+    @Query("page") page?: number | string,
+    @Query("limit") limit?: number | string,
+    @Query("page_size") pageSize?: number | string,
     @Query("key") key?: string,
     @Query("platform") platform?: string,
     @Query("startDate") startDate?: string,
@@ -35,14 +36,18 @@ export class SaleController {
     @Query("sort") sort?: "ordered_at" | "total_price",
     @Query("order") order?: "ASC" | "DESC"
   ) {
-    // Set default values if not provided
-    page = !page ? 1 : page;
-    limit = !limit ? 10 : limit;
+    // Set default values if not provided (Angular sends `page_size`, older clients may send `limit`)
+    const toPositiveInt = (value: unknown, fallback: number): number => {
+      const n = Number(value);
+      return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+    };
+    const resolvedLimit = toPositiveInt(limit ?? pageSize, 10);
+    const resolvedPage = toPositiveInt(page, 1);
 
     return await this._service.getData(
       auth.id,
-      limit,
-      page,
+      resolvedLimit,
+      resolvedPage,
       key,
       platform,
       startDate,

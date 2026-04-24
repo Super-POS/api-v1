@@ -38,7 +38,7 @@ export class ProductPDFService {
 
         const reportData = this.buildReportData(user, totalSales, productData, start, end, totalQty);
 
-        return this.generateAndSendReport(reportData, process.env.JS_TEMPLATE_PRODUCT, 'Product Sales Report', 'របាយការណ៍លក់តាមផលិតផល');
+        return this.generateAndSendReport(reportData, process.env.JS_TEMPLATE_PRODUCT, 'Menu Sales Report', 'របាយការណ៍លក់តាមម៉ឺនុយ');
         // return reportData;
     }
 
@@ -140,8 +140,8 @@ export class ProductPDFService {
         const end = new Date(`${endDate}T23:59:59`);
 
         // Adjust for UTC+7 (Cambodia time)
-        start.setHours(start.getHours() - start.getTimezoneOffset() / 60 + 7);
-        end.setHours(end.getHours() - end.getTimezoneOffset() / 60 + 7);
+        start.setHours(start.getHours() - start.getTimezoneOffset() / 60 - 7);
+        end.setHours(end.getHours() - end.getTimezoneOffset() / 60 - 7);
 
         return { start, end };
     }

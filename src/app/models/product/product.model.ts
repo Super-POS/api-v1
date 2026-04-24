@@ -4,6 +4,7 @@ import { BelongsTo, Column, DataType, ForeignKey, HasMany, Model, Table } from '
 // ================================================================================================= Custom Library
 import OrderDetails from '@app/models/order/detail.model';
 import User from '@app/models/user/user.model';
+import RecipeItem from './recipe_item.model';
 import ProductType from './type.model';
 
 @Table({ tableName: 'product', createdAt: 'created_at', updatedAt: 'updated_at' })
@@ -23,6 +24,7 @@ class Product extends Model<Product> {
     @Column({ allowNull: true, type: DataType.DOUBLE })                                             unit_price?: number;
 
     @Column({ allowNull: false, type: DataType.DECIMAL(10, 2), defaultValue: 0 })                   discount: number;
+    @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          stock: number;
     created_at: Date
     // ===========================================================================================>> Many to One
     @BelongsTo(() => ProductType)                                                                  type: ProductType;
@@ -30,6 +32,7 @@ class Product extends Model<Product> {
 
     // ===========================================================================================>> One to Many
     @HasMany(() => OrderDetails)                                                                    pod: OrderDetails[];
+    @HasMany(() => RecipeItem)                                                                      recipe_items: RecipeItem[];
 }
 
 export default Product;

@@ -97,14 +97,17 @@ export class SaleService {
         include: [
           {
             model: OrderDetails,
+            as: "details",
             attributes: ["id", "unit_price", "qty"],
             include: [
               {
                 model: Product,
+                as: "product",
                 attributes: ["id", "name", "code", "image"],
                 include: [
                   {
                     model: ProductType,
+                    as: "type",
                     attributes: ["name"],
                   },
                 ],
@@ -113,6 +116,7 @@ export class SaleService {
           },
           {
             model: User,
+            as: "cashier",
             attributes: ["id", "avatar", "name"],
           },
         ],
@@ -132,10 +136,16 @@ export class SaleService {
         status: "success",
         data: data,
         pagination: {
+          // Legacy keys
           page: page,
-          limit: limit, // Updated to use limit
+          limit: limit,
           totalPage: totalPages,
           total: totalCount,
+          // Web cashier keys
+          currentPage: page,
+          perPage: limit,
+          totalItems: totalCount,
+          totalPages: totalPages,
         },
       };
 
@@ -158,14 +168,17 @@ export class SaleService {
         include: [
           {
             model: OrderDetails,
+            as: "details",
             attributes: ["id", "unit_price", "qty"],
             include: [
               {
                 model: Product,
+                as: "product",
                 attributes: ["id", "name", "code", "image"],
                 include: [
                   {
                     model: ProductType,
+                    as: "type",
                     attributes: ["name"],
                   },
                 ],
@@ -174,6 +187,7 @@ export class SaleService {
           },
           {
             model: User,
+            as: "cashier",
             attributes: ["id", "avatar", "name"],
           },
         ],

@@ -7,6 +7,7 @@ import { DeviceTrackerMiddleware } from '@app/core/middlewares/device-tracker.mi
 import { DashboardModule } from './a1-dashbord/module';
 import { ProductModule } from './a3-product/p1-product/module';
 import { ProductTypeModule } from './a3-product/p2-type/module';
+import { IngredientModule } from './a3-product/p3-ingredient/module';
 import { SaleModule } from './a2-sale/module';
 import { UserModule } from './a4-user/module';
 
@@ -17,6 +18,7 @@ import { UserModule } from './a4-user/module';
         SaleModule,
         ProductModule,
         ProductTypeModule,
+        IngredientModule,
         UserModule
     ]
 })

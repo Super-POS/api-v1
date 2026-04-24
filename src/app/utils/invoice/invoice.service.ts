@@ -52,7 +52,7 @@ export class InvoiceService {
 
         const dataWithServiceTitle = {
             ...data,
-            title_of_service: 'CamCyber POS',
+            title_of_service: 'Club54 Coffee Shop',
         };
         // Get the report template
         const template = process.env.JS_TEMPLATE;
@@ -114,7 +114,7 @@ export class InvoiceService {
 
         const dataWithServiceTitle = data.map(order => ({
             ...order,
-            title_of_service: 'Car Service',
+            title_of_service: 'Club54 Coffee Shop',
         }));
 
         // Get the report template
