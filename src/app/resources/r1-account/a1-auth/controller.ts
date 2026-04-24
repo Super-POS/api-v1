@@ -5,13 +5,18 @@ import { BadRequestException, Body, Controller, HttpCode, HttpStatus, Post, Req,
 import UserDecorator from '@app/core/decorators/user.decorator';
 import { RoleExistsPipe } from '@app/core/pipes/role.pipe';
 import User from '@app/models/user/user.model';
-import { LoginRequestDto, LoginRequestOTPDto } from './dto';
+import { LoginRequestDto, LoginRequestOTPDto, RegisterDto } from './dto';
 import { AuthService } from './service';
 
 @Controller()
 export class AuthController {
 
     constructor(private readonly authService: AuthService) { }
+
+    @Post('register')
+    async register(@Body() body: RegisterDto) {
+        return await this.authService.register(body);
+    }
 
     @Post('login')
     @HttpCode(HttpStatus.OK)

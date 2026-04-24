@@ -1,6 +1,6 @@
 
 // ===========================================================================>> Core Library
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 
 // ===========================================================================>> Costom Library
 import User from '@app/models/user/user.model';
@@ -61,4 +61,24 @@ export class LoginRequestOTPDto {
     @IsString()
     @IsNotEmpty({ message: "Filed platform is required Mobile or Web" })
     platform: string;
+}
+
+export class RegisterDto {
+
+    @IsString()
+    @IsNotEmpty({ message: 'Name is required' })
+    name: string;
+
+    @IsString()
+    @IsNotEmpty({ message: 'Phone is required' })
+    phone: string;
+
+    @IsOptional()
+    @IsEmail({}, { message: 'Invalid email format' })
+    email?: string;
+
+    @IsString()
+    @IsNotEmpty({ message: 'Password is required' })
+    @MinLength(6, { message: 'Password must be at least 6 characters' })
+    password: string;
 }
