@@ -5,6 +5,7 @@ import { BelongsTo, Column, DataType, ForeignKey, HasMany, Model, Table } from '
 import OrderDetails from '@app/models/order/detail.model';
 import User from '@app/models/user/user.model';
 import ProductType from './type.model';
+import ProductIngredient from './ingredient.model';
 
 @Table({ tableName: 'product', createdAt: 'created_at', updatedAt: 'updated_at' })
 class Product extends Model<Product> {
@@ -30,6 +31,7 @@ class Product extends Model<Product> {
 
     // ===========================================================================================>> One to Many
     @HasMany(() => OrderDetails)                                                                    pod: OrderDetails[];
+    @HasMany(() => ProductIngredient)                                                               ingredients: ProductIngredient[];
 }
 
 export default Product;
