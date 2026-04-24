@@ -1,6 +1,8 @@
-import OrderDetails from "@app/models/order/detail.model";
-import Order from "@app/models/order/order.model";
-import Product from "@app/models/product/product.model";
+import { OrderChannelEnum } from "@app/enums/order-channel.enum";
+import { OrderStatusEnum }  from "@app/enums/order-status.enum";
+import OrderDetails         from "@app/models/order/detail.model";
+import Order                from "@app/models/order/order.model";
+import Product              from "@app/models/product/product.model";
 
 export class OrderSeeder {
     public static async seed() {
@@ -27,15 +29,22 @@ export class OrderSeeder {
     }
 
     private static async seedOrders() {
+        const channels = Object.values(OrderChannelEnum);
+        const statuses = Object.values(OrderStatusEnum);
         const ordersData = [];
 
         for (let i = 1; i <= 100; i++) {
             const receiptNumber = await OrderSeeder.generateReceiptNumber();
+            const channel       = channels[Math.floor(Math.random() * channels.length)];
+            const status        = statuses[Math.floor(Math.random() * statuses.length)];
             ordersData.push({
-                receipt_number      : receiptNumber+'',
-                cashier_id          : Math.floor(Math.random() * (4 - 1) + 1),
-                total_price         : 0,
-                ordered_at          : new Date(),
+                receipt_number : receiptNumber + '',
+                cashier_id     : channel === OrderChannelEnum.WALK_IN ? Math.floor(Math.random() * (4 - 1) + 1) : null,
+                customer_id    : channel !== OrderChannelEnum.WALK_IN ? Math.floor(Math.random() * (4 - 1) + 1) : null,
+                total_price    : 0,
+                ordered_at     : new Date(),
+                channel,
+                status,
             });
         }
 

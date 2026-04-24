@@ -67,7 +67,7 @@ export class SaleService {
                 { [Op.like]: `%${key}%` }
               )
             : null,
-          platform !== null && platform !== undefined ? { platform } : null,
+          platform !== null && platform !== undefined ? { channel: platform } : null,
           start && end ? { ordered_at: { [Op.between]: [start, end] } } : null,
         ].filter(Boolean), // Remove null or undefined filters
       };
@@ -91,7 +91,8 @@ export class SaleService {
           "id",
           "receipt_number",
           "total_price",
-          "platform",
+          "channel",
+          "status",
           "ordered_at",
         ],
         include: [
@@ -152,7 +153,8 @@ export class SaleService {
           "id",
           "receipt_number",
           "total_price",
-          "platform",
+          "channel",
+          "status",
           "ordered_at",
         ],
         include: [

@@ -81,9 +81,9 @@ export class SaleService {
                 where.cashier_id = params.cashier; 
             }
 
-            // By Platform
+            // By Channel
             if (params?.platform !== null && params.platform !== undefined && params.platform !== "") { 
-                where.platform = params.platform; 
+                where.channel = params.platform; 
             }
 
             // By Date Range
@@ -115,7 +115,7 @@ export class SaleService {
 
             // ===>> Query Data from Database
             const { rows, count }  = await Order.findAndCountAll({
-                attributes: ['id', 'receipt_number', 'total_price', 'platform', 'ordered_at'],
+                attributes: ['id', 'receipt_number', 'total_price', 'channel', 'status', 'ordered_at'],
                 include: [
                     {
                         model: OrderDetails,

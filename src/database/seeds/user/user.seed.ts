@@ -56,44 +56,74 @@ export class UserSeeder {
 
 // Mock-data
 const data = {
-    roles: [{ name: 'អ្នកគ្រប់គ្រង', slug: 'admin' }, { name: 'អ្នកគិតប្រាក់', slug: 'cashier' }],
+    roles: [
+        { name: 'អ្នកគ្រប់គ្រង', slug: 'admin'    },  // id: 1
+        { name: 'អ្នកគិតប្រាក់', slug: 'cashier'  },  // id: 2
+        { name: 'អតិថិជន',       slug: 'customer' },  // id: 3
+    ],
     users: [
+        // ── Staff ────────────────────────────────────────────────────────────
         {
-            name: 'ចាន់​ សុវ៉ាន់ណេត',
-            phone: '0889566929',
-            email: 'chansuvannet999@gmail.com',
-            password: '123456',
-            avatar: 'static/pos/user/avatar.png',
+            name      : 'ចាន់​ សុវ៉ាន់ណេត',
+            phone     : '0889566929',
+            email     : 'chansuvannet999@gmail.com',
+            password  : '123456',
+            avatar    : 'static/pos/user/avatar.png',
             creator_id: 1,
             created_at: new Date(),
             updated_at: new Date(),
         },
         {
-            name: 'Heng Tongsour',
-            phone: '0889566930',
-            email: 'hengtongsour@gmail.com',
-            password: '123456',
-            avatar: 'static/pos/user/avatar.png',
+            name      : 'Heng Tongsour',
+            phone     : '0889566930',
+            email     : 'hengtongsour@gmail.com',
+            password  : '123456',
+            avatar    : 'static/pos/user/avatar.png',
             creator_id: 1,
             created_at: new Date(),
             updated_at: new Date(),
         },
         {
-            name: 'ENG SOKCHHENG',
-            phone: '012894154',
-            email: 'engsokchheng@gmail.com',
-            password: '123456',
-            avatar: 'static/pos/user/avatar.png',
+            name      : 'ENG SOKCHHENG',
+            phone     : '012894154',
+            email     : 'engsokchheng@gmail.com',
+            password  : '123456',
+            avatar    : 'static/pos/user/avatar.png',
+            creator_id: 1,
+            created_at: new Date(),
+            updated_at: new Date(),
+        },
+        // ── Customers ────────────────────────────────────────────────────────
+        {
+            name      : 'Sok Dara',
+            phone     : '0971234567',
+            email     : 'sokdara@gmail.com',
+            password  : '123456',
+            avatar    : 'static/pos/user/avatar.png',
+            creator_id: 1,
+            created_at: new Date(),
+            updated_at: new Date(),
+        },
+        {
+            name      : 'Chan Srey',
+            phone     : '0857654321',
+            email     : 'chansrey@gmail.com',
+            password  : '123456',
+            avatar    : 'static/pos/user/avatar.png',
             creator_id: 1,
             created_at: new Date(),
             updated_at: new Date(),
         },
     ],
     user_roles: [
-        { user_id: 1, role_id: RoleEnum.ADMIN, added_id: 1, created_at: new Date(), is_default: true },
-        { user_id: 1, role_id: RoleEnum.CASHIER, added_id: 1, created_at: new Date() },
-        { user_id: 2, role_id: RoleEnum.CASHIER, added_id: 1, created_at: new Date(), is_default: true },
-        { user_id: 3, role_id: RoleEnum.CASHIER, added_id: 1, created_at: new Date(), is_default: true },
+        // ── Staff roles ──────────────────────────────────────────────────────
+        { user_id: 1, role_id: RoleEnum.ADMIN,    added_id: 1, created_at: new Date(), is_default: true  },
+        { user_id: 1, role_id: RoleEnum.CASHIER,  added_id: 1, created_at: new Date(), is_default: false },
+        { user_id: 2, role_id: RoleEnum.CASHIER,  added_id: 1, created_at: new Date(), is_default: true  },
+        { user_id: 3, role_id: RoleEnum.CASHIER,  added_id: 1, created_at: new Date(), is_default: true  },
+        // ── Customer roles ───────────────────────────────────────────────────
+        { user_id: 4, role_id: RoleEnum.CUSTOMER, added_id: 1, created_at: new Date(), is_default: true  },
+        { user_id: 5, role_id: RoleEnum.CUSTOMER, added_id: 1, created_at: new Date(), is_default: true  },
     ],
 };
 
