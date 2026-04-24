@@ -15,7 +15,7 @@ export class OrderController {
 
     constructor(private readonly _service: OrderService) { };
 
-    @Get('products')
+    @Get('menus')
     async getProducts(): Promise<{ data: { id: number, name: string, products: Product[] }[] }> {
         return await this._service.getProducts();
     }

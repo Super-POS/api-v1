@@ -20,6 +20,9 @@ class SeederInitializer {
     }
 
     private async confirmSeeding(): Promise<boolean> {
+        if (process.env.AUTO_CONFIRM === 'true' || !process.stdin.isTTY) {
+            return true;
+        }
         const tableNames = await this.sequelize.getQueryInterface().showAllTables();
         if (tableNames.length > 0) {
             const message = 'This will drop and seed again. Are you sure you want to proceed?'.yellow;

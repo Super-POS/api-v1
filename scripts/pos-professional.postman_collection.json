@@ -1,0 +1,1031 @@
+{
+  "info": {
+    "_postman_id": "b8cb80a8-5d3a-4ff8-a7ee-81b7af5a89fd",
+    "name": "CoffeeShop POS - Full API (Professional)",
+    "description": "Full API test collection generated from current NestJS routes in api-v1.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "1) Account",
+      "item": [
+        {
+          "name": "Auth - Login",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\",\n  \"platform\": \"Web\"\n}"
+            },
+            "url": "{{baseUrl}}/api/account/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "if (json?.data?.access_token) {",
+                  "  pm.collectionVariables.set('accessToken', json.data.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Auth - Register",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"phone\": \"012345678\",\n  \"email\": \"test@example.com\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/api/account/auth/register"
+          }
+        },
+        {
+          "name": "Auth - Check User",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/account/auth/check-user"
+          }
+        },
+        {
+          "name": "Auth - Send OTP",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/account/auth/send-otp"
+          }
+        },
+        {
+          "name": "Auth - Verify OTP",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"otp\": \"000000\",\n  \"platform\": \"Web\"\n}"
+            },
+            "url": "{{baseUrl}}/api/account/auth/verify-otp"
+          }
+        },
+        {
+          "name": "Auth - Switch Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role_id\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/account/auth/switch"
+          }
+        },
+        {
+          "name": "Profile - Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"phone\": \"012345678\",\n  \"email\": \"updated@example.com\",\n  \"avatar\": \"\"\n}"
+            },
+            "url": "{{baseUrl}}/api/account/profile/update"
+          }
+        },
+        {
+          "name": "Profile - Update Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"123456\",\n  \"confirm_password\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/api/account/profile/update-password"
+          }
+        },
+        {
+          "name": "Profile - Logs",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/account/profile/logs?page=1&page_size=10"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2) Admin",
+      "item": [
+        {
+          "name": "Dashboard - Summary",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/dashboard"
+          }
+        },
+        {
+          "name": "Dashboard - Cashier",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/dashboard/cashier"
+          }
+        },
+        {
+          "name": "Dashboard - Menu Category",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/dashboard/menu-category"
+          }
+        },
+        {
+          "name": "Dashboard - Data Sale",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/dashboard/data-sale"
+          }
+        },
+        {
+          "name": "Sales - Setup",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/sales/setup"
+          }
+        },
+        {
+          "name": "Sales - List",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/sales?page=1&limit=10"
+          }
+        },
+        {
+          "name": "Sales - Delete",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/sales/{{saleId}}"
+          }
+        },
+        {
+          "name": "Menus - Setup Data",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/menus/setup-data"
+          }
+        },
+        {
+          "name": "Menus - List",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/menus?page=1&limit=10"
+          }
+        },
+        {
+          "name": "Menus - View",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/menus/{{menuId}}"
+          }
+        },
+        {
+          "name": "Menus - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cafe Latte\",\n  \"code\": \"LATTE-001\",\n  \"type_id\": 1,\n  \"unit_price\": 2.5,\n  \"image\": \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/menus"
+          }
+        },
+        {
+          "name": "Menus - Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cafe Latte Updated\",\n  \"code\": \"LATTE-001\",\n  \"type_id\": 1,\n  \"unit_price\": 3,\n  \"image\": \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/menus/{{menuId}}"
+          }
+        },
+        {
+          "name": "Menus - Delete",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/menus/{{menuId}}"
+          }
+        },
+        {
+          "name": "Menu Categories - List",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/menu/categories"
+          }
+        },
+        {
+          "name": "Menu Categories - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Coffee\",\n  \"image\": \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/menu/categories"
+          }
+        },
+        {
+          "name": "Menu Categories - Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Coffee Updated\",\n  \"image\": \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/menu/categories/{{menuCategoryId}}"
+          }
+        },
+        {
+          "name": "Menu Categories - Delete",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/menu/categories/{{menuCategoryId}}"
+          }
+        },
+        {
+          "name": "Ingredients - List",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/menu/ingredients"
+          }
+        },
+        {
+          "name": "Ingredients - List by Menu",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/menu/ingredients"
+          }
+        },
+        {
+          "name": "Ingredients - View",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/menu/ingredients/{{ingredientId}}"
+          }
+        },
+        {
+          "name": "Ingredients - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Milk\",\n  \"unit\": \"ml\",\n  \"quantity\": 30\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/menu/ingredients"
+          }
+        },
+        {
+          "name": "Ingredients - Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Milk Updated\",\n  \"unit\": \"ml\",\n  \"quantity\": 40\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/menu/ingredients/{{ingredientId}}"
+          }
+        },
+        {
+          "name": "Ingredients - Delete",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/menu/ingredients/{{ingredientId}}"
+          }
+        },
+        {
+          "name": "Users - Setup",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/users/setup"
+          }
+        },
+        {
+          "name": "Users - List",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/users?page=1&page_size=10"
+          }
+        },
+        {
+          "name": "Users - View",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}"
+          }
+        },
+        {
+          "name": "Users - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Staff User\",\n  \"role_ids\": [2],\n  \"phone\": \"012345678\",\n  \"email\": \"staff@example.com\",\n  \"password\": \"123456\",\n  \"avatar\": \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/users"
+          }
+        },
+        {
+          "name": "Users - Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Staff User Updated\",\n  \"role_ids\": [2],\n  \"phone\": \"012345678\",\n  \"email\": \"staff.updated@example.com\",\n  \"avatar\": \"\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}"
+          }
+        },
+        {
+          "name": "Users - Update Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/users/status/{{userId}}"
+          }
+        },
+        {
+          "name": "Users - Update Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"confirm_password\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/users/update-password/{{userId}}"
+          }
+        },
+        {
+          "name": "Users - Delete",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/users/{{userId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3) Cashier",
+      "item": [
+        {
+          "name": "Ordering - Menus",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/cashier/ordering/menus"
+          }
+        },
+        {
+          "name": "Ordering - Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cart\": \"[{\\\"menu_id\\\":1,\\\"quantity\\\":2}]\",\n  \"channel\": \"POS\"\n}"
+            },
+            "url": "{{baseUrl}}/api/cashier/ordering/order"
+          }
+        },
+        {
+          "name": "Sales - Setup",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/cashier/sales/setup"
+          }
+        },
+        {
+          "name": "Sales - List",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/cashier/sales?page=1&limit=10"
+          }
+        },
+        {
+          "name": "Sales - View Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/cashier/sales/{{saleId}}/view"
+          }
+        },
+        {
+          "name": "Sales - Delete",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/cashier/sales/{{saleId}}"
+          }
+        },
+        {
+          "name": "Orders - List",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/cashier/orders"
+          }
+        },
+        {
+          "name": "Orders - List by Status",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/cashier/orders?status=pending"
+          }
+        },
+        {
+          "name": "Orders - Accept",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/cashier/orders/{{orderId}}/accept"
+          }
+        },
+        {
+          "name": "Orders - Start",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/cashier/orders/{{orderId}}/start"
+          }
+        },
+        {
+          "name": "Orders - Ready",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/cashier/orders/{{orderId}}/ready"
+          }
+        },
+        {
+          "name": "Orders - Complete",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/cashier/orders/{{orderId}}/complete"
+          }
+        },
+        {
+          "name": "Orders - Cancel",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/cashier/orders/{{orderId}}/cancel"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4) Customer",
+      "item": [
+        {
+          "name": "Orders - Place",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cart\": \"[{\\\"menu_id\\\":1,\\\"quantity\\\":1}]\",\n  \"channel\": \"WEBSITE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/customer/orders"
+          }
+        },
+        {
+          "name": "Orders - My History",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customer/orders?page=1&limit=10"
+          }
+        },
+        {
+          "name": "Orders - Track One",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customer/orders/{{orderId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5) Share / Utilities",
+      "item": [
+        {
+          "name": "Notifications - List",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/share/notifications"
+          }
+        },
+        {
+          "name": "Notifications - Mark Read",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/share/notifications/{{notificationId}}/read"
+          }
+        },
+        {
+          "name": "Notifications - Delete",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/share/notifications/{{notificationId}}"
+          }
+        },
+        {
+          "name": "Notifications - Send Email Test",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/share/notifications/send-email"
+          }
+        },
+        {
+          "name": "Invoice - Order Invoice",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/share/print/order-invoice/{{receiptNumber}}"
+          }
+        },
+        {
+          "name": "Report - Sale",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/share/report/generate-sale-report?startDate=2026-01-01&endDate=2026-12-31&report_type=PDF"
+          }
+        },
+        {
+          "name": "Report - Menu",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/share/report/generate-menu-report?startDate=2026-01-01&endDate=2026-12-31&report_type=PDF"
+          }
+        },
+        {
+          "name": "Report - Cashier",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/share/report/generate-cashier-report?startDate=2026-01-01&endDate=2026-12-31&report_type=PDF"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6) Testing",
+      "item": [
+        {
+          "name": "Basic - Sum 1",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/testing/basic/sum-1"
+          }
+        },
+        {
+          "name": "Basic - Sum 2",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/testing/basic/sum-2?a=1&b=2"
+          }
+        },
+        {
+          "name": "Basic - Sqrt Root",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/testing/basic/sqrt-root?a=1&b=2&c=3"
+          }
+        },
+        {
+          "name": "Upload - Base64 File",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"folder\": \"test\",\n  \"image\": \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA\"\n}"
+            },
+            "url": "{{baseUrl}}/api/testing/upload/file"
+          }
+        },
+        {
+          "name": "Telegram - Me",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/testing/telegram/me"
+          }
+        },
+        {
+          "name": "Telegram - Send Message",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"botToken\": \"<bot-token>\",\n  \"chatId\": \"<chat-id>\",\n  \"message\": \"Hello from Postman\"\n}"
+            },
+            "url": "{{baseUrl}}/api/testing/telegram/send-message"
+          }
+        },
+        {
+          "name": "Telegram - Send Location",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"botToken\": \"<bot-token>\",\n  \"chatId\": \"<chat-id>\",\n  \"latitude\": 11.5564,\n  \"longitude\": 104.9282\n}"
+            },
+            "url": "{{baseUrl}}/api/testing/telegram/send-location"
+          }
+        },
+        {
+          "name": "Telegram - Send File",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "botToken",
+                  "value": "<bot-token>",
+                  "type": "text"
+                },
+                {
+                  "key": "chatId",
+                  "value": "<chat-id>",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/testing/telegram/send-file"
+          }
+        },
+        {
+          "name": "Testing - My Profile GET",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/testing/my-profile"
+          }
+        },
+        {
+          "name": "Testing - My Profile POST",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "url": "{{baseUrl}}/api/testing/my-profile"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7) Root Endpoints (Direct Modules)",
+      "item": [
+        {
+          "name": "Root - Send Email (SMSModule)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"smtpUser\": \"example@gmail.com\",\n  \"smtpPass\": \"app-password\",\n  \"toEmail\": \"receiver@gmail.com\",\n  \"message\": \"Hello\"\n}"
+            },
+            "url": "{{baseUrl}}/send-message"
+          }
+        },
+        {
+          "name": "Root - Send File (SMSModule)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "smtpUser",
+                  "value": "example@gmail.com",
+                  "type": "text"
+                },
+                {
+                  "key": "smtpPass",
+                  "value": "app-password",
+                  "type": "text"
+                },
+                {
+                  "key": "toEmail",
+                  "value": "receiver@gmail.com",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/send-file"
+          }
+        },
+        {
+          "name": "Root - Report Me (ReportJSModule)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": "{{baseUrl}}/me"
+          }
+        },
+        {
+          "name": "Root - Generate Report (ReportJSModule)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"password\",\n  \"baseURL\": \"http://localhost:9005\",\n  \"template\": \"template-name\",\n  \"data\": {}\n}"
+            },
+            "url": "{{baseUrl}}/generate-report"
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('baseUrl')) {",
+          "  pm.collectionVariables.set('baseUrl', 'http://localhost:9003');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:9003"
+    },
+    {
+      "key": "username",
+      "value": "0889566929"
+    },
+    {
+      "key": "password",
+      "value": "123456"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": "1"
+    },
+    {
+      "key": "menuId",
+      "value": "1"
+    },
+    {
+      "key": "menuCategoryId",
+      "value": "1"
+    },
+    {
+      "key": "ingredientId",
+      "value": "1"
+    },
+    {
+      "key": "saleId",
+      "value": "1"
+    },
+    {
+      "key": "orderId",
+      "value": "1"
+    },
+    {
+      "key": "notificationId",
+      "value": "1"
+    },
+    {
+      "key": "receiptNumber",
+      "value": "1001"
+    }
+  ]
+}

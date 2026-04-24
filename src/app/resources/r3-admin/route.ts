@@ -4,9 +4,9 @@ import { Routes } from '@nestjs/core';
 // ===========================================================================>> Custom Library
 import { DashboardModule }           from './a1-dashbord/module';
 import { SaleModule }                from './a2-sale/module';
-import { ProductModule }             from './a3-product/p1-product/module';
-import { ProductTypeModule }         from './a3-product/p2-type/module';
-import { ProductIngredientModule }   from './a3-product/p3-ingredient/module';
+import { ProductModule }             from './a3-menu/p1-menu/module';
+import { ProductTypeModule }         from './a3-menu/p2-category/module';
+import { ProductIngredientModule }   from './a3-menu/p3-ingredient/module';
 import { UserModule }                from './a4-user/module';
 
 export const adminRoutes: Routes = [
@@ -21,17 +21,17 @@ export const adminRoutes: Routes = [
     },
 
     {
-        path: 'products',
+        path: 'menus',
         module: ProductModule
     },
 
     {
-        path: 'product/types',
+        path: 'menu/categories',
         module: ProductTypeModule
     },
 
     {
-        path: 'product/ingredients',
+        path: 'menu/ingredients',
         module: ProductIngredientModule
     },
 

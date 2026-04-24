@@ -32,6 +32,39 @@ const DETAIL_INCLUDES  = [
 @Injectable()
 export class CustomerOrderService {
 
+    private _normalizeCartItems(rawCart: unknown): Array<{ menuId: number; qty: number }> {
+        const parsed = typeof rawCart === 'string' ? JSON.parse(rawCart) : rawCart;
+
+        if (Array.isArray(parsed)) {
+            return parsed
+                .map((item: any) => ({
+                    menuId: Number(item?.menu_id ?? item?.product_id ?? item?.id),
+                    qty: Number(item?.quantity ?? item?.qty ?? 0),
+                }))
+                .filter((item) => Number.isFinite(item.menuId) && item.menuId > 0 && Number.isFinite(item.qty) && item.qty > 0);
+        }
+
+        if (parsed && typeof parsed === 'object') {
+            return Object.entries(parsed as Record<string, unknown>)
+                .map(([id, value]) => {
+                    if (value && typeof value === 'object') {
+                        const v: any = value;
+                        return {
+                            menuId: Number(v.menu_id ?? v.product_id ?? id),
+                            qty: Number(v.quantity ?? v.qty ?? 0),
+                        };
+                    }
+                    return {
+                        menuId: Number(id),
+                        qty: Number(value),
+                    };
+                })
+                .filter((item) => Number.isFinite(item.menuId) && item.menuId > 0 && Number.isFinite(item.qty) && item.qty > 0);
+        }
+
+        return [];
+    }
+
     // =============================================>> Place a new order (telegram / website)
     async placeOrder(customerId: number, body: PlaceOrderDto): Promise<{ data: Order; message: string }> {
         const sequelize = new Sequelize(sequelizeConfig);
@@ -50,19 +83,19 @@ export class CustomerOrderService {
             }, { transaction });
 
             let totalPrice  = 0;
-            const cartItems = JSON.parse(body.cart);
+            const cartItems = this._normalizeCartItems(body.cart);
 
-            for (const [productId, qty] of Object.entries(cartItems)) {
-                const product = await Product.findByPk(parseInt(productId));
+            for (const item of cartItems) {
+                const product = await Product.findByPk(item.menuId);
                 if (product) {
                     await OrderDetails.create({
                         order_id   : order.id,
                         product_id : product.id,
-                        qty        : Number(qty),
+                        qty        : item.qty,
                         unit_price : product.unit_price,
                     }, { transaction });
 
-                    totalPrice += Number(qty) * product.unit_price;
+                    totalPrice += item.qty * product.unit_price;
                 }
             }
 

@@ -11,7 +11,7 @@ export class ProductReportController {
 
 
 
-    @Get('generate-product-report')
+    @Get('generate-menu-report')
     async getData(
         
         // @Query('page')              page?       : number,

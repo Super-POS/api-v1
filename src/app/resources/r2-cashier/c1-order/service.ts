@@ -25,6 +25,39 @@ export class OrderService {
         private readonly notificationsGateway: NotificationsGateway,
     ) { };
 
+    private _normalizeCartItems(rawCart: unknown): Array<{ menuId: number; qty: number }> {
+        const parsed = typeof rawCart === 'string' ? JSON.parse(rawCart) : rawCart;
+
+        if (Array.isArray(parsed)) {
+            return parsed
+                .map((item: any) => ({
+                    menuId: Number(item?.menu_id ?? item?.product_id ?? item?.id),
+                    qty: Number(item?.quantity ?? item?.qty ?? 0),
+                }))
+                .filter((item) => Number.isFinite(item.menuId) && item.menuId > 0 && Number.isFinite(item.qty) && item.qty > 0);
+        }
+
+        if (parsed && typeof parsed === 'object') {
+            return Object.entries(parsed as Record<string, unknown>)
+                .map(([id, value]) => {
+                    if (value && typeof value === 'object') {
+                        const v: any = value;
+                        return {
+                            menuId: Number(v.menu_id ?? v.product_id ?? id),
+                            qty: Number(v.quantity ?? v.qty ?? 0),
+                        };
+                    }
+                    return {
+                        menuId: Number(id),
+                        qty: Number(value),
+                    };
+                })
+                .filter((item) => Number.isFinite(item.menuId) && item.menuId > 0 && Number.isFinite(item.qty) && item.qty > 0);
+        }
+
+        return [];
+    }
+
     async getProducts(): Promise<{ data: { id: number, name: string, products: Product[] }[] }> {
         const data = await ProductType.findAll({
             attributes: ['id', 'name'],
@@ -74,22 +107,22 @@ export class OrderService {
 
             // Find Total Price & Order Details
             let totalPrice = 0;
-            const cartItems = JSON.parse(body.cart); // Assuming cart is a JSON string
+            const cartItems = this._normalizeCartItems(body.cart);
 
             // Loop through cart items and calculate total price
-            for (const [productId, qty] of Object.entries(cartItems)) {
-                const product = await Product.findByPk(parseInt(productId)); // Find product by its ID
+            for (const item of cartItems) {
+                const product = await Product.findByPk(item.menuId); // Find menu by its ID
 
                 if (product) {
                     // Save to Order Details
                     await OrderDetails.create({
                         order_id: order.id,
                         product_id: product.id,
-                        qty: Number(qty),
+                        qty: item.qty,
                         unit_price: product.unit_price,
                     }, { transaction });
 
-                    totalPrice += Number(qty) * product.unit_price; // Add to total price
+                    totalPrice += item.qty * product.unit_price; // Add to total price
                 }
             }
 

@@ -10,23 +10,26 @@ export class NotificationService {
 
     async getData() {
         try {
-            const notifications = await Notifications.findAll({
-                attributes: ['id', 'read'],
-                include: [
-                    {
-                        model: Order,
-                        attributes: ['id', 'receipt_number', 'total_price', 'ordered_at'],
-                    },
-                    {
-                        model: User,
-                        attributes: ['id', 'avatar', 'name'],
-                    },
-                ],
-                order: [['id', 'DESC']],
-            });
+            const notifications = await Promise.race([
+                Notifications.findAll({
+                    attributes: ['id', 'read'],
+                    include: [
+                        {
+                            model: Order,
+                            attributes: ['id', 'receipt_number', 'total_price', 'ordered_at'],
+                        },
+                        {
+                            model: User,
+                            attributes: ['id', 'avatar', 'name'],
+                        },
+                    ],
+                    order: [['id', 'DESC']],
+                }),
+                this.createTimeoutPromise(4500),
+            ]);
 
-            // Format the result to match the Notification interface
-            const data = notifications.map(notification => ({
+            const resolvedNotifications = notifications as Notifications[];
+            const data = resolvedNotifications.map(notification => ({
                 id: notification.id,
                 receipt_number: notification.order.receipt_number,
                 total_price: notification.order.total_price,
@@ -42,8 +45,16 @@ export class NotificationService {
             return { data };
         } catch (err) {
             console.error('Error fetching notifications:', err);
-            throw new Error('Unable to fetch notifications.');
+            // Keep the app usable when DB/network is temporarily unavailable.
+            // Returning an empty list prevents resolver/bootstrap failures.
+            return { data: [] };
         }
+    }
+
+    private createTimeoutPromise(timeoutMs: number): Promise<never> {
+        return new Promise((_, reject) => {
+            setTimeout(() => reject(new Error(`Notification query timeout after ${timeoutMs}ms`)), timeoutMs);
+        });
     }
 
     async toggleReadStatus(id: number) {

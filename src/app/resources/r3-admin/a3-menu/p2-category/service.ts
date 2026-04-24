@@ -51,7 +51,7 @@ export class ProductTypeService {
         data: data,
       };
     } catch (error) {
-      throw new BadRequestException("admin/product/type/getData", error);
+      throw new BadRequestException("admin/menu/category/getData", error);
     }
   }
 
@@ -74,7 +74,7 @@ export class ProductTypeService {
     // ===>> Prepare format to Client
     const dataFormat = {
       data: data,
-      message: "Product type has been created.",
+      message: "Menu category has been created.",
     };
 
     // ===>> Send to TG
@@ -90,7 +90,7 @@ export class ProductTypeService {
     const checkedData = await ProductType.findByPk(id);
 
     if (!checkedData) {
-      throw new NotFoundException("Product Type is not found.");
+      throw new NotFoundException("Menu category is not found.");
     }
 
     // Check if Image is submitted.
@@ -116,7 +116,7 @@ export class ProductTypeService {
     // Prepare response format.
     const dataFormat = {
       data: data,
-      message: "Product type has been updated.",
+      message: "Menu category has been updated.",
     };
 
     // return back to client
@@ -129,7 +129,7 @@ export class ProductTypeService {
     const checkedData = await ProductType.findByPk(id);
 
     if (!checkedData) {
-      throw new NotFoundException("Product Type is not found.");
+      throw new NotFoundException("Menu category is not found.");
     }
 
     // Delete from DB.

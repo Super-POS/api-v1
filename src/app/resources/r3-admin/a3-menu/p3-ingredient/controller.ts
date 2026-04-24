@@ -1,5 +1,5 @@
 // ===========================================================================>> Core Library
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put } from '@nestjs/common';
 
 // ===========================================================================>> Custom Library
 import { CreateProductIngredientDto, UpdateProductIngredientDto } from './dto';
@@ -10,11 +10,10 @@ export class ProductIngredientController {
 
     constructor(private readonly _service: ProductIngredientService) {}
 
-    // =============================================>> List (filter by product_id via query)
+    // =============================================>> List
     @Get()
-    async getData(@Query('product_id') product_id?: string) {
-        const id = product_id ? parseInt(product_id, 10) : undefined;
-        return await this._service.getData(id);
+    async getData() {
+        return await this._service.getData();
     }
 
     // =============================================>> View One

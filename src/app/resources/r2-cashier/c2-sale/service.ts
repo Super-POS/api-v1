@@ -114,6 +114,7 @@ export class SaleService {
           },
           {
             model: User,
+            as: "cashier",
             attributes: ["id", "avatar", "name"],
           },
         ],
@@ -176,6 +177,7 @@ export class SaleService {
           },
           {
             model: User,
+            as: "cashier",
             attributes: ["id", "avatar", "name"],
           },
         ],

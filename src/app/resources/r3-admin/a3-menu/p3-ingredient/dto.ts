@@ -2,10 +2,6 @@
 import { IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
 
 export class CreateProductIngredientDto {
-    @IsNumber()
-    @IsPositive()
-    product_id: number;
-
     @IsString()
     @IsNotEmpty()
     name: string;

@@ -10,8 +10,9 @@ class ProductIngredient extends Model<ProductIngredient> {
     // ============================================================================================= Primary Key
     @Column({ primaryKey: true, autoIncrement: true })                                              id: number;
 
-    // ============================================================================================= Foreign Key
-    @ForeignKey(() => Product) @Column({ onDelete: 'CASCADE' })                                     product_id: number;
+    // ============================================================================================= Optional Link (temporarily decoupled)
+    @ForeignKey(() => Product)
+    @Column({ allowNull: true, type: DataType.INTEGER, onDelete: 'SET NULL' })                      product_id?: number;
 
     // ============================================================================================= Field
     @Column({ allowNull: false, type: DataType.STRING(150) })                                       name: string;
@@ -19,8 +20,9 @@ class ProductIngredient extends Model<ProductIngredient> {
     @Column({ allowNull: false, type: DataType.DECIMAL(10, 3), defaultValue: 0 })                   quantity: number;
     created_at: Date
 
-    // ===========================================================================================>> Many to One
-    @BelongsTo(() => Product)                                                                       product: Product;
+    // ===========================================================================================>> Many to One (optional link)
+    @BelongsTo(() => Product)                                                                        product?: Product;
+
 }
 
 export default ProductIngredient;

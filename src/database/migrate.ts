@@ -14,6 +14,9 @@ class MigrationInitializer {
     }
 
     private async confirmMigration(): Promise<boolean> {
+        if (process.env.AUTO_CONFIRM === 'true' || !process.stdin.isTTY) {
+            return true;
+        }
         const tableNames = await this.sequelize.getQueryInterface().showAllTables();
         if (tableNames.length > 0) {
             const message = 'This will drop and recreate all tables. Are you sure you want to proceed?'.yellow;
