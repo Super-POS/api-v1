@@ -15,6 +15,7 @@ import { CashierModule }  from './resources/r2-cashier/module';
 import { AdminModule }    from './resources/r3-admin/module';
 import { CustomerModule } from './resources/r5-customer/module';
 import { UtilsModule }    from './utils/utils.module';
+import { WebhooksModule } from './payments/webhooks.module';
 
 import { BasicModule } from './resources/r4-testing/basic/module';
 import { FileModule } from './resources/r4-testing/file-service/module';
@@ -48,6 +49,8 @@ import { TelegramModule } from './resources/r4-testing/third-party/telegram/modu
         //===================== Share Utils
         UtilsModule,
 
+        WebhooksModule,
+
         //===================== Testing
         BasicModule,
         FileModule,
@@ -77,7 +80,8 @@ export class AppModule implements NestModule {
             .exclude(
                 { path: '', method: RequestMethod.GET },
                 { path: 'api/account/auth/(.*)', method: RequestMethod.POST },
-                { path: 'api/testing/(.*)', method: RequestMethod.ALL }, 
+                { path: 'api/testing/(.*)', method: RequestMethod.ALL },
+                { path: 'api/webhooks/(.*)', method: RequestMethod.ALL },
             ).forRoutes({ path: '*', method: RequestMethod.ALL });
     }
 }

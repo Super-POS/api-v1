@@ -27,6 +27,15 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   sendOrderNotification(notification: any): void {
     this.server.emit('new-order-notification', notification);
   }
+
+  /** Emits when Baray payment clears (webhook). POS listens and shows a paid success only after this. */
+  emitBarayPaymentSuccess(payload: {
+    orderId: number;
+    receiptNumber: string;
+    cashierId: number;
+  }): void {
+    this.server.emit("baray-payment-success", payload);
+  }
   
   sendNotificationToUser(userId: string, notification: any): void {
     const user = this.registeredUsers.find(user => user.userId === userId);

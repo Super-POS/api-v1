@@ -37,7 +37,14 @@ export class ManageService {
         if (status) {
             where.status = status;
         } else {
-            where.status = { [Op.notIn]: [OrderStatusEnum.COMPLETED, OrderStatusEnum.CANCELLED] };
+            // Hidden until Baray (or other) payment clears — same as kitchen / active queue
+            where.status = {
+                [Op.notIn]: [
+                    OrderStatusEnum.COMPLETED,
+                    OrderStatusEnum.CANCELLED,
+                    OrderStatusEnum.AWAITING_PAYMENT,
+                ],
+            };
         }
 
         const data = await Order.findAll({
@@ -69,7 +76,12 @@ export class ManageService {
     async cancel(id: number) {
         return this._transition(
             id,
-            [OrderStatusEnum.PENDING, OrderStatusEnum.PREPARING, OrderStatusEnum.READY],
+            [
+                OrderStatusEnum.AWAITING_PAYMENT,
+                OrderStatusEnum.PENDING,
+                OrderStatusEnum.PREPARING,
+                OrderStatusEnum.READY,
+            ],
             OrderStatusEnum.CANCELLED,
             'cancelled',
         );

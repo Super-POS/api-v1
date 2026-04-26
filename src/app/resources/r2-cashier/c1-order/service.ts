@@ -147,12 +147,14 @@ export class OrderService {
                 transaction,
             });
 
-            // Create notification for this order
-            await Notifications.create({
-                order_id: order.id,
-                user_id: cashierId,
-                read: false,
-            }, { transaction });
+            const skipEarlyNotify = body.deferred_telegram === true;
+            if (!skipEarlyNotify) {
+                await Notifications.create({
+                    order_id: order.id,
+                    user_id: cashierId,
+                    read: false,
+                }, { transaction });
+            }
 
             // Get order details for client response
             const data: Order = await Order.findByPk(order.id, {
@@ -185,50 +187,16 @@ export class OrderService {
 
             // Commit transaction after successful operations
             await transaction.commit();
-            const currentDateTime = await this.getCurrentDateTimeInCambodia();
-            let htmlMessage = `<b>ការបញ្ជាទិញទទួលបានជោគជ័យ!</b>\n`;
-            htmlMessage += `-លេខវិកយប័ត្រ`;
-            htmlMessage += `\u2003៖ ${data.receipt_number}\n`;
-            htmlMessage += `-តម្លៃសរុប​​​​`;
-            htmlMessage += `\u2003\u2003\u2003៖ ${this.formatPrice(data.total_price)} ៛\n`;
-            htmlMessage += `-អ្នកគិតលុយ`;
-            htmlMessage += `\u2003\u2003 ៖ ${data.cashier?.name || ''}\n`;
-            htmlMessage += `-តាមរយះ`;
-            htmlMessage += `\u2003\u2003\u2003 ៖ ${body.channel || ''}\n`;
-            htmlMessage += `-កាលបរិច្ឆេទ\u2003\u2003៖ ${currentDateTime}\n`;
 
-            // Send
-            await this.telegramService.sendHTMLMessage(htmlMessage);
-
-            const notifications = await Notifications.findAll({
-                attributes: ['id', 'read'],
-                include: [
-                    {
-                        model: Order,
-                        attributes: ['id', 'receipt_number', 'total_price', 'ordered_at'],
-                    },
-                    {
-                        model: User,
-                        attributes: ['id', 'avatar', 'name'],
-                    },
-
-                ],
-                order: [['id', 'DESC']],
-            });
-            const dataNotifications = notifications.map(notification => ({
-                id: notification.id,
-                receipt_number: notification.order.receipt_number,
-                total_price: notification.order.total_price,
-                ordered_at: notification.order.ordered_at,
-                cashier: {
-                    id: notification.user.id,
-                    name: notification.user.name,
-                    avatar: notification.user.avatar
-                },
-                read: notification.read
-            }));
-            this.notificationsGateway.sendOrderNotification({ data: dataNotifications });
-            return { data, message: 'ការបញ្ជាទិញត្រូវបានបង្កើតដោយជោគជ័យ។' };
+            if (!body.deferred_telegram) {
+                await this._sendPlacedOrderTelegramAndSocket(data, body.channel);
+            }
+            return {
+                data,
+                message: body.deferred_telegram
+                    ? "ការកម៉្មងរក្សាទុក — សូមទូទាត់ Baray សិន។"
+                    : "ការបញ្ជាទិញត្រូវបានបង្កើតដោយជោគជ័យ។",
+            };
 
         } catch (error) {
             if (transaction) {
@@ -242,9 +210,79 @@ export class OrderService {
         }
     }
 
+    private async _sendPlacedOrderTelegramAndSocket(
+        data: Order,
+        channel: Order["channel"] | string,
+    ): Promise<void> {
+        const currentDateTime = await this.getCurrentDateTimeInCambodia();
+        let htmlMessage = `<b>ការបញ្ជាទិញទទួលបានជោគជ័យ!</b>\n`;
+        htmlMessage += `-លេខវិកយប័ត្រ`;
+        htmlMessage += `\u2003៖ ${data.receipt_number}\n`;
+        htmlMessage += `-តម្លៃសរុប​​​​`;
+        htmlMessage += `\u2003\u2003\u2003៖ ${this.formatPrice(data.total_price!)} ៛\n`;
+        htmlMessage += `-អ្នកគិតលុយ`;
+        htmlMessage += `\u2003\u2003 ៖ ${data.cashier?.name || ""}\n`;
+        htmlMessage += `-តាមរយះ`;
+        htmlMessage += `\u2003\u2003\u2003 ៖ ${String(channel || "")}\n`;
+        htmlMessage += `-កាលបរិច្ឆេទ\u2003\u2003៖ ${currentDateTime}\n`;
+        await this.telegramService.sendHTMLMessage(htmlMessage);
+        const notifications = await Notifications.findAll({
+            attributes: ["id", "read"],
+            include: [
+                { model: Order, attributes: ["id", "receipt_number", "total_price", "ordered_at"] },
+                { model: User, attributes: ["id", "avatar", "name"] },
+            ],
+            order: [["id", "DESC"]],
+        });
+        const dataNotifications = notifications.map((n) => ({
+            id: n.id,
+            receipt_number: n.order.receipt_number,
+            total_price: n.order.total_price,
+            ordered_at: n.order.ordered_at,
+            cashier: { id: n.user.id, name: n.user.name, avatar: n.user.avatar },
+            read: n.read,
+        }));
+        this.notificationsGateway.sendOrderNotification({ data: dataNotifications });
+    }
+
+    /**
+     * Baray: after payment, send Telegram + socket list + create notification if we skipped at order create.
+     */
+    async sendPlacedNotificationsAfterBarayPayment(orderId: number): Promise<void> {
+        if (await Notifications.findOne({ where: { order_id: orderId } })) {
+            return;
+        }
+        const data = await Order.findByPk(orderId, {
+            attributes: ["id", "receipt_number", "total_price", "channel", "status", "ordered_at"],
+            include: [
+                {
+                    model: OrderDetails,
+                    attributes: ["id", "unit_price", "qty"],
+                    include: [
+                        {
+                            model: Menu,
+                            attributes: ["id", "name", "code", "image"],
+                            include: [{ model: MenuType, attributes: ["name"] }],
+                        },
+                    ],
+                },
+                { model: User, as: "cashier", attributes: ["id", "avatar", "name"] },
+            ],
+        });
+        if (!data) {
+            return;
+        }
+        await Notifications.create({
+            order_id: orderId,
+            user_id: data.cashier_id!,
+            read: false,
+        });
+        await this._sendPlacedOrderTelegramAndSocket(data, data.channel);
+    }
+
     private formatPrice(price: number): string {
-        return new Intl.NumberFormat('en-US', {
-            style: 'decimal',
+        return new Intl.NumberFormat("en-US", {
+            style: "decimal",
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         }).format(price);

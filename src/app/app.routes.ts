@@ -8,6 +8,7 @@ import { adminRoutes }    from './resources/r3-admin/route';
 import { customerRoutes } from './resources/r5-customer/route';
 import { utilsRoutes }    from './utils/utils.routes';
 import { testingRoutes }  from './resources/r4-testing/route';
+import { WebhooksModule }  from './payments/webhooks.module';
 
 export const appRoutes: Routes = [{
     path: 'api',
@@ -35,6 +36,10 @@ export const appRoutes: Routes = [{
         {
             path     : 'testing',
             children : testingRoutes,
+        },
+        {
+            path   : 'webhooks',
+            module : WebhooksModule,
         },
     ],
 }];

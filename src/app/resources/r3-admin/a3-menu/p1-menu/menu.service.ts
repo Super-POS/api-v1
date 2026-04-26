@@ -305,18 +305,8 @@ export class MenuService {
       await this._assertIngredientsExist(rawRecipes);
 
       //   console.log("Before image upload");
-      const result = await this.fileService.uploadBase64Image(
-        "menu",
-        body.image
-      );
-      //   console.log("After image upload", result);
-
-      if (result.message !== "File has been uploaded to file service") {
-        throw new BadRequestException("Failed to upload image");
-      }
-
-      // Replace base64 string by file URI from FileService
-      body.image = result.data.uri;
+      const { data: fileData } = await this.fileService.uploadBase64Image("menu", body.image);
+      body.image = fileData.uri;
 
       //   console.log("Before menu creation", body);
       const { recipes, ...rest } = body;
@@ -435,16 +425,8 @@ export class MenuService {
       // Handle image update if provided
       if (body.image) {
         // console.log("Processing image update");
-        const result = await this.fileService.uploadBase64Image(
-          "menu",
-          body.image
-        );
-        // console.log("Image upload result:", result);
-
-        if (result.message !== "File has been uploaded to file service") {
-          throw new BadRequestException("Failed to upload image");
-        }
-        body.image = result.data.uri;
+        const { data: fileData } = await this.fileService.uploadBase64Image("menu", body.image);
+        body.image = fileData.uri;
       } else {
         // Keep existing image if not provided in update
         body.image = checkExist.image;

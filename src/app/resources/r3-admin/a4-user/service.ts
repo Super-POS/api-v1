@@ -288,14 +288,11 @@ export class UserService {
           console.warn("⚠️ Invalid base64 image format");
           throw new BadRequestException("Invalid avatar image format");
         }
-        const result = await this.fileService.uploadBase64Image(
+        const { data: fileData } = await this.fileService.uploadBase64Image(
           "user",
           body.avatar
         );
-        if (result.error) {
-          throw new BadRequestException(result.error);
-        }
-        body.avatar = result.data.uri;
+        body.avatar = fileData.uri;
       }
 
       // Create user
@@ -408,20 +405,11 @@ export class UserService {
       if (body.avatar !== undefined) {
         if (body.avatar && !body.avatar.startsWith("upload/file/")) {
           if (this.isValidBase64(body.avatar)) {
-            const result = await this.fileService.uploadBase64Image(
+            const { data: fileData } = await this.fileService.uploadBase64Image(
               "user",
               body.avatar
             );
-            if (result.error || !result.data || !result.data.uri) {
-              console.error(
-                "❌ Avatar upload failed:",
-                result.error || "Invalid response"
-              );
-              throw new BadRequestException(
-                result.error || "Invalid FileService response"
-              );
-            }
-            avatarUri = result.data.uri;
+            avatarUri = fileData.uri;
           } else {
             console.warn("⚠️ Invalid base64 avatar format");
             throw new BadRequestException("Invalid image format");
