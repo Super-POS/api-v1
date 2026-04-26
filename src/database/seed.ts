@@ -6,10 +6,10 @@ import { Sequelize } from 'sequelize-typescript';
 // ================================================================>> Custom Library
 import sequelizeConfig from '@config/sequelize.config';
 
-import { MyProfileSeeder } from "./seeds/my-profile/my_profile.seeder";
-import { OrderSeeder } from "./seeds/pos/order.seeder";
-import { ProductSeeder } from "./seeds/pos/product.seeder";
-import { UserSeeder } from "./seeds/user/user.seed";
+import { MyProfileSeeder }   from './seeds/my-profile/my_profile.seeder';
+import { CafeOrderSeeder }   from './seeds/pos/cafe-order.seeder';
+import { CafeProductSeeder } from './seeds/pos/cafe-product.seeder';
+import { UserSeeder }        from './seeds/user/user.seed';
 
 class SeederInitializer {
 
@@ -36,13 +36,18 @@ class SeederInitializer {
     }
 
     private async seedData() {
-        
-        //===================== user data
+
+        // 1. Users, roles, user-roles
         await UserSeeder.seed();
-        //===================== pos data
-        await ProductSeeder.seed();
-        await OrderSeeder.seed();
-        // ==================== my profile data
+
+        // 2. Cafe menu: product types, products, ingredients, recipes, initial stock
+        await CafeProductSeeder.seed();
+
+        // 3. Full order lifecycle: orders, details, payments, wallets, rewards,
+        //    notifications, audit logs
+        await CafeOrderSeeder.seed();
+
+        // 4. My-profile (admin + cashier profiles)
         await MyProfileSeeder.seed();
     }
 
