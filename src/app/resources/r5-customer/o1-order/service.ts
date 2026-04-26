@@ -8,7 +8,10 @@ import { Sequelize, Transaction } from 'sequelize';
 import { OrderStatusEnum }  from '@app/enums/order-status.enum';
 import OrderDetails         from '@app/models/order/detail.model';
 import Order                from '@app/models/order/order.model';
+import ProductIngredient    from '@app/models/product/ingredient.model';
 import Product              from '@app/models/product/product.model';
+import ProductRecipe        from '@app/models/product/recipe.model';
+import IngredientStockMovement, { StockMovementType } from '@app/models/product/stock_movement.model';
 import ProductType          from '@app/models/product/type.model';
 import User                 from '@app/models/user/user.model';
 import sequelizeConfig      from 'src/config/sequelize.config';
@@ -96,6 +99,37 @@ export class CustomerOrderService {
                     }, { transaction });
 
                     totalPrice += item.qty * product.unit_price;
+
+                    // Deduct ingredient stock based on product recipe
+                    const recipes = await ProductRecipe.findAll({
+                        where: { product_id: product.id },
+                        include: [{ model: ProductIngredient }],
+                        transaction,
+                    });
+
+                    for (const recipe of recipes) {
+                        const deduction = Number(recipe.quantity) * item.qty;
+                        const currentQty = Number(recipe.ingredient.quantity);
+
+                        if (currentQty < deduction) {
+                            throw new BadRequestException(
+                                `Insufficient stock for ingredient "${recipe.ingredient.name}". Available: ${currentQty}, required: ${deduction}.`
+                            );
+                        }
+
+                        await IngredientStockMovement.create({
+                            ingredient_id : recipe.ingredient_id,
+                            type          : StockMovementType.OUT,
+                            quantity      : deduction,
+                            note          : `Order #${order.receipt_number}`,
+                            created_by    : null,
+                        }, { transaction });
+
+                        await ProductIngredient.update(
+                            { quantity: currentQty - deduction },
+                            { where: { id: recipe.ingredient_id }, transaction },
+                        );
+                    }
                 }
             }
 
