@@ -8,6 +8,8 @@ import { DashboardModule } from './a1-dashbord/module';
 import { ProductModule } from './a3-menu/p1-menu/module';
 import { ProductTypeModule } from './a3-menu/p2-category/module';
 import { ProductIngredientModule } from './a3-menu/p3-ingredient/module';
+import { ProductRecipeModule } from './a3-menu/p4-recipe/module';
+import { StockMovementModule } from './a3-menu/p5-stock-movement/module';
 import { SaleModule } from './a2-sale/module';
 import { UserModule } from './a4-user/module';
 
@@ -19,6 +21,8 @@ import { UserModule } from './a4-user/module';
         ProductModule,
         ProductTypeModule,
         ProductIngredientModule,
+        ProductRecipeModule,
+        StockMovementModule,
         UserModule
     ]
 })
