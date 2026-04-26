@@ -63,6 +63,7 @@ const data = {
     ],
     users: [
         // ── Staff ────────────────────────────────────────────────────────────
+        // id: 1  (admin + cashier)
         {
             name      : 'ចាន់​ សុវ៉ាន់ណេត',
             phone     : '0889566929',
@@ -73,6 +74,7 @@ const data = {
             created_at: new Date(),
             updated_at: new Date(),
         },
+        // id: 2  (cashier)
         {
             name      : 'Heng Tongsour',
             phone     : '0889566930',
@@ -83,6 +85,7 @@ const data = {
             created_at: new Date(),
             updated_at: new Date(),
         },
+        // id: 3  (cashier)
         {
             name      : 'ENG SOKCHHENG',
             phone     : '012894154',
@@ -94,6 +97,7 @@ const data = {
             updated_at: new Date(),
         },
         // ── Customers ────────────────────────────────────────────────────────
+        // id: 4
         {
             name      : 'Sok Dara',
             phone     : '0971234567',
@@ -104,10 +108,44 @@ const data = {
             created_at: new Date(),
             updated_at: new Date(),
         },
+        // id: 5
         {
             name      : 'Chan Srey',
             phone     : '0857654321',
             email     : 'chansrey@gmail.com',
+            password  : '123456',
+            avatar    : 'static/pos/user/avatar.png',
+            creator_id: 1,
+            created_at: new Date(),
+            updated_at: new Date(),
+        },
+        // id: 6
+        {
+            name      : 'Lim Sopheap',
+            phone     : '0761239999',
+            email     : 'limsopheap@gmail.com',
+            password  : '123456',
+            avatar    : 'static/pos/user/avatar.png',
+            creator_id: 1,
+            created_at: new Date(),
+            updated_at: new Date(),
+        },
+        // id: 7
+        {
+            name      : 'Dara Kosal',
+            phone     : '0789012345',
+            email     : 'darakosal@gmail.com',
+            password  : '123456',
+            avatar    : 'static/pos/user/avatar.png',
+            creator_id: 1,
+            created_at: new Date(),
+            updated_at: new Date(),
+        },
+        // id: 8
+        {
+            name      : 'Sreyla Meng',
+            phone     : '0912345678',
+            email     : 'sreylameng@gmail.com',
             password  : '123456',
             avatar    : 'static/pos/user/avatar.png',
             creator_id: 1,
@@ -124,6 +162,9 @@ const data = {
         // ── Customer roles ───────────────────────────────────────────────────
         { user_id: 4, role_id: RoleEnum.CUSTOMER, added_id: 1, created_at: new Date(), is_default: true  },
         { user_id: 5, role_id: RoleEnum.CUSTOMER, added_id: 1, created_at: new Date(), is_default: true  },
+        { user_id: 6, role_id: RoleEnum.CUSTOMER, added_id: 1, created_at: new Date(), is_default: true  },
+        { user_id: 7, role_id: RoleEnum.CUSTOMER, added_id: 1, created_at: new Date(), is_default: true  },
+        { user_id: 8, role_id: RoleEnum.CUSTOMER, added_id: 1, created_at: new Date(), is_default: true  },
     ],
 };
 
