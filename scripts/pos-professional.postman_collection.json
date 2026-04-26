@@ -751,6 +751,77 @@
             "method": "GET",
             "url": "{{baseUrl}}/api/admin/rewards/customers/{{customerId}}"
           }
+        },
+        {
+          "name": "Payments - List",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/payments?page=1&limit=10"
+          }
+        },
+        {
+          "name": "Payments - List (filter by status)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/payments?page=1&limit=10&status=pending"
+          }
+        },
+        {
+          "name": "Payments - List (filter by order)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/payments?order_id={{orderId}}"
+          }
+        },
+        {
+          "name": "Payments - View",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/payments/{{paymentId}}"
+          }
+        },
+        {
+          "name": "Payments - Mark Success",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Confirmed via POS terminal\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/payments/{{paymentId}}/success"
+          }
+        },
+        {
+          "name": "Payments - Mark Failed",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Card declined\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/payments/{{paymentId}}/failed"
+          }
+        },
+        {
+          "name": "Payments - Mark Expired",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Customer did not complete payment\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/payments/{{paymentId}}/expired"
+          }
+        },
+        {
+          "name": "Payments - Expire Stale (Bulk)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/admin/payments/expire-stale"
+          }
         }
       ]
     },
@@ -975,6 +1046,53 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/customer/profile"
+          }
+        },
+        {
+          "name": "Payments - Initiate",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": {{orderId}},\n  \"method\": \"cash\",\n  \"note\": \"Pay at counter\"\n}"
+            },
+            "url": "{{baseUrl}}/api/customer/payments"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.id) {",
+                  "  pm.collectionVariables.set('paymentId', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Payments - By Order",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customer/payments/order/{{orderId}}"
+          }
+        },
+        {
+          "name": "Payments - My History",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customer/payments/history?page=1&limit=10"
+          }
+        },
+        {
+          "name": "Payments - Check Expiry",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customer/payments/{{paymentId}}/check-expiry"
           }
         }
       ]
@@ -1362,6 +1480,10 @@
     },
     {
       "key": "customerId",
+      "value": "1"
+    },
+    {
+      "key": "paymentId",
       "value": "1"
     }
   ]
