@@ -33,14 +33,16 @@ export class MenuTypeService {
           "image",
           "created_at",
           [
-            Sequelize.fn("COUNT", Sequelize.col("products.id")),
+            Sequelize.fn("COUNT", Sequelize.col("menus.id")),
             "n_of_products",
           ],
         ],
         include: [
           {
             model: Menu,
+            as: "menus",
             attributes: [],
+            required: false,
           },
         ],
         group: ["MenuType.id"],

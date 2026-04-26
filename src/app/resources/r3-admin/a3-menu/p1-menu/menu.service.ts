@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 
 // ============================================================================>> Third Party Library
-import { col, literal, Op, OrderItem } from "sequelize";
+import { col, literal, Op, OrderItem, UniqueConstraintError } from "sequelize";
 
 // ===========================================================================>> Costom Library
 import OrderDetails from "@app/models/order/detail.model";
@@ -47,6 +47,24 @@ export class MenuService {
         );
       }
     }
+  }
+
+  /**
+   * After bulk seed rows with explicit ids, PostgreSQL SERIAL may still point at 1.
+   * Call before retrying Menu.create, or from seed.
+   */
+  private async _syncPostgresMenuIdSequence(): Promise<void> {
+    const s = Menu.sequelize;
+    if (!s || s.getDialect() !== "postgres") {
+      return;
+    }
+    await s.query(
+      `SELECT setval(
+  pg_get_serial_sequence('menus', 'id'),
+  COALESCE((SELECT MAX(id) FROM menus), 0),
+  true
+);`
+    );
   }
 
   // Method to retrieve the setup data for product types
@@ -256,13 +274,13 @@ export class MenuService {
     return { data: data };
   }
 
-  // Method to create a new product
+  // Method to create a new menu
   async create(
     body: CreateMenuDto,
     creator_id: number
   ): Promise<{ data: Menu; message: string }> {
     try {
-      // Check if the product code already exists
+      // Check if the menu code already exists
       const checkExistCode = await Menu.findOne({
         where: { code: body.code },
       });
@@ -272,7 +290,7 @@ export class MenuService {
         );
       }
 
-      // Check if the product name already exists
+      // Check if the menu name already exists
       const checkExistName = await Menu.findOne({
         where: { name: body.name },
       });
@@ -300,14 +318,32 @@ export class MenuService {
       // Replace base64 string by file URI from FileService
       body.image = result.data.uri;
 
-      //   console.log("Before product creation", body);
+      //   console.log("Before menu creation", body);
       const { recipes, ...rest } = body;
-      const menu = await Menu.create({
-        ...rest,
-        recipes: rawRecipes,
-        creator_id,
-      });
-      //   console.log("After product creation", product);
+      const { id: _clientId, ...row } = rest as CreateMenuDto & { id?: number };
+      void _clientId;
+      const insert = () =>
+        Menu.create({
+          ...row,
+          recipes: rawRecipes,
+          creator_id,
+        });
+      let menu: Menu;
+      try {
+        menu = await insert();
+      } catch (e) {
+        if (
+          e instanceof UniqueConstraintError &&
+          e.fields?.id != null &&
+          Menu.sequelize?.getDialect() === "postgres"
+        ) {
+          await this._syncPostgresMenuIdSequence();
+          menu = await insert();
+        } else {
+          throw e;
+        }
+      }
+      //   console.log("After menu creation", menu);
 
       const data = await Menu.findByPk(menu.id, {
         attributes: [
@@ -347,7 +383,7 @@ export class MenuService {
         message: "Menu has been created.",
       };
     } catch (error) {
-      console.error("Error in product creation:", error);
+      console.error("Error in menu creation:", error);
       throw error;
     }
   }

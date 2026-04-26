@@ -1,3 +1,4 @@
+import { Sequelize }            from 'sequelize-typescript';
 import MenuIngredient         from '@app/models/menu/menu-ingredient.model';
 import IngredientStockMovement, { StockMovementType } from '@app/models/menu/stock_movement.model';
 import Menu                   from '@app/models/menu/menu.model';
@@ -125,6 +126,9 @@ export class CafeMenuSeeder {
             await CafeMenuSeeder._seedTypes();
             await CafeMenuSeeder._seedIngredients();
             await CafeMenuSeeder._seedMenus();
+            // PostgreSQL: rows inserted with explicit `id` in bulkCreate do not advance SERIAL;
+            // without this, the next app INSERT reuses 1 and hits menus_pkey.
+            await CafeMenuSeeder._syncPostgresIdSequences();
             await CafeMenuSeeder._seedInitialStock();
         } catch (err) {
             console.error('\x1b[31mError in CafeMenuSeeder:', err.message);
@@ -159,6 +163,23 @@ export class CafeMenuSeeder {
         }));
         await Menu.bulkCreate(rows as any);
         console.log('\x1b[32m✔  Menus inserted (%d rows)', rows.length);
+    }
+
+    /** Advance SERIAL/identity so it is past MAX(id) after bulk rows with fixed ids. */
+    private static async _syncPostgresIdSequences(): Promise<void> {
+        const seq = (Menu as unknown as { sequelize: Sequelize | undefined }).sequelize;
+        if (!seq || seq.getDialect() !== 'postgres') {
+            return;
+        }
+        for (const table of ['menu_types', 'menu_ingredients', 'menus'] as const) {
+            await seq.query(
+                `SELECT setval(
+  pg_get_serial_sequence('${table}', 'id'),
+  COALESCE((SELECT MAX(id) FROM ${table}), 0),
+  true
+);`
+            );
+        }
     }
 
     // ── Initial stock IN movement for each ingredient ─────────────────────────

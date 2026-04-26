@@ -861,7 +861,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cart\": \"[{\\\"menu_id\\\":1,\\\"quantity\\\":2}]\",\n  \"channel\": \"POS\"\n}"
+              "raw": "{\n  \"cart\": \"[{\\\"menu_id\\\":1,\\\"quantity\\\":2}]\",\n  \"channel\": \"walk_in\"\n}"
             },
             "url": "{{baseUrl}}/api/cashier/ordering/order"
           }
