@@ -176,6 +176,7 @@ export class OrderService {
                     },
                     {
                         model: User,
+                        as: 'cashier',
                         attributes: ['id', 'avatar', 'name'],
                     },
                 ],
