@@ -12,8 +12,9 @@ import { ProductRecipeModule } from './a3-menu/p4-recipe/module';
 import { StockMovementModule } from './a3-menu/p5-stock-movement/module';
 import { SaleModule } from './a2-sale/module';
 import { UserModule }         from './a4-user/module';
-import { AdminDepositModule } from './a5-deposit/module';
-import { AdminRewardModule }  from './a6-reward/module';
+import { AdminDepositModule }  from './a5-deposit/module';
+import { AdminRewardModule }   from './a6-reward/module';
+import { AdminPaymentModule }  from './a7-payment/module';
 
 // ======================================= >> Code Starts Here << ========================== //
 @Module({
@@ -28,6 +29,7 @@ import { AdminRewardModule }  from './a6-reward/module';
         UserModule,
         AdminDepositModule,
         AdminRewardModule,
+        AdminPaymentModule,
     ]
 })
 
