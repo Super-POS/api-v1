@@ -13,7 +13,10 @@ import { TelegramService } from 'src/app/services/telegram.service';
 import sequelizeConfig from 'src/config/sequelize.config';
 import OrderDetails from 'src/app/models/order/detail.model';
 import Order from 'src/app/models/order/order.model';
+import ProductIngredient from 'src/app/models/product/ingredient.model';
 import Product from 'src/app/models/product/product.model';
+import ProductRecipe from 'src/app/models/product/recipe.model';
+import IngredientStockMovement, { StockMovementType } from 'src/app/models/product/stock_movement.model';
 import ProductType from 'src/app/models/product/type.model';
 import { CreateOrderDto } from './dto';
 
@@ -123,6 +126,37 @@ export class OrderService {
                     }, { transaction });
 
                     totalPrice += item.qty * product.unit_price; // Add to total price
+
+                    // Deduct ingredient stock based on product recipe
+                    const recipes = await ProductRecipe.findAll({
+                        where: { product_id: product.id },
+                        include: [{ model: ProductIngredient }],
+                        transaction,
+                    });
+
+                    for (const recipe of recipes) {
+                        const deduction = Number(recipe.quantity) * item.qty;
+                        const currentQty = Number(recipe.ingredient.quantity);
+
+                        if (currentQty < deduction) {
+                            throw new BadRequestException(
+                                `Insufficient stock for ingredient "${recipe.ingredient.name}". Available: ${currentQty}, required: ${deduction}.`
+                            );
+                        }
+
+                        await IngredientStockMovement.create({
+                            ingredient_id : recipe.ingredient_id,
+                            type          : StockMovementType.OUT,
+                            quantity      : deduction,
+                            note          : `Order #${order.receipt_number}`,
+                            created_by    : cashierId,
+                        }, { transaction });
+
+                        await ProductIngredient.update(
+                            { quantity: currentQty - deduction },
+                            { where: { id: recipe.ingredient_id }, transaction },
+                        );
+                    }
                 }
             }
 
