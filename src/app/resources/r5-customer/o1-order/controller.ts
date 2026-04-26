@@ -1,7 +1,8 @@
 // =========================================================================>> Core Library
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, UseInterceptors } from '@nestjs/common';
 
 // =========================================================================>> Custom Library
+import { IdempotencyInterceptor } from '@app/core/interceptors/idempotency.interceptor';
 import UserDecorator            from '@app/core/decorators/user.decorator';
 import User                     from '@app/models/user/user.model';
 import { PlaceOrderDto }        from './dto';
@@ -14,6 +15,7 @@ export class CustomerOrderController {
 
     // =============================================>> Place a new order
     @Post()
+    @UseInterceptors(IdempotencyInterceptor)
     async placeOrder(
         @Body() body: PlaceOrderDto,
         @UserDecorator() user: User,

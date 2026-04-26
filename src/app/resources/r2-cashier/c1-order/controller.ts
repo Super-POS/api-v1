@@ -1,7 +1,8 @@
 // =========================================================================>> Core Library
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseInterceptors } from '@nestjs/common';
 
 // =========================================================================>> Custom Library
+import { IdempotencyInterceptor } from '@app/core/interceptors/idempotency.interceptor';
 import UserDecorator from '@app/core/decorators/user.decorator';
 import User from '@app/models/user/user.model';
 import Order from '@app/models/order/order.model';
@@ -21,6 +22,7 @@ export class OrderController {
     }
 
     @Post('order')
+    @UseInterceptors(IdempotencyInterceptor)
     async makeOrder(@Body() body: CreateOrderDto, @UserDecorator() user: User): Promise<{ data: Order, message: string }> {
         return await this._service.makeOrder(user.id, body);
     }

@@ -2,6 +2,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 // ===========================================================================>> Custom Library
+import { AuditLogService } from '@app/services/audit-log.service';
 import Order               from '@app/models/order/order.model';
 import PaymentTransaction, { PaymentMethod, PaymentStatus } from '@app/models/payment/payment_transaction.model';
 import Wallet              from '@app/models/wallet/wallet.model';
@@ -11,6 +12,8 @@ import { PaymentQueryDto, UpdatePaymentStatusDto } from './dto';
 
 @Injectable()
 export class AdminPaymentService {
+
+    constructor(private readonly auditLog: AuditLogService) {}
 
     // ==========================================>> List payment transactions
     async getData(query: PaymentQueryDto): Promise<any> {
@@ -94,6 +97,13 @@ export class AdminPaymentService {
             });
         }
 
+        await this.auditLog.log(adminId, 'PAYMENT_MARKED_SUCCESS', {
+            paymentId : id,
+            method    : tx.method,
+            amount    : Number(tx.amount),
+            orderId   : tx.order_id,
+        });
+
         return { data: await this._reload(id), message: 'Payment marked as success.' };
     }
 
@@ -113,6 +123,12 @@ export class AdminPaymentService {
             note        : body.note ?? tx.note,
         });
 
+        await this.auditLog.log(adminId, 'PAYMENT_MARKED_FAILED', {
+            paymentId: id,
+            orderId  : tx.order_id,
+            amount   : Number(tx.amount),
+        });
+
         return { data: await this._reload(id), message: 'Payment marked as failed.' };
     }
 
@@ -129,6 +145,12 @@ export class AdminPaymentService {
             status      : PaymentStatus.EXPIRED,
             processed_by: adminId,
             note        : body.note ?? tx.note,
+        });
+
+        await this.auditLog.log(adminId, 'PAYMENT_MARKED_EXPIRED', {
+            paymentId: id,
+            orderId  : tx.order_id,
+            amount   : Number(tx.amount),
         });
 
         return { data: await this._reload(id), message: 'Payment marked as expired.' };

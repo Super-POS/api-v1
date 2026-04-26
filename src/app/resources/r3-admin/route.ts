@@ -13,6 +13,7 @@ import { UserModule }                from './a4-user/module';
 import { AdminDepositModule }        from './a5-deposit/module';
 import { AdminRewardModule }         from './a6-reward/module';
 import { AdminPaymentModule }        from './a7-payment/module';
+import { FinancialReportModule }     from './a8-report/module';
 
 export const adminRoutes: Routes = [
     {
@@ -67,6 +68,10 @@ export const adminRoutes: Routes = [
 
     {
         path: 'payments',
-        module: AdminPaymentModule
+        module: AdminPaymentModule,
+    },
+    {
+        path: 'reports',
+        module: FinancialReportModule,
     },
 ];

@@ -2,6 +2,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 // ===========================================================================>> Custom Library
+import { AuditLogService } from '@app/services/audit-log.service';
 import ProductIngredient from '@app/models/product/ingredient.model';
 import IngredientStockMovement, { StockMovementType } from '@app/models/product/stock_movement.model';
 import User from '@app/models/user/user.model';
@@ -9,6 +10,8 @@ import { CreateStockMovementDto } from './dto';
 
 @Injectable()
 export class StockMovementService {
+
+    constructor(private readonly auditLog: AuditLogService) {}
 
     // ==========================================>> list (optionally filter by ingredient)
     async getData(ingredient_id?: number): Promise<any> {
@@ -78,6 +81,18 @@ export class StockMovementService {
                 { model: User, as: 'creator', attributes: ['id', 'name', 'avatar'], required: false },
             ],
         });
+
+        if (created_by) {
+            await this.auditLog.log(created_by, 'STOCK_ADJUSTMENT', {
+                movementId   : movement.id,
+                ingredientId : body.ingredient_id,
+                ingredientName: ingredient.name,
+                type         : body.type,
+                quantity     : body.quantity,
+                note         : body.note ?? null,
+                newStock     : newQty,
+            });
+        }
 
         return {
             data,

@@ -1,7 +1,8 @@
 // ===========================================================================>> Core Library
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, UseInterceptors } from '@nestjs/common';
 
 // ===========================================================================>> Custom Library
+import { IdempotencyInterceptor } from '@app/core/interceptors/idempotency.interceptor';
 import UserDecorator            from '@app/core/decorators/user.decorator';
 import User                     from '@app/models/user/user.model';
 import { InitiatePaymentDto }   from './dto';
@@ -14,6 +15,7 @@ export class CustomerPaymentController {
 
     // =============================================>> Initiate payment for an order
     @Post()
+    @UseInterceptors(IdempotencyInterceptor)
     async initiate(@Body() body: InitiatePaymentDto, @UserDecorator() user: User) {
         return await this._service.initiate(user.id, body);
     }

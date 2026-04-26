@@ -18,6 +18,8 @@ class ProductIngredient extends Model<ProductIngredient> {
     @Column({ allowNull: false, type: DataType.STRING(150) })                                       name: string;
     @Column({ allowNull: true, type: DataType.STRING(50) })                                         unit?: string;
     @Column({ allowNull: false, type: DataType.DECIMAL(10, 3), defaultValue: 0 })                   quantity: number;
+    @Column({ allowNull: false, type: DataType.DECIMAL(12, 4), defaultValue: 0, comment: 'Cost per unit of this ingredient (for COGS calculation)' })
+    unit_cost: number;
     created_at: Date
 
     // ===========================================================================================>> Many to One (optional link)

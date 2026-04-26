@@ -1,9 +1,14 @@
 // ===========================================================================>> Core Library
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
 
 // ===========================================================================>> Custom Library
-import { CreateStockMovementDto } from './dto';
-import { StockMovementService } from './service';
+import { RolesDecorator }           from '@app/core/decorators/roles.decorator';
+import { RoleGuard }                from '@app/core/guards/role.guard';
+import { RoleEnum }                 from '@app/enums/role.enum';
+import UserDecorator                from '@app/core/decorators/user.decorator';
+import User                         from '@app/models/user/user.model';
+import { CreateStockMovementDto }   from './dto';
+import { StockMovementService }     from './service';
 
 @Controller()
 export class StockMovementController {
@@ -22,14 +27,18 @@ export class StockMovementController {
         return await this._service.view(id);
     }
 
-    // =============================================>> Create
+    // =============================================>> Create (ADMIN only — audited)
     @Post()
-    async create(@Body() body: CreateStockMovementDto) {
-        return await this._service.create(body);
+    @UseGuards(RoleGuard)
+    @RolesDecorator(RoleEnum.ADMIN)
+    async create(@Body() body: CreateStockMovementDto, @UserDecorator() user: User) {
+        return await this._service.create(body, user.id);
     }
 
-    // =============================================>> Delete (reverses the quantity change)
+    // =============================================>> Delete (ADMIN only — reverses the quantity change)
     @Delete(':id')
+    @UseGuards(RoleGuard)
+    @RolesDecorator(RoleEnum.ADMIN)
     async delete(@Param('id', ParseIntPipe) id: number) {
         return await this._service.delete(id);
     }
