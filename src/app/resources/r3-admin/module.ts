@@ -11,7 +11,9 @@ import { ProductIngredientModule } from './a3-menu/p3-ingredient/module';
 import { ProductRecipeModule } from './a3-menu/p4-recipe/module';
 import { StockMovementModule } from './a3-menu/p5-stock-movement/module';
 import { SaleModule } from './a2-sale/module';
-import { UserModule } from './a4-user/module';
+import { UserModule }         from './a4-user/module';
+import { AdminDepositModule } from './a5-deposit/module';
+import { AdminRewardModule }  from './a6-reward/module';
 
 // ======================================= >> Code Starts Here << ========================== //
 @Module({
@@ -23,7 +25,9 @@ import { UserModule } from './a4-user/module';
         ProductIngredientModule,
         ProductRecipeModule,
         StockMovementModule,
-        UserModule
+        UserModule,
+        AdminDepositModule,
+        AdminRewardModule,
     ]
 })
 

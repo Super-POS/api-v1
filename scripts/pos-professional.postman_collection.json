@@ -637,6 +637,120 @@
             "method": "DELETE",
             "url": "{{baseUrl}}/api/admin/users/{{userId}}"
           }
+        },
+        {
+          "name": "Deposits - List",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/deposits?page=1&limit=10"
+          }
+        },
+        {
+          "name": "Deposits - List (filter by status)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/deposits?page=1&limit=10&status=pending"
+          }
+        },
+        {
+          "name": "Deposits - List (filter by customer)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/deposits?page=1&limit=10&customer_id={{customerId}}"
+          }
+        },
+        {
+          "name": "Deposits - View",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/deposits/{{depositId}}"
+          }
+        },
+        {
+          "name": "Deposits - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": {{customerId}},\n  \"amount\": 50.00,\n  \"reference\": \"TRF-2026-001\",\n  \"note\": \"Bank transfer deposit\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/deposits"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.id) {",
+                  "  pm.collectionVariables.set('depositId', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deposits - Approve",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Confirmed via bank statement\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/deposits/{{depositId}}/approve"
+          }
+        },
+        {
+          "name": "Deposits - Reject",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Could not verify payment proof\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/deposits/{{depositId}}/reject"
+          }
+        },
+        {
+          "name": "Rewards - List All Transactions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/rewards?page=1&limit=10"
+          }
+        },
+        {
+          "name": "Rewards - List by Customer",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/rewards?page=1&limit=10&customer_id={{customerId}}"
+          }
+        },
+        {
+          "name": "Rewards - Customer Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/rewards/customers/{{customerId}}"
+          }
         }
       ]
     },
@@ -778,6 +892,89 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/customer/orders/{{orderId}}"
+          }
+        },
+        {
+          "name": "Wallet - Get Balance",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customer/wallet"
+          }
+        },
+        {
+          "name": "Wallet - Request Deposit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 20.00,\n  \"reference\": \"TRF-2026-CUST-001\",\n  \"note\": \"Top-up via ABA Bank\"\n}"
+            },
+            "url": "{{baseUrl}}/api/customer/wallet/deposit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.id) {",
+                  "  pm.collectionVariables.set('depositId', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Wallet - Transaction History",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customer/wallet/history?page=1&limit=10"
+          }
+        },
+        {
+          "name": "Rewards - My Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customer/rewards"
+          }
+        },
+        {
+          "name": "Rewards - Preview Redeem",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customer/rewards/preview?points=100"
+          }
+        },
+        {
+          "name": "Rewards - Redeem Points",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"points\": 100,\n  \"reference\": \"{{orderId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/customer/rewards/redeem"
+          }
+        },
+        {
+          "name": "Profile - Full Summary",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customer/profile"
           }
         }
       ]
@@ -1157,6 +1354,14 @@
     },
     {
       "key": "stockMovementId",
+      "value": "1"
+    },
+    {
+      "key": "depositId",
+      "value": "1"
+    },
+    {
+      "key": "customerId",
       "value": "1"
     }
   ]

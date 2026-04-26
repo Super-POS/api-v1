@@ -4,10 +4,13 @@ import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/c
 // ===========================================================================>> Custom Library
 import { CustomerMiddleware }  from '@app/core/middlewares/customer.middleware';
 import { DeviceTrackerMiddleware } from '@app/core/middlewares/device-tracker.middleware';
-import { CustomerOrderModule } from './o1-order/module';
+import { CustomerOrderModule }   from './o1-order/module';
+import { CustomerWalletModule }  from './o2-wallet/module';
+import { CustomerRewardModule }  from './o3-reward/module';
+import { CustomerProfileModule } from './o4-profile/module';
 
 @Module({
-    imports: [CustomerOrderModule],
+    imports: [CustomerOrderModule, CustomerWalletModule, CustomerRewardModule, CustomerProfileModule],
 })
 export class CustomerModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {

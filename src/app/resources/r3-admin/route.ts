@@ -10,6 +10,8 @@ import { ProductIngredientModule }   from './a3-menu/p3-ingredient/module';
 import { ProductRecipeModule }       from './a3-menu/p4-recipe/module';
 import { StockMovementModule }       from './a3-menu/p5-stock-movement/module';
 import { UserModule }                from './a4-user/module';
+import { AdminDepositModule }        from './a5-deposit/module';
+import { AdminRewardModule }         from './a6-reward/module';
 
 export const adminRoutes: Routes = [
     {
@@ -50,5 +52,15 @@ export const adminRoutes: Routes = [
     {
         path: 'users',
         module: UserModule
+    },
+
+    {
+        path: 'deposits',
+        module: AdminDepositModule
+    },
+
+    {
+        path: 'rewards',
+        module: AdminRewardModule
     },
 ];
