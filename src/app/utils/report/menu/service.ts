@@ -1,15 +1,15 @@
 //===> core library
 import { Injectable } from "@nestjs/common";
 //===> custom library
-import { ProductPDFService }         from "./pdf-service";
-import { ProductExcelReportService } from "./excel-service";
+import { MenuPDFService }         from "./pdf-service";
+import { MenuExcelReportService } from "./excel-service";
 
 @Injectable()
-export class ProductReportService {
+export class MenuReportService {
 
     constructor(
-        private readonly _productPDFservice  : ProductPDFService,
-        private readonly _productExcelService: ProductExcelReportService,
+        private readonly _productPDFservice  : MenuPDFService,
+        private readonly _productExcelService: MenuExcelReportService,
     ) { }
     // ===> Method to generate report
     async generate(

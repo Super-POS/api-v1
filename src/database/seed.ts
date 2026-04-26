@@ -8,7 +8,7 @@ import sequelizeConfig from '@config/sequelize.config';
 
 import { MyProfileSeeder }   from './seeds/my-profile/my_profile.seeder';
 import { CafeOrderSeeder }   from './seeds/pos/cafe-order.seeder';
-import { CafeProductSeeder } from './seeds/pos/cafe-product.seeder';
+import { CafeMenuSeeder } from './seeds/pos/cafe-menu.seeder';
 import { UserSeeder }        from './seeds/user/user.seed';
 
 class SeederInitializer {
@@ -40,8 +40,8 @@ class SeederInitializer {
         // 1. Users, roles, user-roles
         await UserSeeder.seed();
 
-        // 2. Cafe menu: product types, products, ingredients, recipes, initial stock
-        await CafeProductSeeder.seed();
+        // 2. Cafe menu: product types, ingredients, products (with recipes JSON), initial stock
+        await CafeMenuSeeder.seed();
 
         // 3. Full order lifecycle: orders, details, payments, wallets, rewards,
         //    notifications, audit logs

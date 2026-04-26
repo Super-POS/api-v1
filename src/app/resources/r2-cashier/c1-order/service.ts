@@ -13,11 +13,9 @@ import { TelegramService } from 'src/app/services/telegram.service';
 import sequelizeConfig from 'src/config/sequelize.config';
 import OrderDetails from 'src/app/models/order/detail.model';
 import Order from 'src/app/models/order/order.model';
-import ProductIngredient from 'src/app/models/product/ingredient.model';
-import Product from 'src/app/models/product/product.model';
-import ProductRecipe from 'src/app/models/product/recipe.model';
-import IngredientStockMovement, { StockMovementType } from 'src/app/models/product/stock_movement.model';
-import ProductType from 'src/app/models/product/type.model';
+import Menu from '@app/models/menu/menu.model';
+import { deductStockForMenuRecipeLines } from '@app/utils/menu-recipe-stock.util';
+import MenuType from '@app/models/menu/menu-type.model';
 import { CreateOrderDto } from './dto';
 
 // ======================================= >> Code Starts Here << ========================== //
@@ -34,7 +32,9 @@ export class OrderService {
         if (Array.isArray(parsed)) {
             return parsed
                 .map((item: any) => ({
-                    menuId: Number(item?.menu_id ?? item?.product_id ?? item?.id),
+                    menuId: Number(
+                        item?.menu_id ?? (item as { product_id?: number })?.product_id ?? item?.id,
+                    ),
                     qty: Number(item?.quantity ?? item?.qty ?? 0),
                 }))
                 .filter((item) => Number.isFinite(item.menuId) && item.menuId > 0 && Number.isFinite(item.qty) && item.qty > 0);
@@ -46,7 +46,9 @@ export class OrderService {
                     if (value && typeof value === 'object') {
                         const v: any = value;
                         return {
-                            menuId: Number(v.menu_id ?? v.product_id ?? id),
+                            menuId: Number(
+                                v.menu_id ?? (v as { product_id?: number }).product_id ?? id,
+                            ),
                             qty: Number(v.quantity ?? v.qty ?? 0),
                         };
                     }
@@ -61,16 +63,16 @@ export class OrderService {
         return [];
     }
 
-    async getProducts(): Promise<{ data: { id: number, name: string, products: Product[] }[] }> {
-        const data = await ProductType.findAll({
+    async getMenus(): Promise<{ data: { id: number, name: string, menus: Menu[] }[] }> {
+        const data = await MenuType.findAll({
             attributes: ['id', 'name'],
             include: [
                 {
-                    model: Product,
+                    model: Menu,
                     attributes: ['id', 'type_id', 'name', 'image', 'unit_price', 'code'],
                     include: [
                         {
-                            model: ProductType,
+                            model: MenuType,
                             attributes: ['name'],
                         },
                     ],
@@ -79,10 +81,10 @@ export class OrderService {
             order: [['name', 'ASC']],
         });
 
-        const dataFormat: { id: number, name: string, products: Product[] }[] = data.map(type => ({
+        const dataFormat: { id: number, name: string, menus: Menu[] }[] = data.map((type) => ({
             id: type.id,
             name: type.name,
-            products: type.products || []
+            menus: type.menus || [],
         }));
 
         return { data: dataFormat };
@@ -114,49 +116,25 @@ export class OrderService {
 
             // Loop through cart items and calculate total price
             for (const item of cartItems) {
-                const product = await Product.findByPk(item.menuId); // Find menu by its ID
+                const menu = await Menu.findByPk(item.menuId);
 
-                if (product) {
+                if (menu) {
                     // Save to Order Details
                     await OrderDetails.create({
                         order_id: order.id,
-                        product_id: product.id,
+                        menu_id: menu.id,
                         qty: item.qty,
-                        unit_price: product.unit_price,
+                        unit_price: menu.unit_price,
                     }, { transaction });
 
-                    totalPrice += item.qty * product.unit_price; // Add to total price
+                    totalPrice += item.qty * menu.unit_price; // Add to total price
 
-                    // Deduct ingredient stock based on product recipe
-                    const recipes = await ProductRecipe.findAll({
-                        where: { product_id: product.id },
-                        include: [{ model: ProductIngredient }],
+                    await deductStockForMenuRecipeLines(
+                        menu,
+                        item.qty,
                         transaction,
-                    });
-
-                    for (const recipe of recipes) {
-                        const deduction = Number(recipe.quantity) * item.qty;
-                        const currentQty = Number(recipe.ingredient.quantity);
-
-                        if (currentQty < deduction) {
-                            throw new BadRequestException(
-                                `Insufficient stock for ingredient "${recipe.ingredient.name}". Available: ${currentQty}, required: ${deduction}.`
-                            );
-                        }
-
-                        await IngredientStockMovement.create({
-                            ingredient_id : recipe.ingredient_id,
-                            type          : StockMovementType.OUT,
-                            quantity      : deduction,
-                            note          : `Order #${order.receipt_number}`,
-                            created_by    : cashierId,
-                        }, { transaction });
-
-                        await ProductIngredient.update(
-                            { quantity: currentQty - deduction },
-                            { where: { id: recipe.ingredient_id }, transaction },
-                        );
-                    }
+                        { receiptRef: order.receipt_number + '', createdBy: cashierId },
+                    );
                 }
             }
 
@@ -185,11 +163,11 @@ export class OrderService {
                         attributes: ['id', 'unit_price', 'qty'],
                         include: [
                             {
-                                model: Product,
+                                model: Menu,
                                 attributes: ['id', 'name', 'code', 'image'],
                                 include: [
                                     {
-                                        model: ProductType,
+                                        model: MenuType,
                                         attributes: ['name'],
                                     }
                                 ]

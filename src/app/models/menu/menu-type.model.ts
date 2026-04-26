@@ -2,10 +2,10 @@
 import { Column, DataType, HasMany, Model, Table } from 'sequelize-typescript';
 
 // ================================================================================================= Custom Library
-import Product from './product.model';
+import Menu from './menu.model';
 
-@Table({ tableName: 'products_type', createdAt: 'created_at', updatedAt: 'updated_at' })
-class ProductType extends Model<ProductType> {
+@Table({ tableName: 'menu_types', createdAt: 'created_at', updatedAt: 'updated_at' })
+class MenuType extends Model<MenuType> {
 
     // ============================================================================================= Primary Key
     @Column({ primaryKey: true, autoIncrement: true })                                              id: number;
@@ -15,7 +15,7 @@ class ProductType extends Model<ProductType> {
     @Column({ allowNull: true, type: DataType.STRING(100) })                                        image?: string;
     created_at: Date
     // ===========================================================================================>> One to Many
-    @HasMany(() => Product)                                                                         products: Product[];
+    @HasMany(() => Menu)                                                                         menus: Menu[];
 }
 
-export default ProductType;
+export default MenuType;

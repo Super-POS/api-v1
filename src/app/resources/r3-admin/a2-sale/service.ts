@@ -8,8 +8,8 @@ import { Op, Order as SeqOrder, col, Sequelize } from 'sequelize';
 import User         from '@app/models/user/user.model';
 import Order        from '@app/models/order/order.model';
 import OrderDetails from '@app/models/order/detail.model';
-import Product      from '@app/models/product/product.model';
-import ProductType  from '@app/models/product/type.model';
+import Menu      from '@app/models/menu/menu.model';
+import MenuType  from '@app/models/menu/menu-type.model';
 
 @Injectable()
 export class SaleService {
@@ -122,10 +122,10 @@ export class SaleService {
                         attributes: ['id', 'unit_price', 'qty'],
                         include: [
                             {
-                                model: Product,
+                                model: Menu,
                                 attributes: ['id', 'name', 'code', 'image'],
                                 include: [
-                                    {   model: ProductType, 
+                                    {   model: MenuType, 
                                         attributes: ['name'] 
                                     }
                                 ],

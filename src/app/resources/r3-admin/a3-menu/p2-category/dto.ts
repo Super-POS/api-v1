@@ -2,7 +2,7 @@
 import { IsBase64Image } from "@app/core/decorators/base64-image.decorator";
 import { IsNotEmpty, IsOptional, IsString } from "class-validator";
 
-export class CreateProductTypeDto {
+export class CreateMenuTypeDto {
   @IsString()
   @IsNotEmpty()
   name: string;
@@ -15,7 +15,7 @@ export class CreateProductTypeDto {
   image: string;
 }
 
-export class UpdateProductTypeDto {
+export class UpdateMenuTypeDto {
   @IsString()
   @IsNotEmpty()
   name: string;

@@ -1,13 +1,13 @@
 //===>core library
 import { Controller, Get, Query }   from "@nestjs/common";
 //===>custom library
-import { ProductReportService }     from "./service";
+import { MenuReportService }     from "./service";
 import UserDecorator                from "@app/core/decorators/user.decorator";
 import User                         from "@app/models/user/user.model";
 
 @Controller()
-export class ProductReportController {
-    constructor(private readonly _service: ProductReportService) { };
+export class MenuReportController {
+    constructor(private readonly _service: MenuReportService) { };
 
 
 

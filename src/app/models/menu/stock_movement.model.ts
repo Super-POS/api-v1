@@ -3,7 +3,7 @@ import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from 'sequelize
 
 // ================================================================================================= Custom Library
 import User from '@app/models/user/user.model';
-import ProductIngredient from './ingredient.model';
+import MenuIngredient from './menu-ingredient.model';
 
 export enum StockMovementType {
     IN  = 'in',
@@ -17,7 +17,7 @@ class IngredientStockMovement extends Model<IngredientStockMovement> {
     @Column({ primaryKey: true, autoIncrement: true })                                              id: number;
 
     // ============================================================================================= Foreign Key
-    @ForeignKey(() => ProductIngredient)
+    @ForeignKey(() => MenuIngredient)
     @Column({ allowNull: false, type: DataType.INTEGER, onDelete: 'CASCADE' })                      ingredient_id: number;
 
     @ForeignKey(() => User)
@@ -30,7 +30,7 @@ class IngredientStockMovement extends Model<IngredientStockMovement> {
     created_at: Date
 
     // ===========================================================================================>> Many to One
-    @BelongsTo(() => ProductIngredient)                                                              ingredient: ProductIngredient;
+    @BelongsTo(() => MenuIngredient)                                                              ingredient: MenuIngredient;
     @BelongsTo(() => User, { foreignKey: 'created_by', as: 'creator' })                             creator?: User;
 
 }

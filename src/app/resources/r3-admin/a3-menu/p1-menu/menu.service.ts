@@ -13,21 +13,47 @@ import OrderDetails from "@app/models/order/detail.model";
 import Order from "@app/models/order/order.model";
 import User from "@app/models/user/user.model";
 import { Col, Fn, Literal } from "sequelize/types/utils";
-import Product from "src/app/models/product/product.model";
-import ProductType from "src/app/models/product/type.model";
+import Menu from "@app/models/menu/menu.model";
+import MenuIngredient from "@app/models/menu/menu-ingredient.model";
+import MenuType from "@app/models/menu/menu-type.model";
 import { FileService } from "src/app/services/file.service";
-import { CreateProductDto, UpdateProductDto } from "./dto";
+import { CreateMenuDto, MenuRecipeLineDto, UpdateMenuDto } from "./menu.dto";
 export type Orders = Fn | Col | Literal | OrderItem[];
 
 @Injectable()
-export class ProductService {
+export class MenuService {
   constructor(private readonly fileService: FileService) {}
+
+  private _validateRecipeLines(lines: MenuRecipeLineDto[]) {
+    const seen = new Set<number>();
+    for (const line of lines) {
+      if (seen.has(line.ingredient_id)) {
+        throw new BadRequestException(
+          `Duplicate ingredient_id ${line.ingredient_id} in recipes. Each ingredient may appear only once.`
+        );
+      }
+      seen.add(line.ingredient_id);
+    }
+  }
+
+  private async _assertIngredientsExist(
+    lines: MenuRecipeLineDto[]
+  ): Promise<void> {
+    for (const line of lines) {
+      const row = await MenuIngredient.findByPk(line.ingredient_id);
+      if (!row) {
+        throw new BadRequestException(
+          `Ingredient id ${line.ingredient_id} does not exist.`
+        );
+      }
+    }
+  }
 
   // Method to retrieve the setup data for product types
   async getSetupData(): Promise<any> {
     // Fetch product types
     try {
-      const productTypes = await ProductType.findAll({
+      const menuTypes = await MenuType.findAll({
         attributes: ["id", "name"],
       });
 
@@ -36,14 +62,14 @@ export class ProductService {
         attributes: ["id", "name"],
       });
       return {
-        productTypes,
+        menuTypes,
         users,
       };
     } catch (error) {
       console.error("Error in setup method:", error); // Log the error for debugging
       return {
         status: "error",
-        message: "products/setup",
+        message: "menus/setup",
       };
     }
   }
@@ -135,31 +161,32 @@ export class ProductService {
       }
 
       // Run query
-      const { rows, count } = await Product.findAndCountAll({
+      const { rows, count } = await Menu.findAndCountAll({
         attributes: [
           "id",
           "code",
           "name",
           "image",
           "unit_price",
+          "recipes",
           "created_at",
           [
             literal(`(
                         SELECT SUM(qty)
                         FROM order_details AS od
-                        WHERE od.product_id = "Product"."id"
+                        WHERE od.menu_id = "Menu"."id"
                     )`),
             "total_sale",
           ],
         ],
         include: [
           {
-            model: ProductType,
+            model: MenuType,
             attributes: ["id", "name"],
           },
           {
             model: OrderDetails,
-            as: "pod",
+            as: "orderDetails",
             attributes: [],
           },
           {
@@ -190,14 +217,14 @@ export class ProductService {
       console.error("Error in getData:", error);
       return {
         status: "error",
-        message: "products/getData",
+        message: "menus/getData",
       };
     }
   }
 
-  async view(product_id: number) {
+  async view(menu_id: number) {
     const where: any = {
-      product_id: product_id,
+      menu_id: menu_id,
     };
 
     const data = await Order.findAll({
@@ -215,9 +242,9 @@ export class ProductService {
           attributes: ["id", "unit_price", "qty"],
           include: [
             {
-              model: Product,
+              model: Menu,
               attributes: ["id", "name", "code", "image"],
-              include: [{ model: ProductType, attributes: ["name"] }],
+              include: [{ model: MenuType, attributes: ["name"] }],
             },
           ],
         },
@@ -231,12 +258,12 @@ export class ProductService {
 
   // Method to create a new product
   async create(
-    body: CreateProductDto,
+    body: CreateMenuDto,
     creator_id: number
-  ): Promise<{ data: Product; message: string }> {
+  ): Promise<{ data: Menu; message: string }> {
     try {
       // Check if the product code already exists
-      const checkExistCode = await Product.findOne({
+      const checkExistCode = await Menu.findOne({
         where: { code: body.code },
       });
       if (checkExistCode) {
@@ -246,7 +273,7 @@ export class ProductService {
       }
 
       // Check if the product name already exists
-      const checkExistName = await Product.findOne({
+      const checkExistName = await Menu.findOne({
         where: { name: body.name },
       });
       if (checkExistName) {
@@ -255,9 +282,13 @@ export class ProductService {
         );
       }
 
+      const rawRecipes = body.recipes ?? [];
+      this._validateRecipeLines(rawRecipes);
+      await this._assertIngredientsExist(rawRecipes);
+
       //   console.log("Before image upload");
       const result = await this.fileService.uploadBase64Image(
-        "product",
+        "menu",
         body.image
       );
       //   console.log("After image upload", result);
@@ -270,35 +301,38 @@ export class ProductService {
       body.image = result.data.uri;
 
       //   console.log("Before product creation", body);
-      const product = await Product.create({
-        ...body,
+      const { recipes, ...rest } = body;
+      const menu = await Menu.create({
+        ...rest,
+        recipes: rawRecipes,
         creator_id,
       });
       //   console.log("After product creation", product);
 
-      const data = await Product.findByPk(product.id, {
+      const data = await Menu.findByPk(menu.id, {
         attributes: [
           "id",
           "code",
           "name",
           "image",
           "unit_price",
+          "recipes",
           "created_at",
           [
             literal(
-              `(SELECT COUNT(*) FROM order_details AS od WHERE od.product_id = "Product"."id" )`
+              `(SELECT COUNT(*) FROM order_details AS od WHERE od.menu_id = "Menu"."id" )`
             ),
             "total_sale",
           ],
         ],
         include: [
           {
-            model: ProductType,
+            model: MenuType,
             attributes: ["id", "name"],
           },
           {
             model: OrderDetails,
-            as: "pod",
+            as: "orderDetails",
             attributes: [],
           },
           {
@@ -310,7 +344,7 @@ export class ProductService {
 
       return {
         data: data,
-        message: "Product has been created.",
+        message: "Menu has been created.",
       };
     } catch (error) {
       console.error("Error in product creation:", error);
@@ -320,22 +354,22 @@ export class ProductService {
 
   // Method to update an existing product
   async update(
-    body: UpdateProductDto,
+    body: UpdateMenuDto,
     id: number
-  ): Promise<{ data: Product; message: string }> {
+  ): Promise<{ data: Menu; message: string }> {
     try {
     //   console.log("Starting product update for ID:", id);
     //   console.log("Update data:", body);
 
       // Check if the product exists
-      const checkExist = await Product.findByPk(id);
+      const checkExist = await Menu.findByPk(id);
       if (!checkExist) {
-        // console.log("Product not found for ID:", id);
+        // console.log("Menu not found for ID:", id);
         throw new BadRequestException("No data found for the provided ID.");
       }
 
       // Check for duplicate code
-      const checkExistCode = await Product.findOne({
+      const checkExistCode = await Menu.findOne({
         where: {
           id: { [Op.not]: id },
           code: body.code,
@@ -349,7 +383,7 @@ export class ProductService {
       }
 
       // Check for duplicate name
-      const checkExistName = await Product.findOne({
+      const checkExistName = await Menu.findOne({
         where: {
           id: { [Op.not]: id },
           name: body.name,
@@ -366,7 +400,7 @@ export class ProductService {
       if (body.image) {
         // console.log("Processing image update");
         const result = await this.fileService.uploadBase64Image(
-          "product",
+          "menu",
           body.image
         );
         // console.log("Image upload result:", result);
@@ -380,9 +414,19 @@ export class ProductService {
         body.image = checkExist.image;
       }
 
+      if (body.recipes !== undefined) {
+        this._validateRecipeLines(body.recipes);
+        await this._assertIngredientsExist(body.recipes);
+      }
+
       // Perform the update
     //   console.log("Executing update query");
-      const [rowsAffected] = await Product.update(body, {
+      const { recipes: nextRecipes, ...updateFields } = body;
+      const payload: Parameters<typeof Menu.update>[0] = { ...updateFields };
+      if (nextRecipes !== undefined) {
+        payload.recipes = nextRecipes;
+      }
+      const [rowsAffected] = await Menu.update(payload, {
         where: { id: id },
       });
 
@@ -392,29 +436,30 @@ export class ProductService {
 
       // Retrieve updated product
     //   console.log("Fetching updated product");
-      const data = await Product.findByPk(id, {
+      const data = await Menu.findByPk(id, {
         attributes: [
           "id",
           "code",
           "name",
           "image",
           "unit_price",
+          "recipes",
           "created_at",
           [
             literal(
-              `(SELECT COUNT(*) FROM order_details AS od WHERE od.product_id = "Product"."id" )`
+              `(SELECT COUNT(*) FROM order_details AS od WHERE od.menu_id = "Menu"."id" )`
             ),
             "total_sale",
           ],
         ],
         include: [
           {
-            model: ProductType,
+            model: MenuType,
             attributes: ["id", "name"],
           },
           {
             model: OrderDetails,
-            as: "pod",
+            as: "orderDetails",
             attributes: [],
           },
           {
@@ -430,7 +475,7 @@ export class ProductService {
 
       return {
         data: data,
-        message: "Product has been updated.",
+        message: "Menu has been updated.",
       };
     } catch (error) {
       console.error("Error in product update:", error);
@@ -442,7 +487,7 @@ export class ProductService {
   async delete(id: number): Promise<{ message: string }> {
     try {
       // Attempt to delete the product
-      const rowsAffected = await Product.destroy({
+      const rowsAffected = await Menu.destroy({
         where: {
           id: id,
         },
@@ -450,10 +495,10 @@ export class ProductService {
 
       // Check if the product was found and deleted
       if (rowsAffected === 0) {
-        throw new NotFoundException("Product not found.");
+        throw new NotFoundException("Menu not found.");
       }
 
-      return { message: "This product has been deleted successfully." };
+      return { message: "This menu has been deleted successfully." };
     } catch (error) {
       // Handle any errors during the delete operation
       throw new BadRequestException(

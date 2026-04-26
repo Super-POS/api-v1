@@ -4,16 +4,16 @@ import { BadRequestException, Injectable, RequestTimeoutException }     from "@n
 //===>custom library
 import OrderDetails     from "@app/models/order/detail.model";
 import Order            from "@app/models/order/order.model";
-import Product          from "@app/models/product/product.model";
-import ProductType      from "@app/models/product/type.model";
+import Menu          from "@app/models/menu/menu.model";
+import MenuType      from "@app/models/menu/menu-type.model";
 import User             from "@app/models/user/user.model";
-import { ProductReport }    from "../interface";
+import { MenuReport }    from "../interface";
 
 //===>third party library
 import { JsReportService }  from "@app/services/js-report.service";
 
 @Injectable()
-export class ProductPDFService {
+export class MenuPDFService {
     constructor(
         private readonly jsReportService: JsReportService,
     ) { }
@@ -30,15 +30,15 @@ export class ProductPDFService {
             endDate || this.getCurrentDate()
         );
         const user = await this.fetchUser(userId);
-        const products = await this.fetchProducts(start, end);
+        const menus = await this.fetchMenus(start, end);
 
-        const productData = this.processProductData(products);
-        const totalSales = this.calculateTotal(productData, 'total_sales');
-        const totalQty = this.calculateTotal(productData, 'total_qty');
+        const menuData = this.processMenuData(menus);
+        const totalSales = this.calculateTotal(menuData, 'total_sales');
+        const totalQty = this.calculateTotal(menuData, 'total_qty');
 
-        const reportData = this.buildReportData(user, totalSales, productData, start, end, totalQty);
+        const reportData = this.buildReportData(user, totalSales, menuData, start, end, totalQty);
 
-        return this.generateAndSendReport(reportData, process.env.JS_TEMPLATE_PRODUCT, 'Product Sales Report', 'របាយការណ៍លក់តាមផលិតផល');
+        return this.generateAndSendReport(reportData, process.env.JS_TEMPLATE_PRODUCT, 'Menu Sales Report', 'របាយការណ៍លក់តាមផលិតផល');
         // return reportData;
     }
 
@@ -63,30 +63,30 @@ export class ProductPDFService {
     // }
 
 
-    private async fetchProducts(startDate: Date, endDate: Date) {
-        return Product.findAll({
+    private async fetchMenus(startDate: Date, endDate: Date) {
+        return Menu.findAll({
             attributes: ['id', 'name', 'unit_price'],
             include: [
-                { model: ProductType, as: 'type', attributes: ['id', 'name'] },
+                { model: MenuType, as: 'type', attributes: ['id', 'name'] },
                 {
-                    model: OrderDetails, as: 'pod',
+                    model: OrderDetails, as: 'orderDetails',
                     where: { created_at: { [Op.between]: [startDate, endDate] } },
-                    attributes: ['id', 'product_id', 'qty', 'unit_price', 'created_at']
+                    attributes: ['id', 'menu_id', 'qty', 'unit_price', 'created_at'],
                 }
             ],
         });
     }
 
-    private processProductData(products: Product[]): ProductReport[] {
-        return products.map(product => {
-            const totalQty = product.pod.reduce((sum, detail) => sum + detail.qty, 0);
-            const totalSales = totalQty * product.unit_price;
+    private processMenuData(menus: Menu[]): MenuReport[] {
+        return menus.map((menu) => {
+            const totalQty = menu.orderDetails.reduce((sum, detail) => sum + detail.qty, 0);
+            const totalSales = totalQty * menu.unit_price;
 
             return {
-                id: product.id,
-                name: product.name,
-                unit_price: product.unit_price,
-                type: product.type,
+                id: menu.id,
+                name: menu.name,
+                unit_price: menu.unit_price,
+                type: menu.type,
                 total_qty: totalQty,
                 total_sales: totalSales
             };

@@ -9,8 +9,8 @@ import { RoleEnum } from '@app/enums/role.enum';
 import { JsReportService } from '@app/services/js-report.service';
 import { ProfitMetrics, ProfitService } from '@app/services/profit.service';
 import Order from '@app/models/order/order.model';
-import Product from '@app/models/product/product.model';
-import ProductType from '@app/models/product/type.model';
+import Menu from '@app/models/menu/menu.model';
+import MenuType from '@app/models/menu/menu-type.model';
 import Role from '@app/models/user/role.model';
 import UserRoles from '@app/models/user/user_roles.model';
 import User from '@app/models/user/user.model';
@@ -42,7 +42,7 @@ export class DashboardService {
     //         const dataFilter: any = { ...dateFilter };
 
     //         const totalProduct = await this.countProduct(dataFilter);
-    //         const totalProductType = await this.countProductType(dataFilter);
+    //         const totalMenuType = await this.countMenuType(dataFilter);
     //         const totalUser = await this.countUser(dataFilter);
     //         const totalOrder = await this.countOrder(dataFilter);
 
@@ -120,7 +120,7 @@ export class DashboardService {
     //                 {
     //                     statistic: {
     //                         totalProduct,
-    //                         totalProductType,
+    //                         totalMenuType,
     //                         totalUser,
     //                         totalOrder,
     //                         total: totalSaleCurrent,
@@ -146,20 +146,20 @@ export class DashboardService {
             }
 
             const [
-                totalProduct,
-                totalProductType,
+                totalMenus,
+                totalMenuType,
                 totalUser,
                 totalOrder,
                 totalSaleDayOfWeek,
-                productTypesWithProductCounts,
+                menuTypesWithMenuCounts,
                 cashiers,
             ] = await Promise.all([
-                this.countProduct(dataFilter),
-                this.countProductType(dataFilter),
+                this.countMenu(dataFilter),
+                this.countMenuType(dataFilter),
                 this.countUser(dataFilter),
                 this.countOrder(dataFilter),
                 this.findDataSaleDayOfWeek(filters),
-                this.findProductTypeWithProductHaveUsed(filters),
+                this.findMenuTypeWithMenuCounts(filters),
                 this.findCashierAndTotalSale(filters),
             ]);
 
@@ -241,8 +241,8 @@ export class DashboardService {
             const result = {
                 dashboard: {
                     statistic: {
-                        totalProduct,
-                        totalProductType,
+                        totalMenus,
+                        totalMenuType,
                         totalUser,
                         totalOrder,
                         total               : totalSaleCurrent,
@@ -257,7 +257,7 @@ export class DashboardService {
                         net_margin_pct  : profit.net_margin_pct,
                     },
                     salesData      : totalSaleDayOfWeek,
-                    productTypeData: productTypesWithProductCounts,
+                    menuTypeData: menuTypesWithMenuCounts,
                     cashierData    : cashiers,
                 },
                 message: "ទទួលបានទិន្នន័យដោយជោគជ័យ",
@@ -269,7 +269,7 @@ export class DashboardService {
                 case 2:
                     return { dashboard: { salesData: result.dashboard.salesData }, message: result.message };
                 case 3:
-                    return { dashboard: { productTypeData: result.dashboard.productTypeData }, message: result.message };
+                    return { dashboard: { menuTypeData: result.dashboard.menuTypeData }, message: result.message };
                 case 4:
                     return { dashboard: { cashierData: result.dashboard.cashierData }, message: result.message };
                 default:
@@ -439,37 +439,37 @@ export class DashboardService {
         return { currentPeriodFilter, previousPeriodFilter };
     }
 
-    async findProductTypeWithProductHaveUsed(filters: { thisWeek?: string; thisMonth?: string; threeMonthAgo?: string; sixMonthAgo?: string; }) {
+    async findMenuTypeWithMenuCounts(filters: { thisWeek?: string; thisMonth?: string; threeMonthAgo?: string; sixMonthAgo?: string; }) {
         try {
             // Use date filter or default to 'this week'
             const { startDate, endDate } = this.getDateRange(filters) || this.getDefaultWeekRange();
 
             // Construct the SQL date condition
-            const dateCondition = `AND p.created_at BETWEEN '${startDate.toISOString()}' AND '${endDate.toISOString()}'`;
+            const dateCondition = `AND m.created_at BETWEEN '${startDate.toISOString()}' AND '${endDate.toISOString()}'`;
 
-            const productTypesWithProductCounts = await ProductType.findAll({
+            const menuTypesWithMenuCounts = await MenuType.findAll({
                 attributes: [
                     'id',
                     'name',
                     [Sequelize.literal(`(
                         SELECT COUNT(*)
-                        FROM product AS p
-                        WHERE p.type_id = "ProductType".id
+                        FROM menus AS m
+                        WHERE m.type_id = "MenuType".id
                         ${dateCondition}
-                    )`), 'productCount'],
+                    )`), 'menuCount'],
                 ],
                 include: [
                     {
-                        model: Product,
-                        attributes: [], // Only count, no need for product details
+                        model: Menu,
+                        attributes: [],
                     },
                 ],
-                group: ['ProductType.id'],
+                group: ['MenuType.id'],
             });
 
             const result = {
-                labels: productTypesWithProductCounts.map(pt => pt.name),
-                data: productTypesWithProductCounts.map(pt => pt.get('productCount')),
+                labels: menuTypesWithMenuCounts.map(pt => pt.name),
+                data: menuTypesWithMenuCounts.map(pt => pt.get('menuCount')),
             };
 
             return result;
@@ -713,14 +713,14 @@ export class DashboardService {
     }
 
     // Count documents based on the filter
-    private async countProduct(filter: any): Promise<number> {
-        return Product.count({
+    private async countMenu(filter: any): Promise<number> {
+        return Menu.count({
             // where: filter
         });
     }
 
-    private async countProductType(filter: any): Promise<number> {
-        return ProductType.count({
+    private async countMenuType(filter: any): Promise<number> {
+        return MenuType.count({
             // where: filter
         });
     }

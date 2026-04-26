@@ -37,14 +37,14 @@ export class DashboardController {
         return await this._service.findCashierAndTotalSale({ today, yesterday, thisWeek, thisMonth });
     }
 
-    @Get('/product-type')
-    async getProductTypeWithProductHaveUsed(
+    @Get('/menu-type')
+    async getMenuTypeWithMenuCounts(
         @Query('thisWeek')      thisWeek?     : string,
         @Query('thisMonth')     thisMonth?    : string,
         @Query('threeMonthAgo') threeMonthAgo?: string,
         @Query('sixMonthAgo')   sixMonthAgo?  : string,
     ) {
-        return await this._service.findProductTypeWithProductHaveUsed({ thisWeek, thisMonth, threeMonthAgo, sixMonthAgo });
+        return await this._service.findMenuTypeWithMenuCounts({ thisWeek, thisMonth, threeMonthAgo, sixMonthAgo });
     }
 
     @Get('/data-sale')

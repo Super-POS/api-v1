@@ -212,10 +212,10 @@
           }
         },
         {
-          "name": "Dashboard - Menu Category",
+          "name": "Dashboard - Menu Type (counts)",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/admin/dashboard/menu-category"
+            "url": "{{baseUrl}}/api/admin/dashboard/menu-type"
           }
         },
         {
@@ -298,7 +298,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Cafe Latte\",\n  \"code\": \"LATTE-001\",\n  \"type_id\": 1,\n  \"unit_price\": 2.5,\n  \"image\": \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA\"\n}"
+              "raw": "{\n  \"name\": \"Cafe Latte\",\n  \"code\": \"LATTE-001\",\n  \"type_id\": 1,\n  \"unit_price\": 2.5,\n  \"image\": \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA\",\n  \"recipes\": [\n    { \"ingredient_id\": 1, \"quantity\": 1 },\n    { \"ingredient_id\": 2, \"quantity\": 180 }\n  ]\n}"
             },
             "url": "{{baseUrl}}/api/admin/menus"
           }
@@ -315,7 +315,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Cafe Latte Updated\",\n  \"code\": \"LATTE-001\",\n  \"type_id\": 1,\n  \"unit_price\": 3,\n  \"image\": \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA\"\n}"
+              "raw": "{\n  \"name\": \"Cafe Latte Updated\",\n  \"code\": \"LATTE-001\",\n  \"type_id\": 1,\n  \"unit_price\": 3,\n  \"image\": \"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA\",\n  \"recipes\": [\n    { \"ingredient_id\": 1, \"quantity\": 1 },\n    { \"ingredient_id\": 2, \"quantity\": 200 }\n  ]\n}"
             },
             "url": "{{baseUrl}}/api/admin/menus/{{menuId}}"
           }
@@ -437,68 +437,6 @@
           "request": {
             "method": "DELETE",
             "url": "{{baseUrl}}/api/admin/menu/ingredients/{{ingredientId}}"
-          }
-        },
-        {
-          "name": "Recipes - List",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/admin/menu/recipes"
-          }
-        },
-        {
-          "name": "Recipes - List by Menu",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/admin/menu/recipes?product_id={{menuId}}"
-          }
-        },
-        {
-          "name": "Recipes - View",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/admin/menu/recipes/{{recipeId}}"
-          }
-        },
-        {
-          "name": "Recipes - Create",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"product_id\": 1,\n  \"ingredient_id\": 1,\n  \"quantity\": 30\n}"
-            },
-            "url": "{{baseUrl}}/api/admin/menu/recipes"
-          }
-        },
-        {
-          "name": "Recipes - Update",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"quantity\": 50\n}"
-            },
-            "url": "{{baseUrl}}/api/admin/menu/recipes/{{recipeId}}"
-          }
-        },
-        {
-          "name": "Recipes - Delete",
-          "request": {
-            "method": "DELETE",
-            "url": "{{baseUrl}}/api/admin/menu/recipes/{{recipeId}}"
           }
         },
         {
@@ -1542,10 +1480,6 @@
     {
       "key": "receiptNumber",
       "value": "1001"
-    },
-    {
-      "key": "recipeId",
-      "value": "1"
     },
     {
       "key": "stockMovementId",

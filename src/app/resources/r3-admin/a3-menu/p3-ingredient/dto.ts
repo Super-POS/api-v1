@@ -1,7 +1,7 @@
 // ===========================================================================>> Custom Library
 import { IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
 
-export class CreateProductIngredientDto {
+export class CreateMenuIngredientDto {
     @IsString()
     @IsNotEmpty()
     name: string;
@@ -15,7 +15,7 @@ export class CreateProductIngredientDto {
     quantity: number;
 }
 
-export class UpdateProductIngredientDto {
+export class UpdateMenuIngredientDto {
     @IsString()
     @IsNotEmpty()
     name: string;

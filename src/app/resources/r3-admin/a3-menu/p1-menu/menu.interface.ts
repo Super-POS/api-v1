@@ -1,8 +1,8 @@
 import { Pagination } from "@app/shared/pagination.interface";
-import Product from "@app/models/product/product.model";
+import Menu from "@app/models/menu/menu.model";
 
 export interface List {
     status: string;
-    data: Product[];
+    data: Menu[];
     pagination: Pagination;
 }

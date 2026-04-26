@@ -5,7 +5,7 @@ import { Op } from 'sequelize';
 import { JsReportService } from '@app/services/js-report.service';
 import OrderDetails from '@app/models/order/detail.model';
 import Order from '@app/models/order/order.model';
-import Product from '@app/models/product/product.model';
+import Menu from '@app/models/menu/menu.model';
 import User from '@app/models/user/user.model';
 
 @Injectable()
@@ -29,7 +29,7 @@ export class InvoiceService {
                     attributes: ['id', 'unit_price', 'qty'],
                     include: [
                         {
-                            model: Product,
+                            model: Menu,
                             attributes: ['id', 'name', 'image'],
                         }
                     ]
@@ -89,7 +89,7 @@ export class InvoiceService {
                     attributes: ['id', 'unit_price', 'qty'],
                     include: [
                         {
-                            model: Product,
+                            model: Menu,
                             attributes: ['id', 'name', 'image'],
                         }
                     ]

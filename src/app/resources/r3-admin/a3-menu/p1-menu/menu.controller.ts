@@ -3,17 +3,17 @@ import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, U
 
 // ===========================================================================>> Costom Library
 import UserDecorator from '@app/core/decorators/user.decorator';
-import { ProductTypeExistsPipe } from '@app/core/pipes/product.pipe';
+import { MenuTypeExistsPipe } from '@app/core/pipes/menu-type-exists.pipe';
 
-import Product from '@app/models/product/product.model';
+import Menu from '@app/models/menu/menu.model';
 import User from '@app/models/user/user.model';
 
-import { CreateProductDto, UpdateProductDto } from './dto';
-import { ProductService } from './service';
+import { CreateMenuDto, UpdateMenuDto } from './menu.dto';
+import { MenuService } from './menu.service';
 @Controller()
-export class ProductController {
+export class MenuController {
 
-    constructor(private _service: ProductService) { };
+    constructor(private _service: MenuService) { };
 
     @Get('setup-data')
     async setup() {
@@ -55,16 +55,16 @@ export class ProductController {
     }
 
     @Post()
-    @UsePipes(ProductTypeExistsPipe)
-    async create(@Body() body: CreateProductDto, @UserDecorator() auth: User,): Promise<{ data: Product, message: string }> {
+    @UsePipes(MenuTypeExistsPipe)
+    async create(@Body() body: CreateMenuDto, @UserDecorator() auth: User,): Promise<{ data: Menu, message: string }> {
         return await this._service.create(body, auth.id);
     }
 
     @Put(':id')
-    @UsePipes(ProductTypeExistsPipe)
+    @UsePipes(MenuTypeExistsPipe)
     async update(
         @Param('id', ParseIntPipe) id: number,
-        @Body() body: UpdateProductDto
+        @Body() body: UpdateMenuDto
     ) {
         return this._service.update(body, id);
     }

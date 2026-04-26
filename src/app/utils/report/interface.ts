@@ -1,4 +1,4 @@
-export interface ProductReport {
+export interface MenuReport {
     id: number;
     name: string;
     unit_price: number;

@@ -2,7 +2,7 @@ import { OrderChannelEnum } from "@app/enums/order-channel.enum";
 import { OrderStatusEnum }  from "@app/enums/order-status.enum";
 import OrderDetails         from "@app/models/order/detail.model";
 import Order                from "@app/models/order/order.model";
-import Product              from "@app/models/product/product.model";
+import Menu              from "@app/models/menu/menu.model";
 
 export class OrderSeeder {
     public static async seed() {
@@ -87,25 +87,25 @@ export class OrderSeeder {
         const details       = [];
         const nOfDetails     = Math.floor(Math.random() * (7 - 2 + 1) + 2);
 
-        const products = await Product.findAll();
-        const productIds = products.map(product => product.id);
+        const menus = await Menu.findAll();
+        const menuIds = menus.map((m) => m.id);
 
         for (let i = 0; i < nOfDetails; i++) {
-            const randomProductId = productIds[Math.floor(Math.random() * productIds.length)];
-            const product = products.find(p => p.id === randomProductId);
+            const randomMenuId = menuIds[Math.floor(Math.random() * menuIds.length)];
+            const menu = menus.find((m) => m.id === randomMenuId);
 
-            if (!product) {
-                console.error(`Product with id ${randomProductId} not found.`);
+            if (!menu) {
+                console.error(`Menu with id ${randomMenuId} not found.`);
                 continue;
             }
 
             const qty = Math.floor(Math.random() * 10) + 1;
 
             details.push({
-                order_id    : orderId,
-                product_id  : product.id,
-                unit_price  : product.unit_price,
-                qty         : qty,
+                order_id   : orderId,
+                menu_id    : menu.id,
+                unit_price : menu.unit_price,
+                qty        : qty,
             });
         }
 

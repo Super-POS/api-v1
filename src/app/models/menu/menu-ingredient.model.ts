@@ -2,17 +2,17 @@
 import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from 'sequelize-typescript';
 
 // ================================================================================================= Custom Library
-import Product from './product.model';
+import Menu from './menu.model';
 
-@Table({ tableName: 'product_ingredients', createdAt: 'created_at', updatedAt: 'updated_at' })
-class ProductIngredient extends Model<ProductIngredient> {
+@Table({ tableName: 'menu_ingredients', createdAt: 'created_at', updatedAt: 'updated_at' })
+class MenuIngredient extends Model<MenuIngredient> {
 
     // ============================================================================================= Primary Key
     @Column({ primaryKey: true, autoIncrement: true })                                              id: number;
 
-    // ============================================================================================= Optional Link (temporarily decoupled)
-    @ForeignKey(() => Product)
-    @Column({ allowNull: true, type: DataType.INTEGER, onDelete: 'SET NULL' })                      product_id?: number;
+    // ============================================================================================= Optional link to a menu
+    @ForeignKey(() => Menu)
+    @Column({ allowNull: true, type: DataType.INTEGER, onDelete: 'SET NULL' })                      menu_id?: number;
 
     // ============================================================================================= Field
     @Column({ allowNull: false, type: DataType.STRING(150) })                                       name: string;
@@ -22,9 +22,9 @@ class ProductIngredient extends Model<ProductIngredient> {
     unit_cost: number;
     created_at: Date
 
-    // ===========================================================================================>> Many to One (optional link)
-    @BelongsTo(() => Product)                                                                        product?: Product;
+    // ===========================================================================================>> Many to One
+    @BelongsTo(() => Menu)                                                                        menu?: Menu;
 
 }
 
-export default ProductIngredient;
+export default MenuIngredient;

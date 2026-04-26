@@ -2,13 +2,13 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put } from '@nestjs/common';
 
 // ===========================================================================>> Custom Library
-import { CreateProductIngredientDto, UpdateProductIngredientDto } from './dto';
-import { ProductIngredientService } from './service';
+import { CreateMenuIngredientDto, UpdateMenuIngredientDto } from './dto';
+import { MenuIngredientService } from './service';
 
 @Controller()
-export class ProductIngredientController {
+export class MenuIngredientController {
 
-    constructor(private readonly _service: ProductIngredientService) {}
+    constructor(private readonly _service: MenuIngredientService) {}
 
     // =============================================>> List
     @Get()
@@ -24,7 +24,7 @@ export class ProductIngredientController {
 
     // =============================================>> Create
     @Post()
-    async create(@Body() body: CreateProductIngredientDto) {
+    async create(@Body() body: CreateMenuIngredientDto) {
         return await this._service.create(body);
     }
 
@@ -32,7 +32,7 @@ export class ProductIngredientController {
     @Put(':id')
     async update(
         @Param('id', ParseIntPipe) id: number,
-        @Body() body: UpdateProductIngredientDto
+        @Body() body: UpdateMenuIngredientDto
     ) {
         return await this._service.update(body, id);
     }

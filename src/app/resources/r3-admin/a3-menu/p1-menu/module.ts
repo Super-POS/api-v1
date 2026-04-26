@@ -7,16 +7,16 @@ import { Module } from '@nestjs/common';
 // Custom Components:
 import { FileService } from 'src/app/services/file.service';// for uploading file
 
-import { ProductController } from './controller';
-import { ProductService } from './service';
+import { MenuController } from './menu.controller';
+import { MenuService } from './menu.service';
 
 @Module({
     controllers: [
-        ProductController
+        MenuController
     ],
     providers: [
         FileService,
-        ProductService
+        MenuService
     ]
 })
-export class ProductModule {}
+export class MenuModule {}

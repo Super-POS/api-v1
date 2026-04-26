@@ -1,8 +1,7 @@
-import ProductIngredient         from '@app/models/product/ingredient.model';
-import ProductRecipe              from '@app/models/product/recipe.model';
-import IngredientStockMovement, { StockMovementType } from '@app/models/product/stock_movement.model';
-import Product                   from '@app/models/product/product.model';
-import ProductType                from '@app/models/product/type.model';
+import MenuIngredient         from '@app/models/menu/menu-ingredient.model';
+import IngredientStockMovement, { StockMovementType } from '@app/models/menu/stock_movement.model';
+import Menu                   from '@app/models/menu/menu.model';
+import MenuType                from '@app/models/menu/menu-type.model';
 
 // =========================================================================
 // Catalogue data
@@ -16,7 +15,7 @@ const TYPES = [
     { id: 5, name: 'Smoothies & Juice',   image: 'static/pos/products/type/smoothie.png'    },
 ];
 
-const PRODUCTS = [
+const MENUS = [
     // ── Coffee ─────────────────────────────────────────────────────────────
     { id:  1, code: 'CF-001', type_id: 1, name: 'Espresso',               unit_price: 1.50, discount: 0, image: 'static/pos/products/coffee/espresso.png',        creator_id: 1 },
     { id:  2, code: 'CF-002', type_id: 1, name: 'Americano',              unit_price: 2.00, discount: 0, image: 'static/pos/products/coffee/americano.png',       creator_id: 1 },
@@ -70,7 +69,7 @@ const INGREDIENTS = [
     { id: 17, name: 'Fresh Orange',         unit: 'g',    quantity: 10000, unit_cost: 0.003  },
 ];
 
-// [product_id, ingredient_id, quantity_per_serving]
+// [menu_id, ingredient_id, quantity_per_serving]
 const RECIPES: [number, number, number][] = [
     // Espresso (1): 1 shot
     [1,  1, 1],
@@ -119,48 +118,47 @@ const RECIPES: [number, number, number][] = [
 // Seeder class
 // =========================================================================
 
-export class CafeProductSeeder {
+export class CafeMenuSeeder {
 
     public static async seed(): Promise<void> {
         try {
-            await CafeProductSeeder._seedTypes();
-            await CafeProductSeeder._seedProducts();
-            await CafeProductSeeder._seedIngredients();
-            await CafeProductSeeder._seedRecipes();
-            await CafeProductSeeder._seedInitialStock();
+            await CafeMenuSeeder._seedTypes();
+            await CafeMenuSeeder._seedIngredients();
+            await CafeMenuSeeder._seedMenus();
+            await CafeMenuSeeder._seedInitialStock();
         } catch (err) {
-            console.error('\x1b[31mError in CafeProductSeeder:', err.message);
+            console.error('\x1b[31mError in CafeMenuSeeder:', err.message);
             throw err;
         }
     }
 
-    // ── Product types ────────────────────────────────────────────────────────
+    // ── Menu types ────────────────────────────────────────────────────────
     private static async _seedTypes() {
-        await ProductType.bulkCreate(TYPES);
-        console.log('\x1b[32m✔  Product types inserted (%d rows)', TYPES.length);
+        await MenuType.bulkCreate(TYPES);
+        console.log('\x1b[32m✔  Menu types inserted (%d rows)', TYPES.length);
     }
 
-    // ── Products ─────────────────────────────────────────────────────────────
-    private static async _seedProducts() {
-        await Product.bulkCreate(PRODUCTS);
-        console.log('\x1b[32m✔  Products inserted (%d rows)', PRODUCTS.length);
-    }
-
-    // ── Ingredients ──────────────────────────────────────────────────────────
+    // ── Ingredients (before products: recipes reference ingredient ids) ────
     private static async _seedIngredients() {
-        await ProductIngredient.bulkCreate(INGREDIENTS);
+        await MenuIngredient.bulkCreate(INGREDIENTS);
         console.log('\x1b[32m✔  Ingredients inserted (%d rows)', INGREDIENTS.length);
     }
 
-    // ── Recipes ──────────────────────────────────────────────────────────────
-    private static async _seedRecipes() {
-        const rows = RECIPES.map(([product_id, ingredient_id, quantity]) => ({
-            product_id,
-            ingredient_id,
-            quantity,
+    // ── Menus (recipes JSON on each row, built from RECIPES) ─────────────
+    private static async _seedMenus() {
+        const recipeByMenuId = new Map<number, { ingredient_id: number; quantity: number }[]>();
+        for (const [menuId, ingredient_id, quantity] of RECIPES) {
+            if (!recipeByMenuId.has(menuId)) {
+                recipeByMenuId.set(menuId, []);
+            }
+            recipeByMenuId.get(menuId)!.push({ ingredient_id, quantity });
+        }
+        const rows = MENUS.map((m) => ({
+            ...m,
+            recipes: recipeByMenuId.get(m.id) ?? [],
         }));
-        await ProductRecipe.bulkCreate(rows);
-        console.log('\x1b[32m✔  Recipes inserted (%d rows)', rows.length);
+        await Menu.bulkCreate(rows as any);
+        console.log('\x1b[32m✔  Menus inserted (%d rows)', rows.length);
     }
 
     // ── Initial stock IN movement for each ingredient ─────────────────────────

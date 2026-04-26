@@ -4,7 +4,7 @@ import OrderDetails          from '@app/models/order/detail.model';
 import Order                 from '@app/models/order/order.model';
 import Notifications         from '@app/models/notification/notification.model';
 import PaymentTransaction, { PaymentMethod, PaymentStatus } from '@app/models/payment/payment_transaction.model';
-import Product               from '@app/models/product/product.model';
+import Menu               from '@app/models/menu/menu.model';
 import RewardPoint           from '@app/models/reward/reward_point.model';
 import RewardTransaction, { RewardTransactionType } from '@app/models/reward/reward_transaction.model';
 import UsersLogs             from '@app/models/user/user_logs.model';
@@ -17,7 +17,7 @@ const CASHIER_IDS = [1, 2, 3];     // user ids that are cashiers
 const CUSTOMER_IDS= [4, 5, 6, 7, 8]; // user ids that are customers
 
 // ─── Popular products (weighted for realistic cafe orders) ────────────────────
-// [product_id, weight]  higher weight = ordered more often
+// [menu_id, weight]  higher weight = ordered more often
 const POPULAR_PRODUCTS: [number, number][] = [
     [3,  12], // Cafe Latte
     [4,  10], // Cappuccino
@@ -75,12 +75,12 @@ const AUDIT_ACTIONS = [
 
 export class CafeOrderSeeder {
 
-    private static products: Product[] = [];
-    private static productMap: Map<number, Product> = new Map();
+    private static products: Menu[] = [];
+    private static productMap: Map<number, Menu> = new Map();
 
     public static async seed(): Promise<void> {
         try {
-            CafeOrderSeeder.products = await Product.findAll();
+            CafeOrderSeeder.products = await Menu.findAll();
             CafeOrderSeeder.products.forEach(p => CafeOrderSeeder.productMap.set(p.id, p));
 
             await CafeOrderSeeder._seedWallets();
@@ -197,7 +197,7 @@ export class CafeOrderSeeder {
                 const product   = CafeOrderSeeder.productMap.get(productId);
                 if (!product) continue;
                 const qty = randInt(1, 3);
-                detailRows.push({ order_id: order.id, product_id: product.id, unit_price: product.unit_price, qty });
+                detailRows.push({ order_id: order.id, menu_id: product.id, unit_price: product.unit_price, qty });
                 totalPrice += product.unit_price * qty;
             }
 

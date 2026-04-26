@@ -12,12 +12,12 @@ import { Sequelize } from "sequelize";
 import { TelegramService } from "@app/resources/r4-testing/third-party/telegram/service";
 
 import { FileService } from "@app/services/file.service";
-import Product from "@app/models/product/product.model";
-import ProductType from "@app/models/product/type.model";
-import { CreateProductTypeDto, UpdateProductTypeDto } from "./dto";
+import Menu from "@app/models/menu/menu.model";
+import MenuType from "@app/models/menu/menu-type.model";
+import { CreateMenuTypeDto, UpdateMenuTypeDto } from "./dto";
 
 @Injectable()
-export class ProductTypeService {
+export class MenuTypeService {
   constructor(
     private readonly _fileService: FileService,
     private readonly _telegramService: TelegramService
@@ -26,7 +26,7 @@ export class ProductTypeService {
   // ==========================================>> get data
   async getData() {
     try {
-      const data = await ProductType.findAll({
+      const data = await MenuType.findAll({
         attributes: [
           "id",
           "name",
@@ -39,11 +39,11 @@ export class ProductTypeService {
         ],
         include: [
           {
-            model: Product,
+            model: Menu,
             attributes: [],
           },
         ],
-        group: ["ProductType.id"],
+        group: ["MenuType.id"],
         order: [["name", "ASC"]],
       });
 
@@ -56,7 +56,7 @@ export class ProductTypeService {
   }
 
   // ==========================================>> create
-  async create(body: CreateProductTypeDto): Promise<any> {
+  async create(body: CreateMenuTypeDto): Promise<any> {
     // ===>> Upload Image
     const result = await this._fileService.uploadBase64Image(
       "productType", // Folder Name
@@ -65,7 +65,7 @@ export class ProductTypeService {
 
     // ===>> Save to DB
     // Save to DB
-    const data = await ProductType.create({
+    const data = await MenuType.create({
       name: body.name,
       image: result.data.uri,
     });
@@ -78,16 +78,16 @@ export class ProductTypeService {
     };
 
     // ===>> Send to TG
-    // await this._telegramService.sendMessage('7885972832:AAHsu-ttVH9h0QW0CLyndcMxEGe44aCdrh4', '-1002649512007', 'Product Type: '+ body.name + ' has been created.');
+    // await this._telegramService.sendMessage('7885972832:AAHsu-ttVH9h0QW0CLyndcMxEGe44aCdrh4', '-1002649512007', 'Menu Type: '+ body.name + ' has been created.');
 
     // ===>> Return to Client
     return dataFormat;
   }
 
   // ==========================================>> update
-  async update(body: UpdateProductTypeDto, id: number): Promise<any> {
+  async update(body: UpdateMenuTypeDto, id: number): Promise<any> {
     // Check if submitted data is valide.
-    const checkedData = await ProductType.findByPk(id);
+    const checkedData = await MenuType.findByPk(id);
 
     if (!checkedData) {
       throw new NotFoundException("Menu category is not found.");
@@ -106,12 +106,12 @@ export class ProductTypeService {
     }
 
     // Save the updated data to DB.
-    await ProductType.update(body, {
+    await MenuType.update(body, {
       where: { id: id },
     });
 
     // get the updated data from DB
-    const data = await ProductType.findByPk(id);
+    const data = await MenuType.findByPk(id);
 
     // Prepare response format.
     const dataFormat = {
@@ -126,14 +126,14 @@ export class ProductTypeService {
   // ==========================================>> delete
   async delete(id: number): Promise<any> {
     // Check if submitted data is valide.
-    const checkedData = await ProductType.findByPk(id);
+    const checkedData = await MenuType.findByPk(id);
 
     if (!checkedData) {
       throw new NotFoundException("Menu category is not found.");
     }
 
     // Delete from DB.
-    await ProductType.destroy({
+    await MenuType.destroy({
       where: { id: id },
     });
 

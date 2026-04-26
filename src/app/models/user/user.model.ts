@@ -6,7 +6,7 @@ import * as bcrypt from 'bcryptjs';
 import { ActiveEnum } from 'src/app/enums/active.enum';
 
 import Order        from '../order/order.model';
-import Product      from '../product/product.model';
+import Menu      from '../menu/menu.model';
 
 import UserRoles    from './user_roles.model';
 import Role         from './role.model';
@@ -41,7 +41,7 @@ class User extends Model<User> {
     // ===========================================================================================>> One to Many
     @HasMany(() => UserRoles)                                                                       role: UserRoles[];
     @HasMany(() => Order)                                                                           orders: Order[];
-    @HasMany(() => Product)                                                                         create_pos: Product[];
+    @HasMany(() => Menu, { foreignKey: 'creator_id' })                                              created_menus: Menu[];
     @HasMany(() => UserOTP)                                                                         otps: UserOTP[];
     // ===========================================================================================>> Many to Many
     @BelongsToMany(() => Role, () => UserRoles)                                                     roles: Role[];

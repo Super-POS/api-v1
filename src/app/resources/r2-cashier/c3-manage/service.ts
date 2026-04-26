@@ -8,8 +8,8 @@ import { Op } from 'sequelize';
 import { OrderStatusEnum }  from '@app/enums/order-status.enum';
 import OrderDetails         from '@app/models/order/detail.model';
 import Order                from '@app/models/order/order.model';
-import Product              from '@app/models/product/product.model';
-import ProductType          from '@app/models/product/type.model';
+import Menu              from '@app/models/menu/menu.model';
+import MenuType          from '@app/models/menu/menu-type.model';
 import User                 from '@app/models/user/user.model';
 
 const ORDER_ATTRIBUTES  = ['id', 'receipt_number', 'total_price', 'channel', 'status', 'ordered_at'];
@@ -19,9 +19,9 @@ const DETAIL_INCLUDES   = [
         attributes: ['id', 'unit_price', 'qty'],
         include: [
             {
-                model: Product,
+                model: Menu,
                 attributes: ['id', 'name', 'code', 'image'],
-                include: [{ model: ProductType, attributes: ['name'] }],
+                include: [{ model: MenuType, attributes: ['name'] }],
             },
         ],
     },

@@ -7,8 +7,8 @@ import { Op } from 'sequelize';
 // =========================================================================>> Custom Library
 import OrderDetails      from '@app/models/order/detail.model';
 import Order             from '@app/models/order/order.model';
-import ProductIngredient from '@app/models/product/ingredient.model';
-import ProductRecipe     from '@app/models/product/recipe.model';
+import Menu         from '@app/models/menu/menu.model';
+import MenuIngredient from '@app/models/menu/menu-ingredient.model';
 
 export interface ProfitMetrics {
     revenue         : number;
@@ -66,12 +66,7 @@ export class ProfitService {
     }
 
     /**
-     * COGS = Σ (order_detail.qty × product_recipe.quantity × ingredient.unit_cost)
-     *
-     * Strategy:
-     *  1. Load order details for the period.
-     *  2. Load recipes + ingredient unit costs for all unique products.
-     *  3. Multiply out.
+     * COGS = Σ (order_detail.qty × sum over product.recipes of (line.quantity × ingredient.unit_cost))
      */
     private async _cogs(startDate: Date, endDate: Date): Promise<number> {
         // Step 1 — fetch order details for the window
@@ -81,46 +76,65 @@ export class ProfitService {
             include   : [
                 {
                     model     : OrderDetails,
-                    attributes: ['product_id', 'qty'],
+                    attributes: ['menu_id', 'qty'],
                 },
             ],
         });
 
-        // Flatten to a map product_id → total qty ordered in the period
-        const qtyByProduct = new Map<number, number>();
+        // Flatten to a map menu_id → total qty ordered in the period
+        const qtyByMenu = new Map<number, number>();
         for (const order of orders) {
             for (const detail of order.details ?? []) {
-                const prev = qtyByProduct.get(detail.product_id) ?? 0;
-                qtyByProduct.set(detail.product_id, prev + Number(detail.qty));
+                const prev = qtyByMenu.get(detail.menu_id) ?? 0;
+                qtyByMenu.set(detail.menu_id, prev + Number(detail.qty));
             }
         }
 
-        if (qtyByProduct.size === 0) return 0;
+        if (qtyByMenu.size === 0) return 0;
 
-        // Step 2 — load recipes with ingredient unit costs
-        const productIds = [...qtyByProduct.keys()];
-        const recipes    = await ProductRecipe.findAll({
-            where  : { product_id: productIds },
-            include: [
-                {
-                    model     : ProductIngredient,
-                    attributes: ['id', 'unit_cost'],
-                },
-            ],
+        const menuIds = [...qtyByMenu.keys()];
+        const menus   = await Menu.findAll({
+            where     : { id: menuIds },
+            attributes: ['id', 'recipes'],
         });
 
-        // Step 3 — compute cost per product unit, then multiply by qty
-        // cost_per_unit[product_id] = Σ (recipe.quantity × ingredient.unit_cost)
+        const allIngredientIds = new Set<number>();
+        for (const p of menus) {
+            const lines: any[] = Array.isArray((p as any).recipes) ? (p as any).recipes : [];
+            for (const line of lines) {
+                const iid = Number(line?.ingredient_id);
+                if (Number.isFinite(iid) && iid > 0) {
+                    allIngredientIds.add(iid);
+                }
+            }
+        }
+
+        const ingredients = allIngredientIds.size
+            ? await MenuIngredient.findAll({
+                  where  : { id: [...allIngredientIds] },
+                  attributes: ['id', 'unit_cost'],
+              })
+            : [];
+        const unitCostById = new Map(ingredients.map((i) => [i.id, Number(i.unit_cost)]));
+
         const costPerUnit = new Map<number, number>();
-        for (const recipe of recipes) {
-            const ingredientCost = Number(recipe.quantity) * Number(recipe.ingredient?.unit_cost ?? 0);
-            const prev           = costPerUnit.get(recipe.product_id) ?? 0;
-            costPerUnit.set(recipe.product_id, prev + ingredientCost);
+        for (const p of menus) {
+            const lines: any[] = Array.isArray((p as any).recipes) ? (p as any).recipes : [];
+            let cpu = 0;
+            for (const line of lines) {
+                const iid = Number(line?.ingredient_id);
+                const q   = Number(line?.quantity);
+                if (!Number.isFinite(iid) || !Number.isFinite(q)) {
+                    continue;
+                }
+                cpu += q * (unitCostById.get(iid) ?? 0);
+            }
+            costPerUnit.set(p.id, cpu);
         }
 
         let cogs = 0;
-        for (const [productId, totalQty] of qtyByProduct) {
-            cogs += totalQty * (costPerUnit.get(productId) ?? 0);
+        for (const [menuId, totalQty] of qtyByMenu) {
+            cogs += totalQty * (costPerUnit.get(menuId) ?? 0);
         }
 
         return cogs;

@@ -8,8 +8,8 @@ import { fn, col, Op, literal } from 'sequelize';
 import { ProfitService }    from '@app/services/profit.service';
 import Order                from '@app/models/order/order.model';
 import OrderDetails         from '@app/models/order/detail.model';
-import Product              from '@app/models/product/product.model';
-import ProductType          from '@app/models/product/type.model';
+import Menu              from '@app/models/menu/menu.model';
+import MenuType          from '@app/models/menu/menu-type.model';
 import PaymentTransaction, { PaymentStatus } from '@app/models/payment/payment_transaction.model';
 import Wallet               from '@app/models/wallet/wallet.model';
 import WalletTransaction, { DepositStatus, WalletTransactionType } from '@app/models/wallet/wallet_transaction.model';
@@ -46,7 +46,7 @@ export class FinancialReportService {
             revenueSeries,
             paymentBreakdown,
             channelBreakdown,
-            topProducts,
+            topMenus,
             walletSummary,
         ] = await Promise.all([
             this.profitService.calculate(startDate, endDate),
@@ -54,7 +54,7 @@ export class FinancialReportService {
             this._revenueSeries(startDate, endDate, filters.granularity),
             this._paymentBreakdown(startDate, endDate),
             this._channelBreakdown(startDate, endDate),
-            this._topProducts(startDate, endDate),
+            this._topMenus(startDate, endDate),
             this._walletSummary(startDate, endDate),
         ]);
 
@@ -76,7 +76,7 @@ export class FinancialReportService {
                 revenue_series  : revenueSeries,
                 payment_breakdown: paymentBreakdown,
                 channel_breakdown: channelBreakdown,
-                top_products    : topProducts,
+                top_menus       : topMenus,
                 wallet_summary  : walletSummary,
             },
             message: 'Financial report retrieved successfully.',
@@ -201,11 +201,11 @@ export class FinancialReportService {
         return rows;
     }
 
-    /** Top 10 products by revenue in the period */
-    private async _topProducts(start: Date, end: Date) {
+    /** Top 10 menu items by revenue in the period */
+    private async _topMenus(start: Date, end: Date) {
         const rows = await OrderDetails.findAll({
             attributes: [
-                'product_id',
+                'menu_id',
                 [fn('SUM', literal('"OrderDetails"."qty" * "OrderDetails"."unit_price"')), 'revenue'],
                 [fn('SUM', col('qty')), 'total_qty'],
             ],
@@ -217,12 +217,12 @@ export class FinancialReportService {
                     required  : true,
                 },
                 {
-                    model     : Product,
+                    model     : Menu,
                     attributes: ['id', 'name', 'code', 'image'],
-                    include   : [{ model: ProductType, attributes: ['id', 'name'] }],
+                    include   : [{ model: MenuType, attributes: ['id', 'name'] }],
                 },
             ],
-            group : ['OrderDetails.product_id', 'product.id', 'product->type.id'],
+            group : ['OrderDetails.menu_id', 'menu.id', 'menu->type.id'],
             order : [[literal('revenue'), 'DESC']],
             limit : 10,
         });

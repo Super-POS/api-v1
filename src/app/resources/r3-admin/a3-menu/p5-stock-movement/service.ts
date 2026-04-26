@@ -3,8 +3,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 
 // ===========================================================================>> Custom Library
 import { AuditLogService } from '@app/services/audit-log.service';
-import ProductIngredient from '@app/models/product/ingredient.model';
-import IngredientStockMovement, { StockMovementType } from '@app/models/product/stock_movement.model';
+import MenuIngredient from '@app/models/menu/menu-ingredient.model';
+import IngredientStockMovement, { StockMovementType } from '@app/models/menu/stock_movement.model';
 import User from '@app/models/user/user.model';
 import { CreateStockMovementDto } from './dto';
 
@@ -21,7 +21,7 @@ export class StockMovementService {
                 where,
                 attributes: ['id', 'ingredient_id', 'type', 'quantity', 'note', 'created_by', 'created_at'],
                 include: [
-                    { model: ProductIngredient, attributes: ['id', 'name', 'unit', 'quantity'] },
+                    { model: MenuIngredient, attributes: ['id', 'name', 'unit', 'quantity'] },
                     { model: User, as: 'creator', attributes: ['id', 'name', 'avatar'], required: false },
                 ],
                 order: [['created_at', 'DESC']],
@@ -38,7 +38,7 @@ export class StockMovementService {
         const data = await IngredientStockMovement.findByPk(id, {
             attributes: ['id', 'ingredient_id', 'type', 'quantity', 'note', 'created_by', 'created_at'],
             include: [
-                { model: ProductIngredient, attributes: ['id', 'name', 'unit', 'quantity'] },
+                { model: MenuIngredient, attributes: ['id', 'name', 'unit', 'quantity'] },
                 { model: User, as: 'creator', attributes: ['id', 'name', 'avatar'], required: false },
             ],
         });
@@ -52,7 +52,7 @@ export class StockMovementService {
 
     // ==========================================>> create (records the movement and adjusts ingredient quantity)
     async create(body: CreateStockMovementDto, created_by?: number): Promise<any> {
-        const ingredient = await ProductIngredient.findByPk(body.ingredient_id);
+        const ingredient = await MenuIngredient.findByPk(body.ingredient_id);
         if (!ingredient) {
             throw new NotFoundException('Ingredient is not found.');
         }
@@ -72,12 +72,12 @@ export class StockMovementService {
             created_by:    created_by ?? null,
         });
 
-        await ProductIngredient.update({ quantity: newQty }, { where: { id: body.ingredient_id } });
+        await MenuIngredient.update({ quantity: newQty }, { where: { id: body.ingredient_id } });
 
         const data = await IngredientStockMovement.findByPk(movement.id, {
             attributes: ['id', 'ingredient_id', 'type', 'quantity', 'note', 'created_by', 'created_at'],
             include: [
-                { model: ProductIngredient, attributes: ['id', 'name', 'unit', 'quantity'] },
+                { model: MenuIngredient, attributes: ['id', 'name', 'unit', 'quantity'] },
                 { model: User, as: 'creator', attributes: ['id', 'name', 'avatar'], required: false },
             ],
         });
@@ -103,7 +103,7 @@ export class StockMovementService {
     // ==========================================>> delete
     async delete(id: number): Promise<any> {
         const record = await IngredientStockMovement.findByPk(id, {
-            include: [{ model: ProductIngredient }],
+            include: [{ model: MenuIngredient }],
         });
         if (!record) {
             throw new NotFoundException('Stock movement record is not found.');
@@ -118,7 +118,7 @@ export class StockMovementService {
             throw new BadRequestException('Reversing this movement would result in negative stock.');
         }
 
-        await ProductIngredient.update({ quantity: newQty }, { where: { id: record.ingredient_id } });
+        await MenuIngredient.update({ quantity: newQty }, { where: { id: record.ingredient_id } });
         await IngredientStockMovement.destroy({ where: { id } });
 
         return { message: 'Stock movement has been deleted and quantity reversed.' };

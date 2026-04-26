@@ -4,7 +4,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 // ===========================================================================>> Custom Library
 import Order               from '@app/models/order/order.model';
 import OrderDetails        from '@app/models/order/detail.model';
-import Product             from '@app/models/product/product.model';
+import Menu             from '@app/models/menu/menu.model';
 import PaymentTransaction, { PaymentMethod, PaymentStatus } from '@app/models/payment/payment_transaction.model';
 import User                from '@app/models/user/user.model';
 import { InitiatePaymentDto } from './dto';
@@ -23,7 +23,7 @@ export class CustomerPaymentService {
                 {
                     model     : OrderDetails,
                     attributes: ['id', 'unit_price', 'qty'],
-                    include   : [{ model: Product, attributes: ['id', 'name'] }],
+                    include   : [{ model: Menu, attributes: ['id', 'name'] }],
                 },
             ],
         });

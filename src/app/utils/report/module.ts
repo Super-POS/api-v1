@@ -2,10 +2,10 @@
 import { Module } from '@nestjs/common';
 
 // ===========================================================================>> Costom Library
-import { ProductReportController,} from './product/controller';
-import { ProductPDFService } from './product/pdf-service';
-import { ProductExcelReportService } from './product/excel-service';
-import { ProductReportService } from './product/service';
+import { MenuReportController,} from './menu/controller';
+import { MenuPDFService } from './menu/pdf-service';
+import { MenuExcelReportService } from './menu/excel-service';
+import { MenuReportService } from './menu/service';
 import { CashierReportController } from './cashier/controller';
 import { CashierReportService } from './cashier/service';
 import { CashierPDFReportService } from './cashier/pdf-service';
@@ -20,15 +20,15 @@ import { JsReportService } from 'src/app/services/js-report.service';
 @Module({
     // controllers: [ReportController],
     controllers: [
-        ProductReportController,
+        MenuReportController,
         CashierReportController,
         SaleReportController,
     ],
     // providers: [ReportService, JsReportService, TelegramService],
     providers:[
-        ProductPDFService,
-        ProductExcelReportService,
-        ProductReportService,
+        MenuPDFService,
+        MenuExcelReportService,
+        MenuReportService,
         CashierReportService,
         JsReportService,
         CashierPDFReportService,

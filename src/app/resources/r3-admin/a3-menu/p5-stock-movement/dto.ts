@@ -1,6 +1,6 @@
 // ===========================================================================>> Custom Library
 import { IsEnum, IsInt, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
-import { StockMovementType } from '@app/models/product/stock_movement.model';
+import { StockMovementType } from '@app/models/menu/stock_movement.model';
 
 export class CreateStockMovementDto {
     @IsInt()

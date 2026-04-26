@@ -8,11 +8,9 @@ import { Sequelize, Transaction } from 'sequelize';
 import { OrderStatusEnum }  from '@app/enums/order-status.enum';
 import OrderDetails         from '@app/models/order/detail.model';
 import Order                from '@app/models/order/order.model';
-import ProductIngredient    from '@app/models/product/ingredient.model';
-import Product              from '@app/models/product/product.model';
-import ProductRecipe        from '@app/models/product/recipe.model';
-import IngredientStockMovement, { StockMovementType } from '@app/models/product/stock_movement.model';
-import ProductType          from '@app/models/product/type.model';
+import Menu              from '@app/models/menu/menu.model';
+import MenuType          from '@app/models/menu/menu-type.model';
+import { deductStockForMenuRecipeLines } from '@app/utils/menu-recipe-stock.util';
 import User                 from '@app/models/user/user.model';
 import sequelizeConfig      from 'src/config/sequelize.config';
 import { PlaceOrderDto }    from './dto';
@@ -24,9 +22,9 @@ const DETAIL_INCLUDES  = [
         attributes: ['id', 'unit_price', 'qty'],
         include: [
             {
-                model: Product,
+                model: Menu,
                 attributes: ['id', 'name', 'code', 'image'],
-                include: [{ model: ProductType, attributes: ['name'] }],
+                include: [{ model: MenuType, attributes: ['name'] }],
             },
         ],
     },
@@ -41,7 +39,9 @@ export class CustomerOrderService {
         if (Array.isArray(parsed)) {
             return parsed
                 .map((item: any) => ({
-                    menuId: Number(item?.menu_id ?? item?.product_id ?? item?.id),
+                    menuId: Number(
+                        item?.menu_id ?? (item as { product_id?: number })?.product_id ?? item?.id,
+                    ),
                     qty: Number(item?.quantity ?? item?.qty ?? 0),
                 }))
                 .filter((item) => Number.isFinite(item.menuId) && item.menuId > 0 && Number.isFinite(item.qty) && item.qty > 0);
@@ -53,7 +53,9 @@ export class CustomerOrderService {
                     if (value && typeof value === 'object') {
                         const v: any = value;
                         return {
-                            menuId: Number(v.menu_id ?? v.product_id ?? id),
+                            menuId: Number(
+                                v.menu_id ?? (v as { product_id?: number }).product_id ?? id,
+                            ),
                             qty: Number(v.quantity ?? v.qty ?? 0),
                         };
                     }
@@ -66,6 +68,34 @@ export class CustomerOrderService {
         }
 
         return [];
+    }
+
+    /** Menu catalog (types + menus) — same query as cashier `OrderService.getMenus`. */
+    async getMenus(): Promise<{ data: { id: number; name: string; menus: Menu[] }[] }> {
+        const data = await MenuType.findAll({
+            attributes: ['id', 'name'],
+            include: [
+                {
+                    model: Menu,
+                    attributes: ['id', 'type_id', 'name', 'image', 'unit_price', 'code'],
+                    include: [
+                        {
+                            model: MenuType,
+                            attributes: ['name'],
+                        },
+                    ],
+                },
+            ],
+            order: [['name', 'ASC']],
+        });
+
+        const dataFormat: { id: number; name: string; menus: Menu[] }[] = data.map((type) => ({
+            id: type.id,
+            name: type.name,
+            menus: type.menus || [],
+        }));
+
+        return { data: dataFormat };
     }
 
     // =============================================>> Place a new order (telegram / website)
@@ -89,47 +119,23 @@ export class CustomerOrderService {
             const cartItems = this._normalizeCartItems(body.cart);
 
             for (const item of cartItems) {
-                const product = await Product.findByPk(item.menuId);
-                if (product) {
+                const menu = await Menu.findByPk(item.menuId);
+                if (menu) {
                     await OrderDetails.create({
                         order_id   : order.id,
-                        product_id : product.id,
+                        menu_id    : menu.id,
                         qty        : item.qty,
-                        unit_price : product.unit_price,
+                        unit_price : menu.unit_price,
                     }, { transaction });
 
-                    totalPrice += item.qty * product.unit_price;
+                    totalPrice += item.qty * menu.unit_price;
 
-                    // Deduct ingredient stock based on product recipe
-                    const recipes = await ProductRecipe.findAll({
-                        where: { product_id: product.id },
-                        include: [{ model: ProductIngredient }],
+                    await deductStockForMenuRecipeLines(
+                        menu,
+                        item.qty,
                         transaction,
-                    });
-
-                    for (const recipe of recipes) {
-                        const deduction = Number(recipe.quantity) * item.qty;
-                        const currentQty = Number(recipe.ingredient.quantity);
-
-                        if (currentQty < deduction) {
-                            throw new BadRequestException(
-                                `Insufficient stock for ingredient "${recipe.ingredient.name}". Available: ${currentQty}, required: ${deduction}.`
-                            );
-                        }
-
-                        await IngredientStockMovement.create({
-                            ingredient_id : recipe.ingredient_id,
-                            type          : StockMovementType.OUT,
-                            quantity      : deduction,
-                            note          : `Order #${order.receipt_number}`,
-                            created_by    : null,
-                        }, { transaction });
-
-                        await ProductIngredient.update(
-                            { quantity: currentQty - deduction },
-                            { where: { id: recipe.ingredient_id }, transaction },
-                        );
-                    }
+                        { receiptRef: order.receipt_number + '', createdBy: null },
+                    );
                 }
             }
 

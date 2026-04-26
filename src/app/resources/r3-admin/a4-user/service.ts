@@ -13,8 +13,8 @@ import { literal, Op } from "sequelize";
 import { AuditLogService } from "@app/services/audit-log.service";
 import OrderDetails from "@app/models/order/detail.model";
 import Order from "@app/models/order/order.model";
-import Product from "@app/models/product/product.model";
-import ProductType from "@app/models/product/type.model";
+import Menu from "@app/models/menu/menu.model";
+import MenuType from "@app/models/menu/menu-type.model";
 import Role from "@app/models/user/role.model";
 import UserRoles from "@app/models/user/user_roles.model";
 import User from "@app/models/user/user.model";
@@ -251,9 +251,9 @@ export class UserService {
           attributes: ["id", "unit_price", "qty"],
           include: [
             {
-              model: Product,
+              model: Menu,
               attributes: ["id", "name", "code", "image"],
-              include: [{ model: ProductType, attributes: ["name"] }],
+              include: [{ model: MenuType, attributes: ["name"] }],
             },
           ],
         },

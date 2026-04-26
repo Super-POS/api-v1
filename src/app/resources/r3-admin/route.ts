@@ -4,10 +4,9 @@ import { Routes } from '@nestjs/core';
 // ===========================================================================>> Custom Library
 import { DashboardModule }           from './a1-dashbord/module';
 import { SaleModule }                from './a2-sale/module';
-import { ProductModule }             from './a3-menu/p1-menu/module';
-import { ProductTypeModule }         from './a3-menu/p2-category/module';
-import { ProductIngredientModule }   from './a3-menu/p3-ingredient/module';
-import { ProductRecipeModule }       from './a3-menu/p4-recipe/module';
+import { MenuModule }             from './a3-menu/p1-menu/module';
+import { MenuTypeModule }         from './a3-menu/p2-category/module';
+import { MenuIngredientModule }   from './a3-menu/p3-ingredient/module';
 import { StockMovementModule }       from './a3-menu/p5-stock-movement/module';
 import { UserModule }                from './a4-user/module';
 import { AdminDepositModule }        from './a5-deposit/module';
@@ -28,22 +27,17 @@ export const adminRoutes: Routes = [
 
     {
         path: 'menus',
-        module: ProductModule
+        module: MenuModule
     },
 
     {
         path: 'menu/categories',
-        module: ProductTypeModule
+        module: MenuTypeModule
     },
 
     {
         path: 'menu/ingredients',
-        module: ProductIngredientModule
-    },
-
-    {
-        path: 'menu/recipes',
-        module: ProductRecipeModule
+        module: MenuIngredientModule
     },
 
     {

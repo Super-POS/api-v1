@@ -2,11 +2,11 @@
 import { Module } from '@nestjs/common';
 
 // ===========================================================================>> Custom Library
-import { ProductIngredientController } from './controller';
-import { ProductIngredientService } from './service';
+import { MenuIngredientController } from './controller';
+import { MenuIngredientService } from './service';
 
 @Module({
-    controllers: [ProductIngredientController],
-    providers: [ProductIngredientService],
+    controllers: [MenuIngredientController],
+    providers: [MenuIngredientService],
 })
-export class ProductIngredientModule {}
+export class MenuIngredientModule {}

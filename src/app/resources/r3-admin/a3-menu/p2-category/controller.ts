@@ -14,12 +14,12 @@ import {
 
 // ===========================================================================>> Custom Library
 
-import { CreateProductTypeDto, UpdateProductTypeDto } from "./dto";
-import { ProductTypeService } from "./service";
+import { CreateMenuTypeDto, UpdateMenuTypeDto } from "./dto";
+import { MenuTypeService } from "./service";
 
 @Controller()
-export class ProductTypeController {
-  constructor(private _service: ProductTypeService) {}
+export class MenuTypeController {
+  constructor(private _service: MenuTypeService) {}
 
   // =============================================>> Get Data or Read
   @Get()
@@ -30,7 +30,7 @@ export class ProductTypeController {
 
   // =============================================>> Create
   @Post()
-  async create(@Body() body: CreateProductTypeDto) {
+  async create(@Body() body: CreateMenuTypeDto) {
     return await this._service.create(body);
   }
 
@@ -38,7 +38,7 @@ export class ProductTypeController {
   @Put(":id")
   async update(
     @Param("id", ParseIntPipe) id: number,
-    @Body() body: UpdateProductTypeDto
+    @Body() body: UpdateMenuTypeDto
   ) {
     return this._service.update(body, id);
   }
