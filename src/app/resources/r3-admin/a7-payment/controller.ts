@@ -1,13 +1,18 @@
 // ===========================================================================>> Core Library
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 
 // ===========================================================================>> Custom Library
+import { RolesDecorator }      from '@app/core/decorators/roles.decorator';
+import { RoleGuard }           from '@app/core/guards/role.guard';
+import { RoleEnum }            from '@app/enums/role.enum';
 import UserDecorator           from '@app/core/decorators/user.decorator';
 import User                    from '@app/models/user/user.model';
 import { PaymentQueryDto, UpdatePaymentStatusDto } from './dto';
 import { AdminPaymentService } from './service';
 
 @Controller()
+@UseGuards(RoleGuard)
+@RolesDecorator(RoleEnum.ADMIN)
 export class AdminPaymentController {
 
     constructor(private readonly _service: AdminPaymentService) {}

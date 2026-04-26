@@ -2,6 +2,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 // ===========================================================================>> Custom Library
+import { AuditLogService } from '@app/services/audit-log.service';
 import Wallet                          from '@app/models/wallet/wallet.model';
 import WalletTransaction, { DepositStatus, WalletTransactionType } from '@app/models/wallet/wallet_transaction.model';
 import User                            from '@app/models/user/user.model';
@@ -9,6 +10,8 @@ import { CreateDepositDto, DepositQueryDto, ReviewDepositDto } from './dto';
 
 @Injectable()
 export class AdminDepositService {
+
+    constructor(private readonly auditLog: AuditLogService) {}
 
     // ==========================================>> List all deposit requests
     async getData(query: DepositQueryDto): Promise<any> {
@@ -91,6 +94,13 @@ export class AdminDepositService {
             ],
         });
 
+        await this.auditLog.log(adminId, 'DEPOSIT_CREATED', {
+            depositId  : transaction.id,
+            customerId : body.customer_id,
+            amount     : body.amount,
+            reference  : body.reference ?? null,
+        });
+
         return { data, message: 'Deposit request has been created.' };
     }
 
@@ -119,6 +129,12 @@ export class AdminDepositService {
             ],
         });
 
+        await this.auditLog.log(adminId, 'DEPOSIT_APPROVED', {
+            depositId : id,
+            walletId  : tx.wallet_id,
+            amount    : Number(tx.amount),
+        });
+
         return { data, message: 'Deposit has been approved and wallet credited.' };
     }
 
@@ -142,6 +158,13 @@ export class AdminDepositService {
                 },
                 { model: User, as: 'processor', attributes: ['id', 'name', 'avatar'], required: false },
             ],
+        });
+
+        await this.auditLog.log(adminId, 'DEPOSIT_REJECTED', {
+            depositId : id,
+            walletId  : tx.wallet_id,
+            amount    : Number(tx.amount),
+            note      : body.note ?? null,
         });
 
         return { data, message: 'Deposit has been rejected.' };

@@ -226,6 +226,25 @@
           }
         },
         {
+          "name": "Dashboard - Profit Metrics (This Week)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/dashboard/profit?thisWeek=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "dashboard", "profit"],
+              "query": [
+                { "key": "thisWeek",      "value": "1",          "description": "Current week" },
+                { "key": "thisMonth",     "value": "",           "disabled": true },
+                { "key": "today",         "value": "",           "disabled": true },
+                { "key": "yesterday",     "value": "",           "disabled": true },
+                { "key": "threeMonthAgo", "value": "",           "disabled": true },
+                { "key": "sixMonthAgo",   "value": "",           "disabled": true }
+              ]
+            }
+          }
+        },
+        {
           "name": "Sales - Setup",
           "request": {
             "method": "GET",
@@ -389,7 +408,8 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Milk\",\n  \"unit\": \"ml\",\n  \"quantity\": 30\n}"
+              "raw": "{\n  \"name\": \"Milk\",\n  \"unit\": \"ml\",\n  \"quantity\": 30,\n  \"unit_cost\": 0.05\n}",
+              "options": { "raw": { "language": "json" } }
             },
             "url": "{{baseUrl}}/api/admin/menu/ingredients"
           }
@@ -406,7 +426,8 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Milk Updated\",\n  \"unit\": \"ml\",\n  \"quantity\": 40\n}"
+              "raw": "{\n  \"name\": \"Milk Updated\",\n  \"unit\": \"ml\",\n  \"quantity\": 40,\n  \"unit_cost\": 0.06\n}",
+              "options": { "raw": { "language": "json" } }
             },
             "url": "{{baseUrl}}/api/admin/menu/ingredients/{{ingredientId}}"
           }
@@ -822,6 +843,63 @@
             "method": "POST",
             "url": "{{baseUrl}}/api/admin/payments/expire-stale"
           }
+        },
+        {
+          "name": "Reports - Financial (This Month)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/reports/financial?thisMonth=1&granularity=daily",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "reports", "financial"],
+              "query": [
+                { "key": "thisMonth",     "value": "1",          "description": "Current month" },
+                { "key": "granularity",   "value": "daily",      "description": "daily | weekly | monthly" },
+                { "key": "thisWeek",      "value": "",           "disabled": true },
+                { "key": "today",         "value": "",           "disabled": true },
+                { "key": "yesterday",     "value": "",           "disabled": true },
+                { "key": "threeMonthAgo", "value": "",           "disabled": true },
+                { "key": "sixMonthAgo",   "value": "",           "disabled": true },
+                { "key": "from",          "value": "",           "disabled": true, "description": "YYYY-MM-DD custom start" },
+                { "key": "to",            "value": "",           "disabled": true, "description": "YYYY-MM-DD custom end" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reports - Financial (Custom Range)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/reports/financial?from=2026-01-01&to=2026-04-30&granularity=monthly",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "reports", "financial"],
+              "query": [
+                { "key": "from",        "value": "2026-01-01", "description": "Start date YYYY-MM-DD" },
+                { "key": "to",          "value": "2026-04-30", "description": "End date YYYY-MM-DD" },
+                { "key": "granularity", "value": "monthly",    "description": "daily | weekly | monthly" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reports - Audit Logs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/reports/audit-logs?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "reports", "audit-logs"],
+              "query": [
+                { "key": "page",     "value": "1",  "description": "Page number" },
+                { "key": "limit",    "value": "20", "description": "Items per page" },
+                { "key": "action",   "value": "",   "disabled": true, "description": "e.g. DEPOSIT_APPROVED" },
+                { "key": "actor_id", "value": "",   "disabled": true, "description": "Filter by admin user ID" },
+                { "key": "from",     "value": "",   "disabled": true, "description": "YYYY-MM-DD" },
+                { "key": "to",       "value": "",   "disabled": true, "description": "YYYY-MM-DD" }
+              ]
+            }
+          }
         }
       ]
     },
@@ -840,10 +918,8 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type",    "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "cashier-order-{{$guid}}", "description": "Optional — prevents duplicate order on retry", "disabled": true }
             ],
             "body": {
               "mode": "raw",
@@ -939,10 +1015,8 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Content-Type",    "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "place-order-{{$guid}}", "description": "Optional — prevents duplicate order on retry", "disabled": true }
             ],
             "body": {
               "mode": "raw",
@@ -1052,7 +1126,10 @@
           "name": "Payments - Initiate",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              { "key": "Content-Type",    "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "pay-order-{{orderId}}-{{$guid}}", "description": "Optional — prevents duplicate payment initiation on retry", "disabled": true }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"order_id\": {{orderId}},\n  \"method\": \"cash\",\n  \"note\": \"Pay at counter\"\n}"
@@ -1484,6 +1561,10 @@
     },
     {
       "key": "paymentId",
+      "value": "1"
+    },
+    {
+      "key": "auditLogId",
       "value": "1"
     }
   ]

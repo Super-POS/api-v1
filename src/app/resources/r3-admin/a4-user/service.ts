@@ -10,6 +10,7 @@ import {
 import { literal, Op } from "sequelize";
 
 // ===========================================================================>> Custom Library
+import { AuditLogService } from "@app/services/audit-log.service";
 import OrderDetails from "@app/models/order/detail.model";
 import Order from "@app/models/order/order.model";
 import Product from "@app/models/product/product.model";
@@ -28,7 +29,10 @@ import { Create, List, Update } from "./interface";
 
 @Injectable()
 export class UserService {
-  constructor(private readonly fileService: FileService) {}
+  constructor(
+    private readonly fileService: FileService,
+    private readonly auditLog   : AuditLogService,
+  ) {}
 
   async setup(): Promise<{ roles: { id: number; name: string }[] }> {
     const roles = await Role.findAll({
@@ -446,7 +450,7 @@ export class UserService {
         transaction,
       });
 
-      // Update roles
+        // Update roles
       if (body.role_ids && body.role_ids.length > 0) {
         const existingRoles = await UserRoles.findAll({
           where: { user_id: userId },
@@ -466,9 +470,14 @@ export class UserService {
             is_default: false,
           }));
           await UserRoles.bulkCreate(newRoleAssignments, { transaction });
-        } else {
+
+          // Audit: roles were added
+          await this.auditLog.log(updaterId, 'USER_ROLE_CHANGED', {
+            targetUserId  : userId,
+            previousRoleIds: existingRoleIds,
+            addedRoleIds  : newRoles,
+          });
         }
-      } else {
       }
 
       // Fetch updated user

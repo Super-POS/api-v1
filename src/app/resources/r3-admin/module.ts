@@ -15,6 +15,7 @@ import { UserModule }         from './a4-user/module';
 import { AdminDepositModule }  from './a5-deposit/module';
 import { AdminRewardModule }   from './a6-reward/module';
 import { AdminPaymentModule }  from './a7-payment/module';
+import { FinancialReportModule } from './a8-report/module';
 
 // ======================================= >> Code Starts Here << ========================== //
 @Module({
@@ -30,6 +31,7 @@ import { AdminPaymentModule }  from './a7-payment/module';
         AdminDepositModule,
         AdminRewardModule,
         AdminPaymentModule,
+        FinancialReportModule,
     ]
 })
 

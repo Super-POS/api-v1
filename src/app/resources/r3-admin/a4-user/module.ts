@@ -2,12 +2,13 @@
 import { Module } from '@nestjs/common';
 
 // ===========================================================================>> Costom Library
-import { FileService } from 'src/app/services/file.service';
-import { UserController } from './controller';
-import { UserService } from './service';
+import { AuditLogService } from '@app/services/audit-log.service';
+import { FileService }     from 'src/app/services/file.service';
+import { UserController }  from './controller';
+import { UserService }     from './service';
+
 @Module({
-    providers: [UserService, FileService],
+    providers  : [UserService, FileService, AuditLogService],
     controllers: [UserController],
-    imports: []
 })
 export class UserModule { }

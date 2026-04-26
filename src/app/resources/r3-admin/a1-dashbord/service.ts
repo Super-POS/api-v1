@@ -7,6 +7,7 @@ import { col, fn, Op, Sequelize, where } from 'sequelize';
 // ===========================================================================>> Custom Library
 import { RoleEnum } from '@app/enums/role.enum';
 import { JsReportService } from '@app/services/js-report.service';
+import { ProfitMetrics, ProfitService } from '@app/services/profit.service';
 import Order from '@app/models/order/order.model';
 import Product from '@app/models/product/product.model';
 import ProductType from '@app/models/product/type.model';
@@ -14,10 +15,23 @@ import Role from '@app/models/user/role.model';
 import UserRoles from '@app/models/user/user_roles.model';
 import User from '@app/models/user/user.model';
 
+type PeriodFilters = {
+    today?        : string;
+    yesterday?    : string;
+    thisWeek?     : string;
+    thisMonth?    : string;
+    threeMonthAgo?: string;
+    sixMonthAgo?  : string;
+    type?         : number;
+};
+
 @Injectable()
 export class DashboardService {
 
-    constructor(private jsReportService: JsReportService) { }
+    constructor(
+        private readonly jsReportService: JsReportService,
+        private readonly profitService  : ProfitService,
+    ) { }
 
     // async findStaticData(filters: { today?: string; yesterday?: string; thisWeek?: string; thisMonth?: string } = {}): Promise<any> {
     //     try {
@@ -122,7 +136,7 @@ export class DashboardService {
     //     }
     // }
 
-    async findStaticData(filters: { today?: string; yesterday?: string; thisWeek?: string; thisMonth?: string, threeMonthAgo?: string, sixMonthAgo?: string, type?: number } = {}): Promise<any> {
+    async findStaticData(filters: PeriodFilters = {}): Promise<any> {
         try {
             const dateFilter = this.getDateFilter(filters);
             const dataFilter: any = { ...dateFilter };
@@ -138,7 +152,7 @@ export class DashboardService {
                 totalOrder,
                 totalSaleDayOfWeek,
                 productTypesWithProductCounts,
-                cashiers
+                cashiers,
             ] = await Promise.all([
                 this.countProduct(dataFilter),
                 this.countProductType(dataFilter),
@@ -146,47 +160,50 @@ export class DashboardService {
                 this.countOrder(dataFilter),
                 this.findDataSaleDayOfWeek(filters),
                 this.findProductTypeWithProductHaveUsed(filters),
-                this.findCashierAndTotalSale(filters)
+                this.findCashierAndTotalSale(filters),
             ]);
 
             let currentPeriodFilter: any;
             let previousPeriodFilter: any;
             const formatDate = (date: Date) => date.toISOString().split('T')[0];
 
+            // Resolved Date objects for the current period (used for profit calculation)
+            let currentStart: Date;
+            let currentEnd  : Date = this.endOfDay(new Date());
+
             if (filters.yesterday) {
-                const yesterdayDate = new Date(filters.yesterday);
+                const yesterdayDate      = new Date(filters.yesterday);
                 const dayBeforeYesterday = new Date(yesterdayDate);
                 dayBeforeYesterday.setDate(yesterdayDate.getDate() - 1);
 
-                currentPeriodFilter = {
-                    where: where(fn('DATE', col('ordered_at')), Op.eq, formatDate(yesterdayDate)),
-                };
-                previousPeriodFilter = {
-                    where: where(fn('DATE', col('ordered_at')), Op.eq, formatDate(dayBeforeYesterday)),
-                };
+                currentPeriodFilter  = { where: where(fn('DATE', col('ordered_at')), Op.eq, formatDate(yesterdayDate)) };
+                previousPeriodFilter = { where: where(fn('DATE', col('ordered_at')), Op.eq, formatDate(dayBeforeYesterday)) };
+
+                currentStart = this.startOfDay(new Date(filters.yesterday));
+                currentEnd   = this.endOfDay(new Date(filters.yesterday));
+
             } else if (filters.today) {
-                const today = formatDate(new Date());
+                const today     = formatDate(new Date());
                 const yesterday = new Date();
                 yesterday.setDate(new Date().getDate() - 1);
 
-                currentPeriodFilter = {
-                    where: where(fn('DATE', col('ordered_at')), Op.eq, today),
-                };
-                previousPeriodFilter = {
-                    where: where(fn('DATE', col('ordered_at')), Op.eq, formatDate(yesterday)),
-                };
+                currentPeriodFilter  = { where: where(fn('DATE', col('ordered_at')), Op.eq, today) };
+                previousPeriodFilter = { where: where(fn('DATE', col('ordered_at')), Op.eq, formatDate(yesterday)) };
+
+                currentStart = this.startOfDay(new Date());
+                currentEnd   = this.endOfDay(new Date());
+
             } else if (filters.thisWeek) {
                 const startOfThisWeek = this.getStartOfWeek(new Date());
                 const startOfLastWeek = this.getStartOfWeek(new Date(startOfThisWeek));
-                const endOfLastWeek = new Date(startOfThisWeek);
+                const endOfLastWeek   = new Date(startOfThisWeek);
                 endOfLastWeek.setDate(endOfLastWeek.getDate() - 1);
 
-                currentPeriodFilter = {
-                    ordered_at: { [Op.gte]: startOfThisWeek },
-                };
-                previousPeriodFilter = {
-                    ordered_at: { [Op.gte]: startOfLastWeek, [Op.lte]: endOfLastWeek },
-                };
+                currentPeriodFilter  = { ordered_at: { [Op.gte]: startOfThisWeek } };
+                previousPeriodFilter = { ordered_at: { [Op.gte]: startOfLastWeek, [Op.lte]: endOfLastWeek } };
+
+                currentStart = startOfThisWeek;
+
             } else if (filters.thisMonth) {
                 const startOfThisMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
                 const startOfLastMonth = new Date(startOfThisMonth);
@@ -194,27 +211,32 @@ export class DashboardService {
                 const endOfLastMonth = new Date(startOfThisMonth);
                 endOfLastMonth.setDate(0);
 
-                currentPeriodFilter = {
-                    ordered_at: { [Op.gte]: startOfThisMonth },
-                };
-                previousPeriodFilter = {
-                    ordered_at: { [Op.gte]: startOfLastMonth, [Op.lte]: endOfLastMonth },
-                };
+                currentPeriodFilter  = { ordered_at: { [Op.gte]: startOfThisMonth } };
+                previousPeriodFilter = { ordered_at: { [Op.gte]: startOfLastMonth, [Op.lte]: endOfLastMonth } };
+
+                currentStart = startOfThisMonth;
+
+            } else {
+                // Default: current week
+                currentStart = this.getStartOfWeek(new Date());
             }
 
-            const totalSaleCurrent = await Order.sum('total_price', currentPeriodFilter) ?? 0;
+            const totalSaleCurrent  = await Order.sum('total_price', currentPeriodFilter)  ?? 0;
             const totalSalePrevious = await Order.sum('total_price', previousPeriodFilter) ?? 0;
-            const saleIncrease = totalSaleCurrent - totalSalePrevious;
-            const saleDifferenceWithSign = saleIncrease >= 0 ? `+${saleIncrease}` : `${saleIncrease}`;
+            const saleIncrease           = totalSaleCurrent - totalSalePrevious;
+            const saleDifferenceWithSign  = saleIncrease >= 0 ? `+${saleIncrease}` : `${saleIncrease}`;
 
             let totalPercentageIncrease: number;
             if (totalSaleCurrent === 0 && totalSalePrevious === 0) {
                 totalPercentageIncrease = 0;
             } else {
-                const percentageChange = ((totalSaleCurrent - totalSalePrevious) / (totalSaleCurrent + totalSalePrevious)) * 100;
+                const percentageChange  = ((totalSaleCurrent - totalSalePrevious) / (totalSaleCurrent + totalSalePrevious)) * 100;
                 totalPercentageIncrease = Math.max(-100, Math.min(percentageChange, 100));
                 totalPercentageIncrease = parseFloat(totalPercentageIncrease.toFixed(2));
             }
+
+            // Profit metrics for the current period
+            const profit = await this.profitService.calculate(currentStart, currentEnd);
 
             const result = {
                 dashboard: {
@@ -223,52 +245,87 @@ export class DashboardService {
                         totalProductType,
                         totalUser,
                         totalOrder,
-                        total: totalSaleCurrent,
+                        total               : totalSaleCurrent,
                         totalPercentageIncrease,
                         saleIncreasePreviousDay: saleDifferenceWithSign,
+                        // ── Profit metrics ──────────────────────────────
+                        revenue         : profit.revenue,
+                        cogs            : profit.cogs,
+                        gross_profit    : profit.gross_profit,
+                        net_profit      : profit.net_profit,
+                        gross_margin_pct: profit.gross_margin_pct,
+                        net_margin_pct  : profit.net_margin_pct,
                     },
-                    salesData: totalSaleDayOfWeek,
+                    salesData      : totalSaleDayOfWeek,
                     productTypeData: productTypesWithProductCounts,
-                    cashierData: cashiers,
+                    cashierData    : cashiers,
                 },
                 message: "ទទួលបានទិន្នន័យដោយជោគជ័យ",
             };
 
             switch (filters.type) {
                 case 1:
-                    return {
-                        dashboard: {
-                            statistic: result.dashboard.statistic,
-                        },
-                        message: result.message,
-                    };
+                    return { dashboard: { statistic: result.dashboard.statistic }, message: result.message };
                 case 2:
-                    return {
-                        dashboard: {
-                            salesData: result.dashboard.salesData,
-                        },
-                        message: result.message,
-                    };
+                    return { dashboard: { salesData: result.dashboard.salesData }, message: result.message };
                 case 3:
-                    return {
-                        dashboard: {
-                            productTypeData: result.dashboard.productTypeData,
-                        },
-                        message: result.message,
-                    };
+                    return { dashboard: { productTypeData: result.dashboard.productTypeData }, message: result.message };
                 case 4:
-                    return {
-                        dashboard: {
-                            cashierData: result.dashboard.cashierData,
-                        },
-                        message: result.message,
-                    };
+                    return { dashboard: { cashierData: result.dashboard.cashierData }, message: result.message };
                 default:
                     return result;
             }
         } catch (err) {
             throw new BadRequestException(err.message);
         }
+    }
+
+    // =========================================================================
+    // Dedicated profit endpoint
+    // =========================================================================
+
+    /**
+     * Returns detailed revenue/COGS/profit metrics for the requested period.
+     * If no filter is supplied the current week is used by default.
+     */
+    async findProfitMetrics(filters: PeriodFilters = {}): Promise<{ data: ProfitMetrics; message: string }> {
+        try {
+            const { startDate, endDate } = this._resolvePeriod(filters);
+            const data = await this.profitService.calculate(startDate, endDate);
+            return { data, message: 'Profit metrics retrieved successfully.' };
+        } catch (err) {
+            throw new BadRequestException(err.message);
+        }
+    }
+
+    /**
+     * Resolve a concrete [startDate, endDate] pair from the incoming filter flags.
+     * Mirrors the logic used in findStaticData.
+     */
+    private _resolvePeriod(filters: PeriodFilters): { startDate: Date; endDate: Date } {
+        const endDate = this.endOfDay(new Date());
+
+        if (filters.yesterday) {
+            const d = new Date(filters.yesterday);
+            return { startDate: this.startOfDay(new Date(d)), endDate: this.endOfDay(new Date(d)) };
+        }
+        if (filters.today) {
+            return { startDate: this.startOfDay(new Date()), endDate };
+        }
+        if (filters.thisWeek) {
+            return { startDate: this.getStartOfWeek(new Date()), endDate };
+        }
+        if (filters.thisMonth) {
+            return { startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1), endDate };
+        }
+        if (filters.threeMonthAgo) {
+            return { startDate: this.startOfMonth(this.subtractMonths(new Date(), 3)), endDate };
+        }
+        if (filters.sixMonthAgo) {
+            return { startDate: this.startOfMonth(this.subtractMonths(new Date(), 6)), endDate };
+        }
+        // Default: current week
+        return { startDate: this.getStartOfWeek(new Date()), endDate };
     }
 
     async findCashierAndTotalSale(filters: { today?: string; yesterday?: string; thisWeek?: string; thisMonth?: string } = {}) {
