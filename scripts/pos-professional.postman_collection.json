@@ -419,6 +419,130 @@
           }
         },
         {
+          "name": "Recipes - List",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/menu/recipes"
+          }
+        },
+        {
+          "name": "Recipes - List by Menu",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/menu/recipes?product_id={{menuId}}"
+          }
+        },
+        {
+          "name": "Recipes - View",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/menu/recipes/{{recipeId}}"
+          }
+        },
+        {
+          "name": "Recipes - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": 1,\n  \"ingredient_id\": 1,\n  \"quantity\": 30\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/menu/recipes"
+          }
+        },
+        {
+          "name": "Recipes - Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 50\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/menu/recipes/{{recipeId}}"
+          }
+        },
+        {
+          "name": "Recipes - Delete",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/menu/recipes/{{recipeId}}"
+          }
+        },
+        {
+          "name": "Stock Movements - List",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/menu/stock-movements"
+          }
+        },
+        {
+          "name": "Stock Movements - List by Ingredient",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/menu/stock-movements?ingredient_id={{ingredientId}}"
+          }
+        },
+        {
+          "name": "Stock Movements - View",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/menu/stock-movements/{{stockMovementId}}"
+          }
+        },
+        {
+          "name": "Stock Movements - Create (Stock In)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ingredient_id\": 1,\n  \"type\": \"in\",\n  \"quantity\": 100,\n  \"note\": \"Restocked from supplier\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/menu/stock-movements"
+          }
+        },
+        {
+          "name": "Stock Movements - Create (Stock Out)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ingredient_id\": 1,\n  \"type\": \"out\",\n  \"quantity\": 20,\n  \"note\": \"Manual adjustment\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/menu/stock-movements"
+          }
+        },
+        {
+          "name": "Stock Movements - Delete",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/menu/stock-movements/{{stockMovementId}}"
+          }
+        },
+        {
           "name": "Users - Setup",
           "request": {
             "method": "GET",
@@ -1026,6 +1150,14 @@
     {
       "key": "receiptNumber",
       "value": "1001"
+    },
+    {
+      "key": "recipeId",
+      "value": "1"
+    },
+    {
+      "key": "stockMovementId",
+      "value": "1"
     }
   ]
 }

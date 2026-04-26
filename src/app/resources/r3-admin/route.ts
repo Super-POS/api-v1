@@ -7,6 +7,8 @@ import { SaleModule }                from './a2-sale/module';
 import { ProductModule }             from './a3-menu/p1-menu/module';
 import { ProductTypeModule }         from './a3-menu/p2-category/module';
 import { ProductIngredientModule }   from './a3-menu/p3-ingredient/module';
+import { ProductRecipeModule }       from './a3-menu/p4-recipe/module';
+import { StockMovementModule }       from './a3-menu/p5-stock-movement/module';
 import { UserModule }                from './a4-user/module';
 
 export const adminRoutes: Routes = [
@@ -33,6 +35,16 @@ export const adminRoutes: Routes = [
     {
         path: 'menu/ingredients',
         module: ProductIngredientModule
+    },
+
+    {
+        path: 'menu/recipes',
+        module: ProductRecipeModule
+    },
+
+    {
+        path: 'menu/stock-movements',
+        module: StockMovementModule
     },
 
     {

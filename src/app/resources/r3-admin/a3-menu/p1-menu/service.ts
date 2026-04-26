@@ -205,7 +205,7 @@ export class ProductService {
         "id",
         "receipt_number",
         "total_price",
-        "platform",
+        "channel",
         "ordered_at",
       ],
       include: [
@@ -221,7 +221,7 @@ export class ProductService {
             },
           ],
         },
-        { model: User, attributes: ["id", "avatar", "name"] },
+        { model: User, as: "cashier", attributes: ["id", "avatar", "name"] },
       ],
       order: [["ordered_at", "DESC"]],
       limit: 10,
