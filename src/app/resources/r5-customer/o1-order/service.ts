@@ -10,7 +10,15 @@ import OrderDetails         from '@app/models/order/detail.model';
 import Order                from '@app/models/order/order.model';
 import Menu              from '@app/models/menu/menu.model';
 import MenuType          from '@app/models/menu/menu-type.model';
-import { deductStockForMenuRecipeLines } from '@app/utils/menu-recipe-stock.util';
+import { deductStockForMenuRecipeLines, deductStockForModifierOptionRecipes } from '@app/utils/menu-recipe-stock.util';
+import OrderDetailModifier from '@app/models/order/order-detail-modifier.model';
+import {
+    buildLineModifiers,
+    createDetailModifiers,
+    getMenuCatalogInclude,
+    normalizeCartLines,
+    toPlainMenuWithSortedModifiers,
+} from '@app/utils/modifier-order.util';
 import User                 from '@app/models/user/user.model';
 import sequelizeConfig      from 'src/config/sequelize.config';
 import { PlaceOrderDto }    from './dto';
@@ -19,8 +27,19 @@ const ORDER_ATTRIBUTES = ['id', 'receipt_number', 'total_price', 'channel', 'sta
 const DETAIL_INCLUDES  = [
     {
         model: OrderDetails,
-        attributes: ['id', 'unit_price', 'qty'],
+        attributes: ['id', 'unit_price', 'qty', 'line_note'],
         include: [
+            {
+                model: OrderDetailModifier,
+                required: false,
+                attributes: [
+                    'id',
+                    'modifier_option_id',
+                    'group_name',
+                    'option_label',
+                    'price_delta_applied',
+                ],
+            },
             {
                 model: Menu,
                 attributes: ['id', 'name', 'code', 'image'],
@@ -32,43 +51,6 @@ const DETAIL_INCLUDES  = [
 
 @Injectable()
 export class CustomerOrderService {
-
-    private _normalizeCartItems(rawCart: unknown): Array<{ menuId: number; qty: number }> {
-        const parsed = typeof rawCart === 'string' ? JSON.parse(rawCart) : rawCart;
-
-        if (Array.isArray(parsed)) {
-            return parsed
-                .map((item: any) => ({
-                    menuId: Number(
-                        item?.menu_id ?? (item as { product_id?: number })?.product_id ?? item?.id,
-                    ),
-                    qty: Number(item?.quantity ?? item?.qty ?? 0),
-                }))
-                .filter((item) => Number.isFinite(item.menuId) && item.menuId > 0 && Number.isFinite(item.qty) && item.qty > 0);
-        }
-
-        if (parsed && typeof parsed === 'object') {
-            return Object.entries(parsed as Record<string, unknown>)
-                .map(([id, value]) => {
-                    if (value && typeof value === 'object') {
-                        const v: any = value;
-                        return {
-                            menuId: Number(
-                                v.menu_id ?? (v as { product_id?: number }).product_id ?? id,
-                            ),
-                            qty: Number(v.quantity ?? v.qty ?? 0),
-                        };
-                    }
-                    return {
-                        menuId: Number(id),
-                        qty: Number(value),
-                    };
-                })
-                .filter((item) => Number.isFinite(item.menuId) && item.menuId > 0 && Number.isFinite(item.qty) && item.qty > 0);
-        }
-
-        return [];
-    }
 
     /** Menu catalog (types + menus) — same query as cashier `OrderService.getMenus`. */
     async getMenus(): Promise<{ data: { id: number; name: string; menus: Menu[] }[] }> {
@@ -83,6 +65,7 @@ export class CustomerOrderService {
                             model: MenuType,
                             attributes: ['name'],
                         },
+                        getMenuCatalogInclude(),
                     ],
                 },
             ],
@@ -92,7 +75,7 @@ export class CustomerOrderService {
         const dataFormat: { id: number; name: string; menus: Menu[] }[] = data.map((type) => ({
             id: type.id,
             name: type.name,
-            menus: type.menus || [],
+            menus: (type.menus || []).map((m) => toPlainMenuWithSortedModifiers(m) as unknown as Menu),
         }));
 
         return { data: dataFormat };
@@ -116,27 +99,50 @@ export class CustomerOrderService {
             }, { transaction });
 
             let totalPrice  = 0;
-            const cartItems = this._normalizeCartItems(body.cart);
+            const cartItems = normalizeCartLines(body.cart);
 
             for (const item of cartItems) {
                 const menu = await Menu.findByPk(item.menuId);
-                if (menu) {
-                    await OrderDetails.create({
-                        order_id   : order.id,
-                        menu_id    : menu.id,
-                        qty        : item.qty,
-                        unit_price : menu.unit_price,
-                    }, { transaction });
-
-                    totalPrice += item.qty * menu.unit_price;
-
-                    await deductStockForMenuRecipeLines(
-                        menu,
-                        item.qty,
-                        transaction,
-                        { receiptRef: order.receipt_number + '', createdBy: null },
+                if (!menu) {
+                    throw new BadRequestException(
+                        `Menu #${item.menuId} is not in the catalog. Check cart and try again.`,
                     );
                 }
+
+                const { unitPrice, snapshots, selectedOptions } = await buildLineModifiers(
+                    menu,
+                    item.modifier_option_ids,
+                    transaction,
+                );
+
+                const detail = await OrderDetails.create(
+                    {
+                        order_id: order.id,
+                        menu_id: menu.id,
+                        qty: item.qty,
+                        unit_price: unitPrice,
+                        line_note: item.line_note,
+                    },
+                    { transaction },
+                );
+
+                await createDetailModifiers(detail.id, snapshots, transaction);
+
+                totalPrice += item.qty * unitPrice;
+
+                await deductStockForMenuRecipeLines(
+                    menu,
+                    item.qty,
+                    transaction,
+                    { receiptRef: order.receipt_number + '', createdBy: null },
+                );
+                await deductStockForModifierOptionRecipes(
+                    menu,
+                    selectedOptions,
+                    item.qty,
+                    transaction,
+                    { receiptRef: order.receipt_number + '', createdBy: null },
+                );
             }
 
             await Order.update(

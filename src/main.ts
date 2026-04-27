@@ -22,7 +22,26 @@ class AppInitializer {
     }
 
     private configureMiddlewares() {
-        this.app.enableCors(); // Enables CORS with default settings
+        const defaultOrigins = ['http://localhost:4444', 'http://localhost:4200'];
+        const envOrigins = (process.env.CORS_ORIGINS || '')
+            .split(',')
+            .map((origin) => origin.trim())
+            .filter(Boolean);
+        const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
+
+        this.app.enableCors({
+            origin: (origin, callback) => {
+                // Allow non-browser tools (Postman/curl) and same-machine server calls.
+                if (!origin) {
+                    return callback(null, true);
+                }
+                if (allowedOrigins.includes(origin)) {
+                    return callback(null, true);
+                }
+                return callback(new Error(`CORS blocked for origin: ${origin}`), false);
+            },
+            credentials: true,
+        });
         this.app.useGlobalPipes(new ValidationPipe({
             whitelist: true,
             transform: true,

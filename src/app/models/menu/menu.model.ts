@@ -1,11 +1,13 @@
 // ================================================================================================= Third Party Library
-import { BelongsTo, Column, DataType, ForeignKey, HasMany, Model, Table } from 'sequelize-typescript';
+import { BelongsTo, BelongsToMany, Column, DataType, ForeignKey, HasMany, Model, Table } from 'sequelize-typescript';
 
 // ================================================================================================= Custom Library
 import OrderDetails from '@app/models/order/detail.model';
 import User from '@app/models/user/user.model';
 import MenuType from './menu-type.model';
 import MenuIngredient from './menu-ingredient.model';
+import ModifierGroup from './modifier-group.model';
+import MenuModifierGroup from './menu-modifier-group.model';
 
 @Table({ tableName: 'menus', createdAt: 'created_at', updatedAt: 'updated_at' })
 class Menu extends Model<Menu> {
@@ -37,6 +39,7 @@ class Menu extends Model<Menu> {
     // ===========================================================================================>> One to Many
     @HasMany(() => OrderDetails)                                                                    orderDetails: OrderDetails[];
     @HasMany(() => MenuIngredient)                                                                 ingredients: MenuIngredient[];
+    @BelongsToMany(() => ModifierGroup, () => MenuModifierGroup)                                 modifierGroups: ModifierGroup[];
 }
 
 export default Menu;

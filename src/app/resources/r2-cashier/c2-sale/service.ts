@@ -9,8 +9,10 @@ import {
 import { Op, Sequelize } from "sequelize";
 // ===========================================================================>> Custom Library
 import OrderDetails from "@app/models/order/detail.model";
+import OrderDetailModifier from "@app/models/order/order-detail-modifier.model";
 import Menu from "@app/models/menu/menu.model";
 import MenuType from "@app/models/menu/menu-type.model";
+import PaymentTransaction, { PaymentStatus } from "@app/models/payment/payment_transaction.model";
 import User from "@app/models/user/user.model";
 import Order from "src/app/models/order/order.model";
 import { List } from "./interface";
@@ -98,8 +100,19 @@ export class SaleService {
         include: [
           {
             model: OrderDetails,
-            attributes: ["id", "unit_price", "qty"],
+            attributes: ["id", "unit_price", "qty", "line_note"],
             include: [
+              {
+                model: OrderDetailModifier,
+                required: false,
+                attributes: [
+                  "id",
+                  "modifier_option_id",
+                  "group_name",
+                  "option_label",
+                  "price_delta_applied",
+                ],
+              },
               {
                 model: Menu,
                 attributes: ["id", "name", "code", "image"],
@@ -124,6 +137,43 @@ export class SaleService {
         offset,
       });
 
+      // Attach a cashier-facing payment status label for list rendering.
+      // - cancelled: order cancelled by cashier/workflow
+      // - paid: order has moved past awaiting_payment or has successful tx
+      // - pending: still waiting payment / unresolved
+      const orderIds = data.map((o) => o.id);
+      const latestTxByOrder = new Map<number, PaymentTransaction>();
+      if (orderIds.length > 0) {
+        const txs = await PaymentTransaction.findAll({
+          where: { order_id: { [Op.in]: orderIds } },
+          order: [["id", "DESC"]],
+        });
+        for (const tx of txs) {
+          if (!latestTxByOrder.has(tx.order_id)) {
+            latestTxByOrder.set(tx.order_id, tx);
+          }
+        }
+      }
+
+      const dataWithPaymentStatus = data.map((row) => {
+        const tx = latestTxByOrder.get(row.id);
+        let payment_status: "paid" | "cancelled" | "pending" = "pending";
+
+        if (row.status === "cancelled") {
+          payment_status = "cancelled";
+        } else if (tx?.status === PaymentStatus.SUCCESS) {
+          payment_status = "paid";
+        } else if (row.status !== "awaiting_payment") {
+          // Cash / wallet and other settled paths generally move order out of awaiting_payment.
+          payment_status = "paid";
+        }
+
+        return {
+          ...row.toJSON(),
+          payment_status,
+        };
+      });
+
       const totalCount = await Order.count({
         where: where,
       });
@@ -132,7 +182,7 @@ export class SaleService {
 
       const dataFormat: List = {
         status: "success",
-        data: data,
+        data: dataWithPaymentStatus,
         pagination: {
           page: page,
           limit: limit, // Updated to use limit
@@ -161,8 +211,19 @@ export class SaleService {
         include: [
           {
             model: OrderDetails,
-            attributes: ["id", "unit_price", "qty"],
+            attributes: ["id", "unit_price", "qty", "line_note"],
             include: [
+              {
+                model: OrderDetailModifier,
+                required: false,
+                attributes: [
+                  "id",
+                  "modifier_option_id",
+                  "group_name",
+                  "option_label",
+                  "price_delta_applied",
+                ],
+              },
               {
                 model: Menu,
                 attributes: ["id", "name", "code", "image"],

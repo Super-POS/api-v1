@@ -16,6 +16,7 @@ import { Col, Fn, Literal } from "sequelize/types/utils";
 import Menu from "@app/models/menu/menu.model";
 import MenuIngredient from "@app/models/menu/menu-ingredient.model";
 import MenuType from "@app/models/menu/menu-type.model";
+import { getMenuCatalogInclude } from "@app/utils/modifier-order.util";
 import { FileService } from "src/app/services/file.service";
 import { CreateMenuDto, MenuRecipeLineDto, UpdateMenuDto } from "./menu.dto";
 export type Orders = Fn | Col | Literal | OrderItem[];
@@ -365,6 +366,7 @@ export class MenuService {
             model: User,
             attributes: ["id", "name", "avatar"],
           },
+          getMenuCatalogInclude(),
         ],
       });
 
@@ -484,6 +486,7 @@ export class MenuService {
             model: User,
             attributes: ["id", "name", "avatar"],
           },
+          getMenuCatalogInclude(),
         ],
       });
 

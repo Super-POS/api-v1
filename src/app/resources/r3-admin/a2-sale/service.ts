@@ -8,6 +8,7 @@ import { Op, Order as SeqOrder, col, Sequelize } from 'sequelize';
 import User         from '@app/models/user/user.model';
 import Order        from '@app/models/order/order.model';
 import OrderDetails from '@app/models/order/detail.model';
+import OrderDetailModifier from '@app/models/order/order-detail-modifier.model';
 import Menu      from '@app/models/menu/menu.model';
 import MenuType  from '@app/models/menu/menu-type.model';
 
@@ -119,8 +120,19 @@ export class SaleService {
                 include: [
                     {
                         model: OrderDetails,
-                        attributes: ['id', 'unit_price', 'qty'],
+                        attributes: ['id', 'unit_price', 'qty', 'line_note'],
                         include: [
+                            {
+                                model: OrderDetailModifier,
+                                required: false,
+                                attributes: [
+                                    'id',
+                                    'modifier_option_id',
+                                    'group_name',
+                                    'option_label',
+                                    'price_delta_applied',
+                                ],
+                            },
                             {
                                 model: Menu,
                                 attributes: ['id', 'name', 'code', 'image'],

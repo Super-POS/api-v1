@@ -3,50 +3,56 @@ import MenuIngredient         from '@app/models/menu/menu-ingredient.model';
 import IngredientStockMovement, { StockMovementType } from '@app/models/menu/stock_movement.model';
 import Menu                   from '@app/models/menu/menu.model';
 import MenuType                from '@app/models/menu/menu-type.model';
+import ModifierGroup          from '@app/models/menu/modifier-group.model';
+import ModifierOption         from '@app/models/menu/modifier-option.model';
+import MenuModifierGroup      from '@app/models/menu/menu-modifier-group.model';
 
 // =========================================================================
 // Catalogue data
+// Menu photos live under `file-v1/public/…` and were sourced from
+// Pexels & Unsplash (royalty-free for commercial use). See each site’s license.
 // =========================================================================
 
 const TYPES = [
-    { id: 1, name: 'Coffee',              image: 'static/pos/products/type/coffee.png'     },
-    { id: 2, name: 'Non-Coffee & Tea',    image: 'static/pos/products/type/tea.png'         },
-    { id: 3, name: 'Cold Brew & Iced',    image: 'static/pos/products/type/cold-brew.png'   },
-    { id: 4, name: 'Food & Pastry',       image: 'static/pos/products/type/pastry.png'      },
-    { id: 5, name: 'Smoothies & Juice',   image: 'static/pos/products/type/smoothie.png'    },
+    { id: 1, name: 'Artisan Hot Coffee',     image: 'static/pos/products/type/coffee.jpg'     },
+    { id: 2, name: 'Tea & Lattes',            image: 'static/pos/products/type/tea.jpg'         },
+    { id: 3, name: 'Cold Brew & Iced',        image: 'static/pos/products/type/cold-brew.jpg'  },
+    { id: 4, name: 'Bakery & Plates',         image: 'static/pos/products/type/pastry.jpg'      },
+    { id: 5, name: 'Coolers & Fresh Juice',   image: 'static/pos/products/type/smoothie.jpg'  },
 ];
 
+/** Prices in Riel (៛) — photo-ready demo menu. */
 const MENUS = [
-    // ── Coffee ─────────────────────────────────────────────────────────────
-    { id:  1, code: 'CF-001', type_id: 1, name: 'Espresso',               unit_price: 1.50, discount: 0, image: 'static/pos/products/coffee/espresso.png',        creator_id: 1 },
-    { id:  2, code: 'CF-002', type_id: 1, name: 'Americano',              unit_price: 2.00, discount: 0, image: 'static/pos/products/coffee/americano.png',       creator_id: 1 },
-    { id:  3, code: 'CF-003', type_id: 1, name: 'Cafe Latte',             unit_price: 3.00, discount: 0, image: 'static/pos/products/coffee/latte.png',           creator_id: 1 },
-    { id:  4, code: 'CF-004', type_id: 1, name: 'Cappuccino',             unit_price: 3.00, discount: 0, image: 'static/pos/products/coffee/cappuccino.png',      creator_id: 1 },
-    { id:  5, code: 'CF-005', type_id: 1, name: 'Flat White',             unit_price: 3.50, discount: 0, image: 'static/pos/products/coffee/flatwhite.png',       creator_id: 1 },
-    { id:  6, code: 'CF-006', type_id: 1, name: 'Caramel Macchiato',      unit_price: 4.00, discount: 0, image: 'static/pos/products/coffee/macchiato.png',       creator_id: 1 },
-    { id:  7, code: 'CF-007', type_id: 1, name: 'Mocha',                  unit_price: 3.50, discount: 0, image: 'static/pos/products/coffee/mocha.png',           creator_id: 1 },
-    { id:  8, code: 'CF-008', type_id: 1, name: 'Dirty Matcha',           unit_price: 4.50, discount: 0, image: 'static/pos/products/coffee/dirty-matcha.png',    creator_id: 1 },
-    // ── Non-Coffee & Tea ───────────────────────────────────────────────────
-    { id:  9, code: 'NC-001', type_id: 2, name: 'Matcha Latte',           unit_price: 3.50, discount: 0, image: 'static/pos/products/tea/matcha-latte.png',       creator_id: 1 },
-    { id: 10, code: 'NC-002', type_id: 2, name: 'Thai Milk Tea',          unit_price: 3.00, discount: 0, image: 'static/pos/products/tea/thai-tea.png',           creator_id: 1 },
-    { id: 11, code: 'NC-003', type_id: 2, name: 'Chamomile Tea',          unit_price: 2.50, discount: 0, image: 'static/pos/products/tea/chamomile.png',          creator_id: 1 },
-    { id: 12, code: 'NC-004', type_id: 2, name: 'Taro Milk Tea',          unit_price: 3.50, discount: 0, image: 'static/pos/products/tea/taro.png',               creator_id: 1 },
-    // ── Cold Brew & Iced ───────────────────────────────────────────────────
-    { id: 13, code: 'CB-001', type_id: 3, name: 'Cold Brew Classic',      unit_price: 3.50, discount: 0, image: 'static/pos/products/cold/cold-brew.png',         creator_id: 1 },
-    { id: 14, code: 'CB-002', type_id: 3, name: 'Iced Americano',         unit_price: 2.50, discount: 0, image: 'static/pos/products/cold/iced-americano.png',    creator_id: 1 },
-    { id: 15, code: 'CB-003', type_id: 3, name: 'Iced Cafe Latte',        unit_price: 3.50, discount: 0, image: 'static/pos/products/cold/iced-latte.png',        creator_id: 1 },
-    { id: 16, code: 'CB-004', type_id: 3, name: 'Iced Matcha Latte',      unit_price: 4.00, discount: 0, image: 'static/pos/products/cold/iced-matcha.png',       creator_id: 1 },
-    { id: 17, code: 'CB-005', type_id: 3, name: 'Brown Sugar Iced Latte', unit_price: 4.50, discount: 0, image: 'static/pos/products/cold/brown-sugar-latte.png', creator_id: 1 },
-    // ── Food & Pastry ──────────────────────────────────────────────────────
-    { id: 18, code: 'FP-001', type_id: 4, name: 'Butter Croissant',       unit_price: 2.50, discount: 0, image: 'static/pos/products/food/croissant.png',         creator_id: 1 },
-    { id: 19, code: 'FP-002', type_id: 4, name: 'Cheesecake Slice',       unit_price: 3.50, discount: 0, image: 'static/pos/products/food/cheesecake.png',        creator_id: 1 },
-    { id: 20, code: 'FP-003', type_id: 4, name: 'Banana Bread',           unit_price: 2.00, discount: 0, image: 'static/pos/products/food/banana-bread.png',      creator_id: 1 },
-    { id: 21, code: 'FP-004', type_id: 4, name: 'Chocolate Muffin',       unit_price: 2.50, discount: 0, image: 'static/pos/products/food/muffin.png',            creator_id: 1 },
-    { id: 22, code: 'FP-005', type_id: 4, name: 'Avocado Toast',          unit_price: 5.00, discount: 0, image: 'static/pos/products/food/avocado-toast.png',     creator_id: 1 },
-    // ── Smoothies & Juice ──────────────────────────────────────────────────
-    { id: 23, code: 'SJ-001', type_id: 5, name: 'Strawberry Smoothie',    unit_price: 4.00, discount: 0, image: 'static/pos/products/smoothie/strawberry.png',    creator_id: 1 },
-    { id: 24, code: 'SJ-002', type_id: 5, name: 'Mango Smoothie',         unit_price: 4.00, discount: 0, image: 'static/pos/products/smoothie/mango.png',         creator_id: 1 },
-    { id: 25, code: 'SJ-003', type_id: 5, name: 'Fresh Orange Juice',     unit_price: 3.50, discount: 0, image: 'static/pos/products/smoothie/orange-juice.png',  creator_id: 1 },
+    // ── Hot coffee (single origin beans, 9-bar extraction) ───────────────
+    { id:  1, code: 'CF-001', type_id: 1, name: 'Doppio Espresso (30 ml)',   unit_price:  6000, discount: 0, image: 'static/pos/products/coffee/espresso.jpg',         creator_id: 1 },
+    { id:  2, code: 'CF-002', type_id: 1, name: 'Long Black',                unit_price:  9000, discount: 0, image: 'static/pos/products/coffee/americano.jpg',        creator_id: 1 },
+    { id:  3, code: 'CF-003', type_id: 1, name: 'Signature Café Latte',     unit_price: 14000, discount: 0, image: 'static/pos/products/coffee/latte.jpg',            creator_id: 1 },
+    { id:  4, code: 'CF-004', type_id: 1, name: 'Cappuccino (Traditional)',  unit_price: 14000, discount: 0, image: 'static/pos/products/coffee/cappuccino.jpg',       creator_id: 1 },
+    { id:  5, code: 'CF-005', type_id: 1, name: 'Flat White',                unit_price: 15000, discount: 0, image: 'static/pos/products/coffee/flatwhite.jpg',         creator_id: 1 },
+    { id:  6, code: 'CF-006', type_id: 1, name: 'Caramel Macchiato',         unit_price: 16000, discount: 0, image: 'static/pos/products/coffee/macchiato.jpg',         creator_id: 1 },
+    { id:  7, code: 'CF-007', type_id: 1, name: 'Café Mocha',                unit_price: 15000, discount: 0, image: 'static/pos/products/coffee/mocha.jpg',             creator_id: 1 },
+    { id:  8, code: 'CF-008', type_id: 1, name: 'Dirty Matcha Latte (Hot)',  unit_price: 18000, discount: 0, image: 'static/pos/products/coffee/dirty-matcha.jpg',     creator_id: 1 },
+    // ── Tea & lattes ──────────────────────────────────────────────────────
+    { id:  9, code: 'NC-001', type_id: 2, name: 'Uji Matcha Latte',          unit_price: 15000, discount: 0, image: 'static/pos/products/tea/matcha-latte.jpg',         creator_id: 1 },
+    { id: 10, code: 'NC-002', type_id: 2, name: 'Cha Yen (Thai Milk Tea)',  unit_price: 12000, discount: 0, image: 'static/pos/products/tea/thai-tea.jpg',             creator_id: 1 },
+    { id: 11, code: 'NC-003', type_id: 2, name: 'Chamomile (Pot)',           unit_price:  8000, discount: 0, image: 'static/pos/products/tea/chamomile.jpg',            creator_id: 1 },
+    { id: 12, code: 'NC-004', type_id: 2, name: 'Taro Velvet Latte',         unit_price: 15000, discount: 0, image: 'static/pos/products/tea/taro.jpg',                 creator_id: 1 },
+    // ── Iced & cold brew ──────────────────────────────────────────────────
+    { id: 13, code: 'CB-001', type_id: 3, name: '18h Nitro-Style Cold Brew', unit_price: 15000, discount: 0, image: 'static/pos/products/cold/cold-brew.jpg',           creator_id: 1 },
+    { id: 14, code: 'CB-002', type_id: 3, name: 'Iced Long Black',           unit_price: 10000, discount: 0, image: 'static/pos/products/cold/iced-americano.jpg',     creator_id: 1 },
+    { id: 15, code: 'CB-003', type_id: 3, name: 'Iced Signature Latte',      unit_price: 15000, discount: 0, image: 'static/pos/products/cold/iced-latte.jpg',         creator_id: 1 },
+    { id: 16, code: 'CB-004', type_id: 3, name: 'Iced Matcha Latte',         unit_price: 16000, discount: 0, image: 'static/pos/products/cold/iced-matcha.jpg',         creator_id: 1 },
+    { id: 17, code: 'CB-005', type_id: 3, name: 'Brown-Sugar Iced Latte',    unit_price: 18000, discount: 0, image: 'static/pos/products/cold/brown-sugar-latte.jpg',   creator_id: 1 },
+    // ── Bakery ────────────────────────────────────────────────────────────
+    { id: 18, code: 'FP-001', type_id: 4, name: 'All-Butter Croissant',     unit_price:  7000, discount: 0, image: 'static/pos/products/food/croissant.jpg',           creator_id: 1 },
+    { id: 19, code: 'FP-002', type_id: 4, name: 'New York Baked Cheesecake',  unit_price: 15000, discount: 0, image: 'static/pos/products/food/cheesecake.jpg',         creator_id: 1 },
+    { id: 20, code: 'FP-003', type_id: 4, name: 'Caramel Banana Loaf',      unit_price:  5000, discount: 0, image: 'static/pos/products/food/banana-bread.jpg',         creator_id: 1 },
+    { id: 21, code: 'FP-004', type_id: 4, name: 'Double-Chocolate Muffin',  unit_price:  7000, discount: 0, image: 'static/pos/products/food/muffin.jpg',              creator_id: 1 },
+    { id: 22, code: 'FP-005', type_id: 4, name: 'Smashed Avo & Feta Sourdough', unit_price: 20000, discount: 0, image: 'static/pos/products/food/avocado-toast.jpg',     creator_id: 1 },
+    // ── Coolers & juice ───────────────────────────────────────────────────
+    { id: 23, code: 'SJ-001', type_id: 5, name: 'Wild Berry Smoothie',      unit_price: 15000, discount: 0, image: 'static/pos/products/smoothie/strawberry.jpg',      creator_id: 1 },
+    { id: 24, code: 'SJ-002', type_id: 5, name: 'Alphonso Mango Cooler',     unit_price: 15000, discount: 0, image: 'static/pos/products/smoothie/mango.jpg',           creator_id: 1 },
+    { id: 25, code: 'SJ-003', type_id: 5, name: 'Fresh-Pressed Orange',      unit_price: 12000, discount: 0, image: 'static/pos/products/smoothie/orange-juice.jpg',      creator_id: 1 },
 ];
 
 // unit_cost = cost per base unit (ml / g / pcs)
@@ -76,8 +82,8 @@ const RECIPES: [number, number, number][] = [
     [1,  1, 1],
     // Americano (2): 1 shot
     [2,  1, 1],
-    // Cafe Latte (3): 1 shot + 180ml milk
-    [3,  1, 1], [3,  2, 180],
+    // Signature Café Latte (3): espresso only here; milk comes from modifier option (milk group) for correct stock
+    [3,  1, 1],
     // Cappuccino (4): 1 shot + 120ml milk + 30ml whipping cream
     [4,  1, 1], [4,  2, 120], [4, 10, 30],
     // Flat White (5): 1 shot + 160ml milk
@@ -100,12 +106,12 @@ const RECIPES: [number, number, number][] = [
     [13, 14, 120], [13, 5, 200],
     // Iced Americano (14): 1 shot + 200g ice
     [14,  1, 1], [14,  5, 200],
-    // Iced Cafe Latte (15): 1 shot + 180ml milk + 150g ice
-    [15,  1, 1], [15,  2, 180], [15,  5, 150],
-    // Iced Matcha Latte (16): 5g matcha + 180ml oat milk + 150g ice
-    [16,  9, 5], [16,  3, 180], [16,  5, 150],
-    // Brown Sugar Iced Latte (17): 1 shot + 180ml milk + 20g brown sugar + 150g ice
-    [17,  1, 1], [17,  2, 180], [17, 12, 20], [17,  5, 150],
+    // Iced Signature Latte (15): shot only; ice + milk from modifier groups
+    [15,  1, 1],
+    // Iced Matcha (16): matcha only; ice + plant milk from modifier groups
+    [16,  9, 5],
+    // Brown Sugar Iced (17): shot + brown sugar; ice + milk from modifier groups
+    [17,  1, 1], [17, 12, 20],
     // (Food items 18-22 have no ingredient recipes — pre-made)
     // Strawberry Smoothie (23): 150ml puree + 50ml milk
     [23, 15, 150], [23, 2, 50],
@@ -126,6 +132,7 @@ export class CafeMenuSeeder {
             await CafeMenuSeeder._seedTypes();
             await CafeMenuSeeder._seedIngredients();
             await CafeMenuSeeder._seedMenus();
+            await CafeMenuSeeder._seedModifiers();
             // PostgreSQL: rows inserted with explicit `id` in bulkCreate do not advance SERIAL;
             // without this, the next app INSERT reuses 1 and hits menus_pkey.
             await CafeMenuSeeder._syncPostgresIdSequences();
@@ -165,13 +172,51 @@ export class CafeMenuSeeder {
         console.log('\x1b[32m✔  Menus inserted (%d rows)', rows.length);
     }
 
+    /** Sugar / ice / plant-milk groups; hot latte (3) + iced matcha (16) + brown-sugar (17) with full modifier demo. */
+    private static async _seedModifiers() {
+        await ModifierGroup.bulkCreate([
+            { id: 1, name: 'Sugar level', code: 'sugar', sort_order: 0, is_active: true },
+            { id: 2, name: 'Ice',         code: 'ice',  sort_order: 1, is_active: true },
+            { id: 3, name: 'Milk',        code: 'milk', sort_order: 2, is_active: true },
+        ] as any);
+        await ModifierOption.bulkCreate([
+            { id: 1, group_id: 1, label: '0%', code: 's0', price_delta: 0, sort_order: 0, is_active: true, is_default: true, ingredient_recipe: [] },
+            { id: 2, group_id: 1, label: '30%', code: 's30', price_delta: 0, sort_order: 1, is_active: true, is_default: false, ingredient_recipe: [{ ingredient_id: 4, quantity: 5 }] },
+            { id: 3, group_id: 1, label: '50%', code: 's50', price_delta: 0, sort_order: 2, is_active: true, is_default: false, ingredient_recipe: [{ ingredient_id: 4, quantity: 10 }] },
+            { id: 4, group_id: 1, label: '70%', code: 's70', price_delta: 0, sort_order: 3, is_active: true, is_default: false, ingredient_recipe: [{ ingredient_id: 4, quantity: 15 }] },
+            { id: 5, group_id: 1, label: '100%', code: 's100', price_delta: 0, sort_order: 4, is_active: true, is_default: false, ingredient_recipe: [{ ingredient_id: 4, quantity: 20 }] },
+            { id: 6, group_id: 2, label: 'No ice', code: 'i0', price_delta: 0, sort_order: 0, is_active: true, is_default: false, ingredient_recipe: [] },
+            { id: 7, group_id: 2, label: 'Less ice', code: 'i_less', price_delta: 0, sort_order: 1, is_active: true, is_default: false, ingredient_recipe: [{ ingredient_id: 5, quantity: 80 }] },
+            { id: 8, group_id: 2, label: 'Regular', code: 'i_reg', price_delta: 0, sort_order: 2, is_active: true, is_default: true, ingredient_recipe: [{ ingredient_id: 5, quantity: 150 }] },
+            { id: 9, group_id: 2, label: 'Extra ice', code: 'i_x', price_delta: 0, sort_order: 3, is_active: true, is_default: false, ingredient_recipe: [{ ingredient_id: 5, quantity: 200 }] },
+            { id: 10, group_id: 3, label: 'Fresh dairy', code: 'm_cow', price_delta: 0, sort_order: 0, is_active: true, is_default: true, ingredient_recipe: [{ ingredient_id: 2, quantity: 180 }] },
+            { id: 11, group_id: 3, label: 'Oat', code: 'm_oat', price_delta: 2000, sort_order: 1, is_active: true, is_default: false, ingredient_recipe: [{ ingredient_id: 3, quantity: 180 }] },
+            { id: 12, group_id: 3, label: 'Almond', code: 'm_alm', price_delta: 2000, sort_order: 2, is_active: true, is_default: false, ingredient_recipe: [{ ingredient_id: 2, quantity: 180 }] },
+            { id: 13, group_id: 3, label: 'Soy', code: 'm_soy', price_delta: 1500, sort_order: 3, is_active: true, is_default: false, ingredient_recipe: [{ ingredient_id: 2, quantity: 180 }] },
+        ] as any);
+        await MenuModifierGroup.bulkCreate([
+            { menu_id: 3, modifier_group_id: 1, sort_order: 0, is_required: true },
+            { menu_id: 3, modifier_group_id: 3, sort_order: 1, is_required: false },
+            { menu_id: 15, modifier_group_id: 1, sort_order: 0, is_required: true },
+            { menu_id: 15, modifier_group_id: 2, sort_order: 1, is_required: true },
+            { menu_id: 15, modifier_group_id: 3, sort_order: 2, is_required: false },
+            { menu_id: 16, modifier_group_id: 1, sort_order: 0, is_required: true },
+            { menu_id: 16, modifier_group_id: 2, sort_order: 1, is_required: true },
+            { menu_id: 16, modifier_group_id: 3, sort_order: 2, is_required: false },
+            { menu_id: 17, modifier_group_id: 1, sort_order: 0, is_required: true },
+            { menu_id: 17, modifier_group_id: 2, sort_order: 1, is_required: true },
+            { menu_id: 17, modifier_group_id: 3, sort_order: 2, is_required: false },
+        ] as any);
+        console.log('\x1b[32m✔  Modifier groups, options, and menu links inserted');
+    }
+
     /** Advance SERIAL/identity so it is past MAX(id) after bulk rows with fixed ids. */
     private static async _syncPostgresIdSequences(): Promise<void> {
         const seq = (Menu as unknown as { sequelize: Sequelize | undefined }).sequelize;
         if (!seq || seq.getDialect() !== 'postgres') {
             return;
         }
-        for (const table of ['menu_types', 'menu_ingredients', 'menus'] as const) {
+        for (const table of ['menu_types', 'menu_ingredients', 'menus', 'modifier_groups', 'modifier_options'] as const) {
             await seq.query(
                 `SELECT setval(
   pg_get_serial_sequence('${table}', 'id'),

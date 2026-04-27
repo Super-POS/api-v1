@@ -1417,6 +1417,44 @@
           }
         }
       ]
+    },
+    {
+      "name": "8) Admin — Menu Modifiers (sugar, ice, …)",
+      "item": [
+        {
+          "name": "List modifier groups (with options)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/menu/modifiers/groups"
+          }
+        },
+        {
+          "name": "Get menu modifier assignments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/menu/modifiers/menus/{{menuId}}/assignments"
+          }
+        },
+        {
+          "name": "Set menu modifier assignments (body: items[])",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    { \"modifier_group_id\": 1, \"sort_order\": 0, \"is_required\": true },\n    { \"modifier_group_id\": 2, \"sort_order\": 1, \"is_required\": false }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/menu/modifiers/menus/{{menuId}}/assignments"
+          }
+        }
+      ]
     }
   ],
   "event": [

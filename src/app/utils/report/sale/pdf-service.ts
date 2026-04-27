@@ -53,7 +53,7 @@ export class SalePDFReportService {
             attributes: ['id', 'receipt_number', 'total_price', 'ordered_at'],
             include: [
                 { model: OrderDetails, attributes: ['id', 'unit_price', 'qty'] },
-                { model: User, attributes: ['id', 'avatar', 'name'] },
+                { model: User, as: 'cashier', attributes: ['id', 'avatar', 'name'] },
             ],
             order: [['id', 'ASC']],
         });

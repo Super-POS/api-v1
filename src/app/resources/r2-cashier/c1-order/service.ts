@@ -14,7 +14,16 @@ import sequelizeConfig from 'src/config/sequelize.config';
 import OrderDetails from 'src/app/models/order/detail.model';
 import Order from 'src/app/models/order/order.model';
 import Menu from '@app/models/menu/menu.model';
-import { deductStockForMenuRecipeLines } from '@app/utils/menu-recipe-stock.util';
+import MenuIngredient from '@app/models/menu/menu-ingredient.model';
+import { deductStockForMenuRecipeLines, deductStockForModifierOptionRecipes } from '@app/utils/menu-recipe-stock.util';
+import OrderDetailModifier from '@app/models/order/order-detail-modifier.model';
+import {
+    buildLineModifiers,
+    createDetailModifiers,
+    getMenuCatalogInclude,
+    normalizeCartLines,
+    toPlainMenuWithSortedModifiers,
+} from '@app/utils/modifier-order.util';
 import MenuType from '@app/models/menu/menu-type.model';
 import { CreateOrderDto } from './dto';
 
@@ -25,43 +34,6 @@ export class OrderService {
     constructor(private telegramService: TelegramService,
         private readonly notificationsGateway: NotificationsGateway,
     ) { };
-
-    private _normalizeCartItems(rawCart: unknown): Array<{ menuId: number; qty: number }> {
-        const parsed = typeof rawCart === 'string' ? JSON.parse(rawCart) : rawCart;
-
-        if (Array.isArray(parsed)) {
-            return parsed
-                .map((item: any) => ({
-                    menuId: Number(
-                        item?.menu_id ?? (item as { product_id?: number })?.product_id ?? item?.id,
-                    ),
-                    qty: Number(item?.quantity ?? item?.qty ?? 0),
-                }))
-                .filter((item) => Number.isFinite(item.menuId) && item.menuId > 0 && Number.isFinite(item.qty) && item.qty > 0);
-        }
-
-        if (parsed && typeof parsed === 'object') {
-            return Object.entries(parsed as Record<string, unknown>)
-                .map(([id, value]) => {
-                    if (value && typeof value === 'object') {
-                        const v: any = value;
-                        return {
-                            menuId: Number(
-                                v.menu_id ?? (v as { product_id?: number }).product_id ?? id,
-                            ),
-                            qty: Number(v.quantity ?? v.qty ?? 0),
-                        };
-                    }
-                    return {
-                        menuId: Number(id),
-                        qty: Number(value),
-                    };
-                })
-                .filter((item) => Number.isFinite(item.menuId) && item.menuId > 0 && Number.isFinite(item.qty) && item.qty > 0);
-        }
-
-        return [];
-    }
 
     async getMenus(): Promise<{ data: { id: number, name: string, menus: Menu[] }[] }> {
         const data = await MenuType.findAll({
@@ -75,6 +47,7 @@ export class OrderService {
                             model: MenuType,
                             attributes: ['name'],
                         },
+                        getMenuCatalogInclude(),
                     ],
                 },
             ],
@@ -84,10 +57,27 @@ export class OrderService {
         const dataFormat: { id: number, name: string, menus: Menu[] }[] = data.map((type) => ({
             id: type.id,
             name: type.name,
-            menus: type.menus || [],
+            menus: (type.menus || []).map((m) => toPlainMenuWithSortedModifiers(m) as unknown as Menu),
         }));
 
         return { data: dataFormat };
+    }
+
+    /** Cashier read-only view of ingredient stock so they can monitor availability while taking orders. */
+    async getIngredientsStock(): Promise<{ data: { id: number; name: string; unit: string | null; quantity: number }[] }> {
+        const data = await MenuIngredient.findAll({
+            attributes: ['id', 'name', 'unit', 'quantity'],
+            order: [['name', 'ASC']],
+        });
+
+        return {
+            data: data.map((row) => ({
+                id: row.id,
+                name: row.name,
+                unit: row.unit ?? null,
+                quantity: Number(row.quantity ?? 0),
+            })),
+        };
     }
 
     // Method for creating an order
@@ -112,30 +102,50 @@ export class OrderService {
 
             // Find Total Price & Order Details
             let totalPrice = 0;
-            const cartItems = this._normalizeCartItems(body.cart);
+            const cartItems = normalizeCartLines(body.cart);
 
-            // Loop through cart items and calculate total price
             for (const item of cartItems) {
                 const menu = await Menu.findByPk(item.menuId);
+                if (!menu) {
+                    throw new BadRequestException(
+                        `Menu #${item.menuId} is not in the catalog. Check cart and try again.`,
+                    );
+                }
 
-                if (menu) {
-                    // Save to Order Details
-                    await OrderDetails.create({
+                const { unitPrice, snapshots, selectedOptions } = await buildLineModifiers(
+                    menu,
+                    item.modifier_option_ids,
+                    transaction,
+                );
+
+                const detail = await OrderDetails.create(
+                    {
                         order_id: order.id,
                         menu_id: menu.id,
                         qty: item.qty,
-                        unit_price: menu.unit_price,
-                    }, { transaction });
+                        unit_price: unitPrice,
+                        line_note: item.line_note,
+                    },
+                    { transaction },
+                );
 
-                    totalPrice += item.qty * menu.unit_price; // Add to total price
+                await createDetailModifiers(detail.id, snapshots, transaction);
 
-                    await deductStockForMenuRecipeLines(
-                        menu,
-                        item.qty,
-                        transaction,
-                        { receiptRef: order.receipt_number + '', createdBy: cashierId },
-                    );
-                }
+                totalPrice += item.qty * unitPrice;
+
+                await deductStockForMenuRecipeLines(
+                    menu,
+                    item.qty,
+                    transaction,
+                    { receiptRef: order.receipt_number + '', createdBy: cashierId },
+                );
+                await deductStockForModifierOptionRecipes(
+                    menu,
+                    selectedOptions,
+                    item.qty,
+                    transaction,
+                    { receiptRef: order.receipt_number + '', createdBy: cashierId },
+                );
             }
 
             // Update Order with total price and ordered_at timestamp
@@ -162,8 +172,19 @@ export class OrderService {
                 include: [
                     {
                         model: OrderDetails,
-                        attributes: ['id', 'unit_price', 'qty'],
+                        attributes: ['id', 'unit_price', 'qty', 'line_note'],
                         include: [
+                            {
+                                model: OrderDetailModifier,
+                                required: false,
+                                attributes: [
+                                    'id',
+                                    'modifier_option_id',
+                                    'group_name',
+                                    'option_label',
+                                    'price_delta_applied',
+                                ],
+                            },
                             {
                                 model: Menu,
                                 attributes: ['id', 'name', 'code', 'image'],
@@ -257,8 +278,19 @@ export class OrderService {
             include: [
                 {
                     model: OrderDetails,
-                    attributes: ["id", "unit_price", "qty"],
+                    attributes: ["id", "unit_price", "qty", "line_note"],
                     include: [
+                        {
+                            model: OrderDetailModifier,
+                            required: false,
+                            attributes: [
+                                "id",
+                                "modifier_option_id",
+                                "group_name",
+                                "option_label",
+                                "price_delta_applied",
+                            ],
+                        },
                         {
                             model: Menu,
                             attributes: ["id", "name", "code", "image"],

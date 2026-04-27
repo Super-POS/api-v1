@@ -21,6 +21,11 @@ export class OrderController {
         return await this._service.getMenus();
     }
 
+    @Get('ingredients-stock')
+    async getIngredientsStock(): Promise<{ data: { id: number; name: string; unit: string | null; quantity: number }[] }> {
+        return await this._service.getIngredientsStock();
+    }
+
     @Post('order')
     @UseInterceptors(IdempotencyInterceptor)
     async makeOrder(@Body() body: CreateOrderDto, @UserDecorator() user: User): Promise<{ data: Order, message: string }> {

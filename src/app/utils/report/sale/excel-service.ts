@@ -51,7 +51,7 @@ export class SaleExcelReportService {
             attributes: ['id', 'receipt_number', 'total_price', 'ordered_at'],
             include: [
                 { model: OrderDetails, attributes: ['id', 'unit_price', 'qty'] },
-                { model: User, attributes: ['id', 'avatar', 'name'] },
+                { model: User, as: 'cashier', attributes: ['id', 'avatar', 'name'] },
             ],
             order: [['id', 'ASC']],
         });
@@ -67,8 +67,8 @@ export class SaleExcelReportService {
             id: order.id,
             receipt_number: order.receipt_number,
             total_price: order.total_price,
-            ordered_at: order.ordered_at.toISOString().split('T')[0],
-            order_time: new Date(order.ordered_at).toISOString().split('T')[1].split('.')[0],
+            ordered_at: order.ordered_at ? new Date(order.ordered_at).toISOString().split('T')[0] : null,
+            order_time: order.ordered_at ? new Date(order.ordered_at).toISOString().split('T')[1].split('.')[0] : null,
             cashier: order.cashier ? {
                 id: order.cashier.id,
                 avatar: order.cashier.avatar,
