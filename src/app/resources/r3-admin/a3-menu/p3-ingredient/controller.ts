@@ -16,6 +16,12 @@ export class MenuIngredientController {
         return await this._service.getData();
     }
 
+    // =============================================>> Restock (must be before :id)
+    @Get('restock/list')
+    async restockList() {
+        return await this._service.getRestockList();
+    }
+
     // =============================================>> View One
     @Get(':id')
     async view(@Param('id', ParseIntPipe) id: number) {

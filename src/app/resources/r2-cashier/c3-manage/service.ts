@@ -11,6 +11,7 @@ import Order                from '@app/models/order/order.model';
 import Menu              from '@app/models/menu/menu.model';
 import MenuType          from '@app/models/menu/menu-type.model';
 import User                 from '@app/models/user/user.model';
+import { OrderService }   from '../c1-order/service';
 
 const ORDER_ATTRIBUTES  = ['id', 'receipt_number', 'total_price', 'channel', 'status', 'ordered_at'];
 const DETAIL_INCLUDES   = [
@@ -31,6 +32,8 @@ const DETAIL_INCLUDES   = [
 
 @Injectable()
 export class ManageService {
+
+    constructor(private readonly _orderService: OrderService) {}
 
     async getOrders(status?: OrderStatusEnum) {
         const where: any = {};
@@ -74,7 +77,7 @@ export class ManageService {
     }
 
     async cancel(id: number) {
-        return this._transition(
+        const out = await this._transition(
             id,
             [
                 OrderStatusEnum.AWAITING_PAYMENT,
@@ -85,6 +88,12 @@ export class ManageService {
             OrderStatusEnum.CANCELLED,
             'cancelled',
         );
+        try {
+            await this._orderService.sendOrderCancelledTelegram(id);
+        } catch {
+            // optional channel
+        }
+        return out;
     }
 
     private async _transition(

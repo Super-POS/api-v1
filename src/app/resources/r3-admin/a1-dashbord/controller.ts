@@ -14,6 +14,12 @@ export class DashboardController {
         private readonly _service: DashboardService
     ) { }
 
+    /** Today or ?date=YYYY-MM-DD — order counts and revenue for that day */
+    @Get('daily-summary')
+    async getDailySummary(@Query('date') date?: string) {
+        return await this._service.findDailySalesSummary(date);
+    }
+
     @Get()
     async getStaticData(
         @Query('today')         today?        : string,
@@ -45,6 +51,16 @@ export class DashboardController {
         @Query('sixMonthAgo')   sixMonthAgo?  : string,
     ) {
         return await this._service.findMenuTypeWithMenuCounts({ thisWeek, thisMonth, threeMonthAgo, sixMonthAgo });
+    }
+
+    @Get('/top-sale-menu')
+    async getTopSaleMenu(
+        @Query('thisWeek')      thisWeek?     : string,
+        @Query('thisMonth')     thisMonth?    : string,
+        @Query('threeMonthAgo') threeMonthAgo?: string,
+        @Query('sixMonthAgo')   sixMonthAgo?  : string,
+    ) {
+        return await this._service.findTopSaleMenu({ thisWeek, thisMonth, threeMonthAgo, sixMonthAgo });
     }
 
     @Get('/data-sale')

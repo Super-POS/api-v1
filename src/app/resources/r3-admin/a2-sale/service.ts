@@ -19,11 +19,11 @@ export class SaleService {
         
         {
             value    : 'total_price', 
-            name     : 'តម្លៃលក់'
+            name     : 'Sale amount'
         }
         ,{
             value    : 'ordered_at', 
-            name     : 'ថ្ងៃបញ្ជាទិញ'
+            name     : 'Order date'
         },
     ];
 
@@ -40,6 +40,80 @@ export class SaleService {
         };
     }
 
+    private _saleListWhere(params?: {
+        key?: string;
+        cashier?: number;
+        platform?: string;
+        fromDate?: string;
+        toDate?: string;
+    }): any {
+        const where: any = {};
+        if (params?.key && params.key != '') {
+            where.receipt_number = { [Op.like]: `%${params?.key}%` };
+        }
+        if (params?.cashier) {
+            where.cashier_id = params.cashier;
+        }
+        if (params?.platform !== null && params?.platform !== undefined && params?.platform !== '') {
+            where.channel = params.platform;
+        }
+        if (params?.fromDate && params?.toDate && params.toDate !== 'undefined 23:59:59') {
+            const fromDate = new Date(params.fromDate);
+            const toDate = new Date(params.toDate);
+            toDate.setHours(23, 59, 59, 999);
+            where.ordered_at = { [Op.between]: [fromDate, toDate] };
+        }
+        return where;
+    }
+
+    /**
+     * CSV export for the same filters as the sales list (max 50k rows).
+     */
+    async exportSalesCsv(
+        params?: {
+            key?: string;
+            cashier?: number;
+            platform?: string;
+            fromDate?: string;
+            toDate?: string;
+        },
+    ): Promise<string> {
+        const where = this._saleListWhere(params);
+        const rows = await Order.findAll({
+            attributes: ['id', 'receipt_number', 'total_price', 'channel', 'status', 'ordered_at'],
+            where,
+            include: [{ model: User, as: 'cashier', attributes: ['name'] }],
+            order: [[col('id'), 'DESC']],
+            limit: 50000,
+        });
+        const header = 'id,receipt_number,total_price_riel,channel,status,ordered_at,cashier_name\n';
+        const q = (s: string) => `"${String(s ?? '').replace(/"/g, '""')}"`;
+        const body = rows
+            .map((r) => {
+                const o = r.toJSON() as unknown as {
+                    id: number;
+                    receipt_number: string;
+                    total_price?: number;
+                    channel: string;
+                    status: string;
+                    ordered_at?: Date | string;
+                    cashier?: { name?: string };
+                };
+                const dt = o.ordered_at ? new Date(o.ordered_at as Date).toISOString() : '';
+                return [
+                    o.id,
+                    q(String(o.receipt_number)),
+                    o.total_price ?? 0,
+                    q(String(o.channel)),
+                    q(String(o.status)),
+                    q(dt),
+                    q(String(o.cashier?.name ?? '')),
+                ].join(',');
+            })
+            .join('\n');
+        return header + body;
+    }
+
     async getData(
         params?: {
             //=========================>> Pagination
@@ -52,11 +126,11 @@ export class SaleService {
             //=========================>> Sort
             sort?           : string,
             order?          : string,
-
+            
             //=========================>> Filter
             cashier?        : number;
             platform?       : string;
-
+            
             fromDate?       : string;
             toDate?         : string;
         }
@@ -69,34 +143,7 @@ export class SaleService {
             const offset = (params.page - 1) * params.limit;
 
             // ===>> Build the dynamic `where` clause
-            const where: any = {};
-
-            // ===>> Search by Key
-            if(params?.key  && params.key != ''){
-                where.receipt_number = { [Op.like]: `%${params?.key}%` };
-            }
-
-            // ===>> Filters
-            // By Cashier
-            if (params?.cashier) { 
-                where.cashier_id = params.cashier; 
-            }
-
-            // By Channel
-            if (params?.platform !== null && params.platform !== undefined && params.platform !== "") { 
-                where.channel = params.platform; 
-            }
-
-            // By Date Range
-            if(params?.fromDate && params?.toDate && params.toDate !== "undefined 23:59:59"){
-                const fromDate = new Date(params.fromDate);
-                const toDate = new Date(params.toDate);
-                toDate.setHours(23, 59, 59, 999); // Set to the end of the day
-
-                where.ordered_at = { 
-                    [Op.between]: [fromDate, toDate]
-                };
-            }
+            const where = this._saleListWhere(params);
 
             // ===>> Build Sort & Order
             const order     = [];

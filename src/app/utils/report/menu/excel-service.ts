@@ -38,7 +38,7 @@ export class MenuExcelReportService {
 
         const reportData = this.buildReportData(user, totalSales, menuData, start, end, totalQty);
 
-        return this.generateAndSendReport(reportData, process.env.JS_TEMPLATE_PRODUCT_EXCEL, 'Menu Sales Report', 'របាយការណ៍លក់តាមផលិតផល');
+        return this.generateAndSendReport(reportData, process.env.JS_TEMPLATE_PRODUCT_EXCEL, 'Menu Sales Report', 'Product sales report');
         // return reportData;
     }
 

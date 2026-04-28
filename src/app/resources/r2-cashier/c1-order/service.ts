@@ -64,9 +64,11 @@ export class OrderService {
     }
 
     /** Cashier read-only view of ingredient stock so they can monitor availability while taking orders. */
-    async getIngredientsStock(): Promise<{ data: { id: number; name: string; unit: string | null; quantity: number }[] }> {
+    async getIngredientsStock(): Promise<{
+        data: { id: number; name: string; unit: string | null; quantity: number; low_stock_threshold: number }[];
+    }> {
         const data = await MenuIngredient.findAll({
-            attributes: ['id', 'name', 'unit', 'quantity'],
+            attributes: ['id', 'name', 'unit', 'quantity', 'low_stock_threshold'],
             order: [['name', 'ASC']],
         });
 
@@ -76,6 +78,7 @@ export class OrderService {
                 name: row.name,
                 unit: row.unit ?? null,
                 quantity: Number(row.quantity ?? 0),
+                low_stock_threshold: Number(row.low_stock_threshold ?? 1000),
             })),
         };
     }
@@ -215,8 +218,8 @@ export class OrderService {
             return {
                 data,
                 message: body.deferred_telegram
-                    ? "ការកម៉្មងរក្សាទុក — សូមទូទាត់ Baray សិន។"
-                    : "ការបញ្ជាទិញត្រូវបានបង្កើតដោយជោគជ័យ។",
+                    ? "Order saved — please complete Baray payment."
+                    : "Order created successfully.",
             };
 
         } catch (error) {
@@ -234,18 +237,28 @@ export class OrderService {
     private async _sendPlacedOrderTelegramAndSocket(
         data: Order,
         channel: Order["channel"] | string,
+        paymentInfo?: { paidBy?: string; paidAmount?: number },
     ): Promise<void> {
         const currentDateTime = await this.getCurrentDateTimeInCambodia();
-        let htmlMessage = `<b>ការបញ្ជាទិញទទួលបានជោគជ័យ!</b>\n`;
-        htmlMessage += `-លេខវិកយប័ត្រ`;
-        htmlMessage += `\u2003៖ ${data.receipt_number}\n`;
-        htmlMessage += `-តម្លៃសរុប​​​​`;
-        htmlMessage += `\u2003\u2003\u2003៖ ${this.formatPrice(data.total_price!)} ៛\n`;
-        htmlMessage += `-អ្នកគិតលុយ`;
-        htmlMessage += `\u2003\u2003 ៖ ${data.cashier?.name || ""}\n`;
-        htmlMessage += `-តាមរយះ`;
-        htmlMessage += `\u2003\u2003\u2003 ៖ ${String(channel || "")}\n`;
-        htmlMessage += `-កាលបរិច្ឆេទ\u2003\u2003៖ ${currentDateTime}\n`;
+        let htmlMessage = `<b>Order placed successfully!</b>\n`;
+        htmlMessage += `<b>Status: Success</b>\n`;
+        htmlMessage += `-Receipt`;
+        htmlMessage += `\u2003: ${data.receipt_number}\n`;
+        htmlMessage += `-Total`;
+        htmlMessage += `\u2003\u2003\u2003: ${this.formatPrice(data.total_price!)} KHR\n`;
+        htmlMessage += `-Cashier`;
+        htmlMessage += `\u2003\u2003 : ${data.cashier?.name || ""}\n`;
+        htmlMessage += `-Channel`;
+        htmlMessage += `\u2003\u2003\u2003 : ${String(channel || "")}\n`;
+        if (paymentInfo?.paidBy?.trim()) {
+            htmlMessage += `-Paid by`;
+            htmlMessage += `\u2003: ${paymentInfo.paidBy.trim()}\n`;
+        }
+        if (typeof paymentInfo?.paidAmount === "number" && Number.isFinite(paymentInfo.paidAmount)) {
+            htmlMessage += `-Amount paid`;
+            htmlMessage += `\u2003: ${this.formatPrice(paymentInfo.paidAmount)} KHR\n`;
+        }
+        htmlMessage += `-Date\u2003\u2003: ${currentDateTime}\n`;
         await this.telegramService.sendHTMLMessage(htmlMessage);
         const notifications = await Notifications.findAll({
             attributes: ["id", "read"],
@@ -267,9 +280,34 @@ export class OrderService {
     }
 
     /**
+     * Telegram: order was cancelled (kitchen / manage flow). Does not push socket list.
+     */
+    async sendOrderCancelledTelegram(orderId: number): Promise<void> {
+        const data = await Order.findByPk(orderId, {
+            attributes: ["id", "receipt_number", "total_price", "channel", "status", "ordered_at"],
+            include: [{ model: User, as: "cashier", attributes: ["id", "avatar", "name"] }],
+        });
+        if (!data) {
+            return;
+        }
+        const currentDateTime = await this.getCurrentDateTimeInCambodia();
+        let htmlMessage = `<b>Order cancelled</b>\n`;
+        htmlMessage += `<b>Status: Cancel</b>\n`;
+        htmlMessage += `-Receipt\u2003: ${data.receipt_number}\n`;
+        htmlMessage += `-Total\u2003\u2003: ${this.formatPrice(data.total_price ?? 0)} KHR\n`;
+        htmlMessage += `-Cashier\u2003: ${data.cashier?.name || ""}\n`;
+        htmlMessage += `-Channel\u2003: ${String(data.channel || "")}\n`;
+        htmlMessage += `-Date\u2003\u2003: ${currentDateTime}\n`;
+        await this.telegramService.sendHTMLMessage(htmlMessage);
+    }
+
+    /**
      * Baray: after payment, send Telegram + socket list + create notification if we skipped at order create.
      */
-    async sendPlacedNotificationsAfterBarayPayment(orderId: number): Promise<void> {
+    async sendPlacedNotificationsAfterBarayPayment(
+        orderId: number,
+        paymentInfo?: { paidBy?: string; paidAmount?: number },
+    ): Promise<void> {
         if (await Notifications.findOne({ where: { order_id: orderId } })) {
             return;
         }
@@ -309,7 +347,7 @@ export class OrderService {
             user_id: data.cashier_id!,
             read: false,
         });
-        await this._sendPlacedOrderTelegramAndSocket(data, data.channel);
+        await this._sendPlacedOrderTelegramAndSocket(data, data.channel, paymentInfo);
     }
 
     private formatPrice(price: number): string {

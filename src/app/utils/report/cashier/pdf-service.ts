@@ -37,7 +37,7 @@ export class CashierPDFReportService {
 
         const reportData = this.buildReportData(user, totalSales, cashiers, start, end, totalOrders);
 
-        return this.generateAndSendReport(reportData, process.env.JS_TEMPLATE_CASHIER, 'Cashier Sales Report', 'របាយការណ៍លក់តាមអ្នកគិតប្រាក់');
+        return this.generateAndSendReport(reportData, process.env.JS_TEMPLATE_CASHIER, 'Cashier Sales Report', 'Cashier sales report');
     }
 
     // =============================>> Private Helper Methods

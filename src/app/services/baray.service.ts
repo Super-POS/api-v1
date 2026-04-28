@@ -346,8 +346,29 @@ export class BarayService {
     if (order.status === OrderStatusEnum.AWAITING_PAYMENT) {
       await order.update({ status: OrderStatusEnum.PENDING });
     }
+    const paidByRaw =
+      body["payer_name"] ??
+      body["paid_by"] ??
+      body["customer_name"] ??
+      body["account_name"] ??
+      body["payer"] ??
+      body["from"];
+    const paidBy =
+      paidByRaw != null && String(paidByRaw).trim().length > 0
+        ? String(paidByRaw).trim()
+        : undefined;
+
+    const amountRaw = body["amount"] ?? body["paid_amount"] ?? body["total_amount"];
+    const paidAmount =
+      amountRaw != null && Number.isFinite(Number(amountRaw))
+        ? Number(amountRaw)
+        : Number(order.total_price ?? 0);
+
     try {
-      await this._orderService.sendPlacedNotificationsAfterBarayPayment(localId);
+      await this._orderService.sendPlacedNotificationsAfterBarayPayment(localId, {
+        paidBy,
+        paidAmount,
+      });
     } catch {
       // Telegram/FCM optional; payment is already recorded
     }

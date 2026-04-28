@@ -35,7 +35,7 @@ export class SalePDFReportService {
 
         const reportData = this.buildReportData(user, sumTotalPrice, formattedOrders, start, end);
 
-        return this.generateAndSendReport(reportData, process.env.JS_TEMPLATE_POS, 'Sale Report', 'របាយការណ៍លក់រាយ');
+        return this.generateAndSendReport(reportData, process.env.JS_TEMPLATE_POS, 'Sale Report', 'Retail sale report');
         // return reportData;
     }
 

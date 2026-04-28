@@ -74,7 +74,7 @@ class AppInitializer {
             await this.initializeApplication();
             await this.app.listen(port);
             
-            this.logger.log(`\x1b[32m I Love You.: \x1b[34mhttp://localhost:${port}\x1b[37m`);
+            this.logger.log(`\x1b[32m Application running on host: \x1b[34mhttp://localhost:${port}\x1b[37m`);
         
         } catch (error) {
             this.logger.error(`\x1b[31mError starting the server: ${error.message}\x1b[0m`);

@@ -9,6 +9,7 @@ import sequelizeConfig from './sequelize.config';
 import { HttpModule } from '@nestjs/axios';
 import { FileService } from '@app/services/file.service';
 import { JsReportService } from '@app/services/js-report.service';
+import { IngredientSchemaPatchService } from './ingredient-schema.patch';
 
 /** @noded We use Global that allow all module can access and use all models */
 @Global()
@@ -27,7 +28,8 @@ import { JsReportService } from '@app/services/js-report.service';
     ],
     providers: [
         FileService,
-        JsReportService
+        JsReportService,
+        IngredientSchemaPatchService,
     ],
     exports: [
         FileService,

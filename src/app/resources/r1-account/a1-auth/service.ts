@@ -84,7 +84,7 @@ export class AuthService {
         // ===>> Prepare Response
         return {
             token: token,
-            message: 'ចូលប្រព័ន្ធបានដោយជោគជ័យ'
+            message: 'Signed in successfully.'
         }
     }
 
@@ -243,11 +243,11 @@ export class AuthService {
 
             // If user not found or inactive, return an appropriate response
             if (!user) {
-                return { data: false, message: 'អ្នកប្រើប្រាស់មិនមាននៅក្នុងប្រព័ន្ធទេ' }; // Correctly return an object
+                return { data: false, message: 'User not found in the system.' }; // Correctly return an object
             }
 
             // Return success response if user exists and is active
-            return { data: true, message: 'អ្នកប្រើប្រាស់មាននៅក្នុងប្រព័ន្ធ' };
+            return { data: true, message: 'User exists in the system.' };
 
         } catch (error) {
             // Handle any unexpected errors
@@ -304,7 +304,7 @@ export class AuthService {
             });
 
             const token = this.tokenGenerator.getToken(fullUser);
-            return { token, message: 'ចុះឈ្មោះបានដោយជោគជ័យ' };
+            return { token, message: 'Registration completed successfully.' };
 
         } catch (error) {
             await transaction.rollback();
@@ -363,7 +363,7 @@ export class AuthService {
             // ===>> Prepare Response
             return {
                 token: token,
-                message: 'ចូលប្រព័ន្ធបានដោយជោគជ័យ'
+                message: 'Signed in successfully.'
             }
         } catch (error) {
             throw new UnauthorizedException(error);

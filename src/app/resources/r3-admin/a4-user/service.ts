@@ -226,12 +226,12 @@ export class UserService {
             },
           ],
         },
-        {
-          model: Order,
-          attributes: [],
-        },
       ],
     });
+
+    if (!data) {
+      throw new NotFoundException("User not found");
+    }
 
     const where: any = {
       cashier_id: userId,
@@ -257,7 +257,7 @@ export class UserService {
             },
           ],
         },
-        { model: User, attributes: ["id", "avatar", "name"] },
+        { model: User, as: "cashier", attributes: ["id", "avatar", "name"] },
       ],
       where: where,
       order: [["ordered_at", "DESC"]],

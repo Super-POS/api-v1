@@ -21,7 +21,7 @@ const TYPES = [
     { id: 5, name: 'Coolers & Fresh Juice',   image: 'static/pos/products/type/smoothie.jpg'  },
 ];
 
-/** Prices in Riel (៛) — photo-ready demo menu. */
+/** Prices in KHR — photo-ready demo menu. */
 const MENUS = [
     // ── Hot coffee (single origin beans, 9-bar extraction) ───────────────
     { id:  1, code: 'CF-001', type_id: 1, name: 'Doppio Espresso (30 ml)',   unit_price:  6000, discount: 0, image: 'static/pos/products/coffee/espresso.jpg',         creator_id: 1 },

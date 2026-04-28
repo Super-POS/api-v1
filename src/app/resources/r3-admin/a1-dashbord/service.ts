@@ -5,6 +5,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { col, fn, Op, Sequelize, where } from 'sequelize';
 
 // ===========================================================================>> Custom Library
+import { OrderStatusEnum } from '@app/enums/order-status.enum';
 import { RoleEnum } from '@app/enums/role.enum';
 import { JsReportService } from '@app/services/js-report.service';
 import { ProfitMetrics, ProfitService } from '@app/services/profit.service';
@@ -129,7 +130,7 @@ export class DashboardService {
     //                     }
     //                 },
     //             ],
-    //             message: "ទទួលបានទិន្នន័យដោយជោគជ័យ",
+    //             message: "Data retrieved successfully",
     //         };
     //     } catch (err) {
     //         throw new BadRequestException(err.message);
@@ -260,7 +261,7 @@ export class DashboardService {
                     menuTypeData: menuTypesWithMenuCounts,
                     cashierData    : cashiers,
                 },
-                message: "ទទួលបានទិន្នន័យដោយជោគជ័យ",
+                message: "Data retrieved successfully",
             };
 
             switch (filters.type) {
@@ -444,18 +445,21 @@ export class DashboardService {
             // Use date filter or default to 'this week'
             const { startDate, endDate } = this.getDateRange(filters) || this.getDefaultWeekRange();
 
-            // Construct the SQL date condition
-            const dateCondition = `AND m.created_at BETWEEN '${startDate.toISOString()}' AND '${endDate.toISOString()}'`;
+            // Construct the SQL date condition based on ORDER date (sales), not menu creation date.
+            const dateCondition = `AND o.ordered_at BETWEEN '${startDate.toISOString()}' AND '${endDate.toISOString()}'`;
 
             const menuTypesWithMenuCounts = await MenuType.findAll({
                 attributes: [
                     'id',
                     'name',
                     [Sequelize.literal(`(
-                        SELECT COUNT(*)
+                        SELECT COALESCE(SUM(od.qty), 0)
                         FROM menus AS m
+                        INNER JOIN order_details AS od ON od.menu_id = m.id
+                        INNER JOIN "order" AS o ON o.id = od.order_id
                         WHERE m.type_id = "MenuType".id
                         ${dateCondition}
+                        AND o.status != '${OrderStatusEnum.CANCELLED}'
                     )`), 'menuCount'],
                 ],
                 include: [
@@ -469,7 +473,7 @@ export class DashboardService {
 
             const result = {
                 labels: menuTypesWithMenuCounts.map(pt => pt.name),
-                data: menuTypesWithMenuCounts.map(pt => pt.get('menuCount')),
+                data: menuTypesWithMenuCounts.map(pt => Number(pt.get('menuCount') ?? 0)),
             };
 
             return result;
@@ -536,6 +540,81 @@ export class DashboardService {
 
             return result;
 
+        } catch (err) {
+            throw new BadRequestException(err.message);
+        }
+    }
+
+    async findTopSaleMenu(filters: {
+        thisWeek?: string;
+        thisMonth?: string;
+        threeMonthAgo?: string;
+        sixMonthAgo?: string;
+    }) {
+        try {
+            const { startDate, endDate } = this.getDateRange(filters) || this.getDefaultWeekRange();
+
+            const mapRows = (rows: any[]) => rows.map((r) => ({
+                id: Number(r.id),
+                name: String(r.name ?? ''),
+                code: String(r.code ?? ''),
+                image: String(r.image ?? ''),
+                soldQty: Number(r.soldQty ?? 0),
+                revenue: Number(r.revenue ?? 0),
+            }));
+
+            const sqlByPeriod = `
+                SELECT
+                    m.id,
+                    m.name,
+                    m.code,
+                    m.image,
+                    COALESCE(SUM(od.qty), 0) AS "soldQty",
+                    COALESCE(SUM(od.qty * od.unit_price), 0) AS "revenue"
+                FROM order_details od
+                INNER JOIN "order" o ON o.id = od.order_id
+                INNER JOIN menus m ON m.id = od.menu_id
+                WHERE o.ordered_at BETWEEN :startDate AND :endDate
+                  AND o.status != :cancelled
+                GROUP BY m.id, m.name, m.code, m.image
+                ORDER BY "soldQty" DESC
+                LIMIT 8
+            `;
+
+            const [rowsByPeriod] = await Order.sequelize.query(sqlByPeriod, {
+                replacements: {
+                    startDate: startDate.toISOString(),
+                    endDate: endDate.toISOString(),
+                    cancelled: OrderStatusEnum.CANCELLED,
+                },
+            });
+            let data = mapRows(rowsByPeriod as any[]);
+
+            // Fallback: if period has no rows, return overall top sold menus.
+            if (data.length === 0) {
+                const sqlAllTime = `
+                    SELECT
+                        m.id,
+                        m.name,
+                        m.code,
+                        m.image,
+                        COALESCE(SUM(od.qty), 0) AS "soldQty",
+                        COALESCE(SUM(od.qty * od.unit_price), 0) AS "revenue"
+                    FROM order_details od
+                    INNER JOIN "order" o ON o.id = od.order_id
+                    INNER JOIN menus m ON m.id = od.menu_id
+                    WHERE o.status != :cancelled
+                    GROUP BY m.id, m.name, m.code, m.image
+                    ORDER BY "soldQty" DESC
+                    LIMIT 8
+                `;
+                const [rowsAllTime] = await Order.sequelize.query(sqlAllTime, {
+                    replacements: { cancelled: OrderStatusEnum.CANCELLED },
+                });
+                data = mapRows(rowsAllTime as any[]);
+            }
+
+            return { data };
         } catch (err) {
             throw new BadRequestException(err.message);
         }
@@ -713,6 +792,46 @@ export class DashboardService {
     }
 
     // Count documents based on the filter
+    /**
+     * One-day snapshot: orders with `ordered_at` on that day. Revenue excludes cancelled rows.
+     */
+    async findDailySalesSummary(dateStr?: string): Promise<{
+        date: string;
+        orderCount: number;
+        revenueRiel: number;
+        cancelledCount: number;
+        awaitingPaymentCount: number;
+    }> {
+        const base = dateStr ? this.parseDate(dateStr) : new Date();
+        if (!base) {
+            throw new BadRequestException('Invalid date');
+        }
+        const y = base.getFullYear();
+        const m = base.getMonth();
+        const d = base.getDate();
+        const start = new Date(y, m, d, 0, 0, 0, 0);
+        const end = new Date(y, m, d, 23, 59, 59, 999);
+        const whereDay = { ordered_at: { [Op.between]: [start, end] } };
+
+        const [orderCount, cancelledCount, awaitingPaymentCount, sumRow] = await Promise.all([
+            Order.count({ where: whereDay }),
+            Order.count({ where: { ...whereDay, status: OrderStatusEnum.CANCELLED } }),
+            Order.count({ where: { ...whereDay, status: OrderStatusEnum.AWAITING_PAYMENT } }),
+            Order.sum('total_price', {
+                where: {
+                    [Op.and]: [whereDay, { status: { [Op.ne]: OrderStatusEnum.CANCELLED } }],
+                },
+            }),
+        ]);
+        return {
+            date: start.toISOString().slice(0, 10),
+            orderCount,
+            revenueRiel: Number(sumRow ?? 0),
+            cancelledCount,
+            awaitingPaymentCount,
+        };
+    }
+
     private async countMenu(filter: any): Promise<number> {
         return Menu.count({
             // where: filter

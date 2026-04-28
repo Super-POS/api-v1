@@ -12,7 +12,7 @@ export class MenuIngredientService {
     async getData(): Promise<any> {
         try {
             const data = await MenuIngredient.findAll({
-                attributes: ['id', 'menu_id', 'name', 'unit', 'quantity', 'created_at'],
+                attributes: ['id', 'menu_id', 'name', 'unit', 'quantity', 'low_stock_threshold', 'created_at'],
                 order: [['created_at', 'DESC']],
             });
 
@@ -25,7 +25,7 @@ export class MenuIngredientService {
     // ==========================================>> view one
     async view(id: number): Promise<any> {
         const data = await MenuIngredient.findByPk(id, {
-            attributes: ['id', 'menu_id', 'name', 'unit', 'quantity', 'created_at'],
+            attributes: ['id', 'menu_id', 'name', 'unit', 'quantity', 'low_stock_threshold', 'created_at'],
         });
 
         if (!data) {
@@ -41,6 +41,7 @@ export class MenuIngredientService {
             name: body.name,
             unit: body.unit ?? null,
             quantity: body.quantity,
+            low_stock_threshold: body.low_stock_threshold ?? 1000,
         });
 
         return {
@@ -57,8 +58,13 @@ export class MenuIngredientService {
         }
 
         await MenuIngredient.update(
-            { name: body.name, unit: body.unit ?? null, quantity: body.quantity },
-            { where: { id } }
+            {
+                name: body.name,
+                unit: body.unit ?? null,
+                quantity: body.quantity,
+                low_stock_threshold: body.low_stock_threshold ?? 1000,
+            },
+            { where: { id } },
         );
 
         const data = await MenuIngredient.findByPk(id);
@@ -79,5 +85,21 @@ export class MenuIngredientService {
         await MenuIngredient.destroy({ where: { id } });
 
         return { message: 'Data has been deleted successfully.' };
+    }
+
+    /** Ingredients at or below their configured low-stock level (for restock list). */
+    async getRestockList(): Promise<{ data: MenuIngredient[] }> {
+        try {
+            const all = await MenuIngredient.findAll({
+                attributes: ['id', 'menu_id', 'name', 'unit', 'quantity', 'low_stock_threshold', 'created_at'],
+                order: [['name', 'ASC']],
+            });
+            const data = all.filter(
+                (r) => Number(r.quantity) <= Number(r.low_stock_threshold ?? 1000),
+            );
+            return { data };
+        } catch (error) {
+            throw new BadRequestException('admin/menu/ingredient/restock', error);
+        }
     }
 }

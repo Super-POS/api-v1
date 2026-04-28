@@ -1,5 +1,6 @@
 // ===========================================================================>> Core Library
-import { Controller, Delete, Get, HttpCode, HttpStatus, Param, Query } from '@nestjs/common';
+import { Controller, Delete, Get, HttpCode, HttpStatus, Param, Query, Res } from '@nestjs/common';
+import { Response } from 'express';
 
 // ===========================================================================>> Costom Library
 import { SaleService }                                                 from './service';
@@ -7,6 +8,28 @@ import { SaleService }                                                 from './s
 export class SaleController {
 
     constructor(private readonly _service: SaleService) { };
+
+    @Get('export/csv')
+    async exportCsv(
+        @Res() res: Response,
+        @Query('key') key?: string,
+        @Query('cashier') cashier?: string,
+        @Query('channel') platform?: string,
+        @Query('from') from?: string,
+        @Query('to') to?: string,
+    ) {
+        const toDate = to ? `${to} 23:59:59` : undefined;
+        const csv = await this._service.exportSalesCsv({
+            key,
+            cashier: cashier ? Number(cashier) : undefined,
+            platform: platform || undefined,
+            fromDate: from,
+            toDate,
+        });
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="sales-export.csv"');
+        return res.send('\ufeff' + csv);
+    }
 
     @Get('/setup')
     async getSetupData(){
