@@ -1,4 +1,4 @@
-// Adds `low_stock_threshold` on existing DBs without a full migration pipeline.
+// Adds small compatibility columns on existing DBs without a full migration pipeline.
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
@@ -20,6 +20,21 @@ export class IngredientSchemaPatchService implements OnModuleInit {
             );
         } catch (e) {
             this.logger.warn(`menu_ingredients low_stock_threshold patch: ${(e as Error).message}`);
+        }
+
+        try {
+            await this.sequelize.query(`
+                ALTER TABLE "user"
+                    ADD COLUMN IF NOT EXISTS telegram_user_id BIGINT,
+                    ADD COLUMN IF NOT EXISTS telegram_username VARCHAR(64),
+                    ADD COLUMN IF NOT EXISTS telegram_first_name VARCHAR(64),
+                    ADD COLUMN IF NOT EXISTS telegram_last_name VARCHAR(64)
+            `);
+            await this.sequelize.query(
+                `CREATE UNIQUE INDEX IF NOT EXISTS user_telegram_user_id_unique ON "user" (telegram_user_id) WHERE telegram_user_id IS NOT NULL`,
+            );
+        } catch (e) {
+            this.logger.warn(`user telegram columns patch: ${(e as Error).message}`);
         }
     }
 }

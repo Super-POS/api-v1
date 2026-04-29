@@ -82,3 +82,13 @@ export class RegisterDto {
     @MinLength(6, { message: 'Password must be at least 6 characters' })
     password: string;
 }
+
+export class TelegramWebAppLoginDto {
+    @IsString()
+    @IsNotEmpty({ message: 'initData is required' })
+    initData: string;
+
+    @IsString()
+    @IsNotEmpty({ message: 'platform is required' })
+    platform: string;
+}

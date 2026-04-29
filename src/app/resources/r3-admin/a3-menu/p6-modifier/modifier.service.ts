@@ -48,7 +48,7 @@ export class ModifierAdminService {
                     as: 'options',
                     required: false,
                     separate: true,
-                    order: [['sort_order', 'ASC'], ['id', 'ASC']],
+                    order: [['id', 'ASC']],
                 },
             ],
         });
@@ -112,7 +112,6 @@ export class ModifierAdminService {
             label: dto.label,
             code: dto.code,
             price_delta: dto.price_delta ?? 0,
-            sort_order: dto.sort_order ?? 0,
             is_active: dto.is_active ?? true,
             is_default: dto.is_default ?? false,
             ingredient_recipe: dto.ingredient_recipe?.map((l) => ({

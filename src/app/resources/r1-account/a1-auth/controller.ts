@@ -5,7 +5,7 @@ import { BadRequestException, Body, Controller, HttpCode, HttpStatus, Post, Req,
 import UserDecorator from '@app/core/decorators/user.decorator';
 import { RoleExistsPipe } from '@app/core/pipes/role.pipe';
 import User from '@app/models/user/user.model';
-import { LoginRequestDto, LoginRequestOTPDto, RegisterDto } from './dto';
+import { LoginRequestDto, LoginRequestOTPDto, RegisterDto, TelegramWebAppLoginDto } from './dto';
 import { AuthService } from './service';
 
 @Controller()
@@ -44,6 +44,12 @@ export class AuthController {
     async verifyOTP(@Body() body: LoginRequestOTPDto, @Req() req: Request
     ) {
         return await this.authService.verifyOTP(body, req);
+    }
+
+    @Post('telegram-webapp')
+    @HttpCode(HttpStatus.OK)
+    async telegramWebAppLogin(@Body() body: TelegramWebAppLoginDto, @Req() req: Request) {
+        return await this.authService.telegramWebAppLogin(body, req);
     }
 
     @Post('switch')

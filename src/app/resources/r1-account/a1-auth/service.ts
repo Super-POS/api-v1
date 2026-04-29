@@ -15,7 +15,8 @@ import UsersLogs               from '@app/models/user/user_logs.model';
 import { EmailService }        from '@app/services/email.service';
 import { JwtTokenGenerator, TokenGenerator } from '@app/shared/jwt/token';
 import { ActiveEnum }          from 'src/app/enums/active.enum';
-import { LoginRequestOTPDto, RegisterDto } from './dto';
+import { LoginRequestOTPDto, RegisterDto, TelegramWebAppLoginDto } from './dto';
+import { verifyTelegramWebAppInitData } from '@app/utils/telegram-webapp.util';
 
 interface LoginPayload {
     username: string
@@ -257,14 +258,20 @@ export class AuthService {
 
     async register(body: RegisterDto): Promise<{ token: string; message: string }> {
         // Check phone uniqueness
-        const existingPhone = await User.findOne({ where: { phone: body.phone } });
+        const existingPhone = await User.findOne({
+            where: { phone: body.phone },
+            attributes: ['id'],
+        });
         if (existingPhone) {
             throw new ConflictException('Phone number is already registered.');
         }
 
         // Check email uniqueness (only if provided)
         if (body.email) {
-            const existingEmail = await User.findOne({ where: { email: body.email } });
+            const existingEmail = await User.findOne({
+                where: { email: body.email },
+                attributes: ['id'],
+            });
             if (existingEmail) {
                 throw new ConflictException('Email address is already registered.');
             }
@@ -277,6 +284,7 @@ export class AuthService {
         }
 
         const transaction = await User.sequelize.transaction();
+        let committed = false;
         try {
             const user = await User.create({
                 name      : body.name,
@@ -296,6 +304,7 @@ export class AuthService {
             }, { transaction });
 
             await transaction.commit();
+            committed = true;
 
             // Reload with roles for token generation
             const fullUser = await User.findByPk(user.id, {
@@ -307,9 +316,124 @@ export class AuthService {
             return { token, message: 'Registration completed successfully.' };
 
         } catch (error) {
-            await transaction.rollback();
+            if (!committed) {
+                await transaction.rollback();
+            }
             if (error instanceof ConflictException || error instanceof InternalServerErrorException) throw error;
             throw new InternalServerErrorException('Registration failed. Please try again.');
+        }
+    }
+
+    async telegramWebAppLogin(body: TelegramWebAppLoginDto, req: Request): Promise<{ token: string; message: string }> {
+        const botToken = process.env.TELEGRAM_BOT_TOKEN || '';
+        let init: ReturnType<typeof verifyTelegramWebAppInitData>;
+        try {
+            init = verifyTelegramWebAppInitData(body.initData, botToken);
+        } catch (e) {
+            throw new BadRequestException(e instanceof Error ? e.message : 'Invalid Telegram initData');
+        }
+        const tgUser = init.user;
+        if (!tgUser?.id) {
+            throw new BadRequestException('Telegram user is missing.');
+        }
+
+        // Customer role must exist
+        const customerRole = await Role.findOne({ where: { id: RoleEnum.CUSTOMER } });
+        if (!customerRole) {
+            throw new InternalServerErrorException('Customer role not configured. Please contact support.');
+        }
+
+        const transaction = await User.sequelize.transaction();
+        try {
+            let user = await User.findOne({
+                where: { telegram_user_id: Number(tgUser.id) },
+                include: [Role],
+                transaction,
+            });
+
+            if (!user) {
+                const safeName =
+                    [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ').trim()
+                    || (tgUser.username ? `@${tgUser.username}` : `Telegram #${tgUser.id}`);
+                const phone = `tg_${tgUser.id}`;
+                const randomPass = `tg_${tgUser.id}_${Math.random().toString(36).slice(2)}_${Date.now()}`;
+
+                user = await User.create(
+                    {
+                        name: safeName.slice(0, 50),
+                        phone,
+                        email: null,
+                        password: randomPass,
+                        avatar: 'static/pos/user/avatar.png',
+                        creator_id: null,
+                        telegram_user_id: Number(tgUser.id),
+                        telegram_username: tgUser.username ?? null,
+                        telegram_first_name: tgUser.first_name ?? null,
+                        telegram_last_name: tgUser.last_name ?? null,
+                    } as any,
+                    { transaction },
+                );
+
+                await UserRoles.create(
+                    {
+                        user_id: user.id,
+                        role_id: RoleEnum.CUSTOMER,
+                        added_id: user.id,
+                        is_default: true,
+                        created_at: new Date(),
+                    },
+                    { transaction },
+                );
+
+                // Reload with roles for token generation
+                user = await User.findByPk(user.id, {
+                    attributes: ['id', 'name', 'avatar', 'phone', 'email', 'password', 'created_at'],
+                    include: [Role],
+                    transaction,
+                });
+            } else {
+                // keep telegram profile up to date
+                await user.update(
+                    {
+                        telegram_username: tgUser.username ?? user.telegram_username ?? null,
+                        telegram_first_name: tgUser.first_name ?? user.telegram_first_name ?? null,
+                        telegram_last_name: tgUser.last_name ?? user.telegram_last_name ?? null,
+                    } as any,
+                    { transaction },
+                );
+            }
+
+            if (!user || !user.roles?.length) {
+                throw new ForbiddenException('Cannot access. invalid role');
+            }
+
+            const token = this.tokenGenerator.getToken(user);
+
+            user.last_login = new Date();
+            await user.save({ transaction });
+
+            const deviceInfo = req['deviceInfo'];
+            await UsersLogs.create(
+                {
+                    user_id: user.id,
+                    action: 'login',
+                    details: 'User logged into the system via Telegram WebApp',
+                    ip_address: deviceInfo?.ip,
+                    browser: deviceInfo?.browser,
+                    os: deviceInfo?.os,
+                    platform: body.platform || 'Telegram',
+                    timestamp: deviceInfo?.timestamp,
+                } as any,
+                { transaction },
+            );
+
+            await transaction.commit();
+            return { token, message: 'Signed in successfully.' };
+        } catch (e) {
+            await transaction.rollback();
+            throw e instanceof BadRequestException || e instanceof ForbiddenException || e instanceof InternalServerErrorException
+                ? e
+                : new InternalServerErrorException('Telegram login failed.');
         }
     }
 

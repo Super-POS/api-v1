@@ -33,6 +33,12 @@ class User extends Model<User> {
     @Column({ allowNull: true, type: DataType.INTEGER })                                            creator_id: number;
     @Column({ allowNull: true, type: DataType.INTEGER })                                            updater_id: number;
 
+    // ============================================================================================= Telegram Mini App identity (optional)
+    @Column({ allowNull: true, type: DataType.BIGINT, unique: true })                                telegram_user_id?: number;
+    @Column({ allowNull: true, type: DataType.STRING(64) })                                          telegram_username?: string;
+    @Column({ allowNull: true, type: DataType.STRING(64) })                                          telegram_first_name?: string;
+    @Column({ allowNull: true, type: DataType.STRING(64) })                                          telegram_last_name?: string;
+
     // ===========================================================================================>> Many to One
     @BelongsTo(() => User, { foreignKey: 'creator_id', as: 'creator' })                             creator: User;
     @BelongsTo(() => User, { foreignKey: 'updater_id', as: 'updater' })                             updater: User;

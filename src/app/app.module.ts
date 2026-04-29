@@ -80,6 +80,7 @@ export class AppModule implements NestModule {
             .exclude(
                 { path: '', method: RequestMethod.GET },
                 { path: 'api/account/auth/(.*)', method: RequestMethod.POST },
+                { path: 'api/share/menus', method: RequestMethod.GET },
                 { path: 'api/testing/(.*)', method: RequestMethod.ALL },
                 { path: 'api/webhooks/(.*)', method: RequestMethod.ALL },
             ).forRoutes({ path: '*', method: RequestMethod.ALL });

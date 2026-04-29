@@ -4,6 +4,7 @@ import {
   forwardRef,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
@@ -20,6 +21,11 @@ import PaymentTransaction, {
   PaymentMethod,
   PaymentStatus,
 } from "@app/models/payment/payment_transaction.model";
+import Wallet from "@app/models/wallet/wallet.model";
+import WalletTransaction, {
+  DepositStatus,
+  WalletTransactionType,
+} from "@app/models/wallet/wallet_transaction.model";
 
 export interface BarayCreateIntentResult {
   _id: string;
@@ -29,8 +35,17 @@ export interface BarayCreateIntentResult {
   payment_transaction_id: number;
 }
 
+export interface BarayCreateWalletDepositIntentResult {
+  _id: string;
+  url: string;
+  status: string;
+  expires_at: string;
+  wallet_transaction_id: number;
+}
+
 @Injectable()
 export class BarayService {
+  private readonly logger = new Logger(BarayService.name);
   private readonly payUrl: string;
   /** User-facing pay page, e.g. https://pay.baray.io — Baray /pay often returns only `_id`, not a full `url`. */
   private readonly payCheckoutBase: string;
@@ -39,6 +54,7 @@ export class BarayService {
   private readonly ivB64: string;
   private readonly currency: string;
   private readonly orderIdPrefix: string;
+  private readonly walletDepositPrefix: string;
 
   constructor(
     private readonly _http: HttpService,
@@ -54,6 +70,7 @@ export class BarayService {
     this.ivB64 = process.env.BARAY_IV || "";
     this.currency = process.env.BARAY_CURRENCY || "USD";
     this.orderIdPrefix = process.env.BARAY_ORDER_ID_PREFIX || "pos-order-";
+    this.walletDepositPrefix = process.env.BARAY_WALLET_DEPOSIT_ID_PREFIX || "pos-wallet-deposit-";
   }
 
   private _ensureConfigured(): void {
@@ -117,6 +134,29 @@ export class BarayService {
     return null;
   }
 
+  makeExternalWalletDepositId(walletTransactionId: number): string {
+    return `${this.walletDepositPrefix}${walletTransactionId}`;
+  }
+
+  parseWalletDepositIdFromBarayValue(decrypted: string): number | null {
+    const t = (decrypted || "").trim();
+    const m = t.match(
+      new RegExp(`^${this.walletDepositPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\d+)$`),
+    );
+    if (m) {
+      return Number(m[1]);
+    }
+    try {
+      const o = JSON.parse(t) as { order_id?: string };
+      if (o?.order_id) {
+        return this.parseWalletDepositIdFromBarayValue(o.order_id);
+      }
+    } catch {
+      // not JSON
+    }
+    return null;
+  }
+
   encrypt(payload: Record<string, unknown>): string {
     this._ensureConfigured();
     const key = Buffer.from(this.secretB64, "base64");
@@ -165,6 +205,173 @@ export class BarayService {
     if (!order) {
       throw new NotFoundException("Order not found.");
     }
+    return this._createBarayIntentFromOrder(order, cashierId);
+  }
+
+  /**
+   * Customer app: same Baray QR/link flow as cashier; order must belong to this customer.
+   */
+  async createIntentForCustomerOrder(
+    customerId: number,
+    orderId: number,
+  ): Promise<BarayCreateIntentResult> {
+    this._ensureConfigured();
+    const order = await Order.findOne({
+      where: { id: orderId, customer_id: customerId },
+    });
+    if (!order) {
+      throw new NotFoundException("Order not found.");
+    }
+    return this._createBarayIntentFromOrder(order, null);
+  }
+
+  /** Ensures `orderId` belongs to `customerId` (for polling endpoints). */
+  async assertCustomerOwnsOrder(customerId: number, orderId: number): Promise<void> {
+    const row = await Order.findOne({
+      where: { id: orderId, customer_id: customerId },
+      attributes: ["id"],
+    });
+    if (!row) {
+      throw new NotFoundException("Order not found.");
+    }
+  }
+
+  async createIntentForCustomerWalletDeposit(
+    customerId: number,
+    amount: number,
+    note?: string,
+  ): Promise<BarayCreateWalletDepositIntentResult> {
+    this._ensureConfigured();
+    if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) {
+      throw new BadRequestException("Amount must be a positive number.");
+    }
+
+    const [wallet] = await Wallet.findOrCreate({
+      where: { customer_id: customerId },
+      defaults: { customer_id: customerId, balance: 0 },
+    });
+
+    const tx = await WalletTransaction.create({
+      wallet_id: wallet.id,
+      type: WalletTransactionType.DEPOSIT,
+      amount: Number(amount),
+      status: DepositStatus.PENDING,
+      note: note ?? "baray",
+    });
+
+    const externalOrderId = this.makeExternalWalletDepositId(tx.id);
+    const bodyPayload = {
+      amount: this._formatAmount(Number(amount)),
+      currency: this.currency,
+      order_id: externalOrderId,
+    };
+    const encrypted = this.encrypt(bodyPayload);
+
+    type BarayPayPayload = { _id?: string; id?: string; url?: string; status?: string; expires_at?: string; data?: unknown };
+    let barayResBody: unknown;
+    let raw: BarayPayPayload;
+    try {
+      const res = await firstValueFrom(
+        this._http.post<BarayPayPayload | { data?: BarayPayPayload }>(
+          this.payUrl,
+          { data: encrypted },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": this.apiKey,
+            },
+            timeout: 60_000,
+          },
+        ),
+      );
+      barayResBody = res.data;
+      const top = res.data as { _id?: string; data?: BarayPayPayload } & BarayPayPayload;
+      raw = (top?.data && typeof top.data === "object" ? top.data : top) as BarayPayPayload;
+    } catch (e) {
+      await tx.update({ status: DepositStatus.REJECTED, note: "baray_intent_failed" });
+      if (isAxiosError(e)) {
+        const status = e.response?.status;
+        const body = e.response?.data;
+        const text =
+          body === undefined
+            ? e.message
+            : typeof body === "string"
+              ? body
+              : JSON.stringify(body);
+        throw new BadRequestException(`Baray: HTTP ${status ?? "?"} — ${text}`);
+      }
+      const msg = (e as Error)?.message || "Baray request failed";
+      throw new BadRequestException(`Baray: ${msg}`);
+    }
+
+    const _id = (raw._id || raw.id) as string;
+    let url = typeof raw.url === "string" ? raw.url : "";
+    if (_id && !url) {
+      url = `${this.payCheckoutBase}/${_id}`;
+    }
+    if (!_id || !url) {
+      await tx.update({ status: DepositStatus.REJECTED, note: "baray_invalid_response" });
+      throw new BadRequestException(
+        `Baray did not return a payment id. Response: ${
+          typeof barayResBody === "string" ? barayResBody : JSON.stringify(barayResBody)
+        }`.slice(0, 2_000),
+      );
+    }
+
+    await tx.update({
+      reference: _id,
+      note: note && note.trim().length > 0 ? `baray|${note.trim()}` : "baray",
+    });
+
+    const expires = raw.expires_at
+      ? new Date(raw.expires_at)
+      : new Date(Date.now() + 15 * 60 * 1000);
+
+    return {
+      _id,
+      url,
+      status: (raw.status as string) || "pending",
+      expires_at: (raw.expires_at as string) || expires.toISOString(),
+      wallet_transaction_id: tx.id,
+    };
+  }
+
+  async getWalletDepositPaymentState(customerId: number, walletTransactionId: number): Promise<{
+    data: {
+      wallet_transaction_id: number;
+      wallet_transaction_status: string;
+      balance: number;
+    };
+  }> {
+    const tx = await WalletTransaction.findOne({
+      where: {
+        id: walletTransactionId,
+        type: WalletTransactionType.DEPOSIT,
+      },
+      include: [{ model: Wallet, attributes: ["id", "customer_id", "balance"] }],
+    });
+    if (!tx || !tx.wallet || Number(tx.wallet.customer_id) !== Number(customerId)) {
+      throw new NotFoundException("Wallet deposit transaction not found.");
+    }
+    return {
+      data: {
+        wallet_transaction_id: tx.id,
+        wallet_transaction_status: String(tx.status),
+        balance: Number(tx.wallet.balance ?? 0),
+      },
+    };
+  }
+
+  /**
+   * Shared Baray intent: PaymentMethod.QR + note=baray, order → awaiting_payment.
+   * `processed_by` is cashier id on POS; null when initiated by customer web.
+   */
+  private async _createBarayIntentFromOrder(
+    order: Order,
+    processedBy: number | null,
+  ): Promise<BarayCreateIntentResult> {
+    const orderId = order.id;
+
     if (order.total_price == null || Number(order.total_price) <= 0) {
       throw new BadRequestException("Order has no total to charge.");
     }
@@ -259,7 +466,7 @@ export class BarayService {
     const tx = await PaymentTransaction.create({
       order_id: orderId,
       customer_id: order.customer_id ?? null,
-      processed_by: cashierId,
+      processed_by: processedBy ?? undefined,
       method: PaymentMethod.QR,
       status: PaymentStatus.PENDING,
       amount: Number(order.total_price),
@@ -283,7 +490,7 @@ export class BarayService {
    * Baray posts base64 ciphertext under `encrypted_order_id` (see baray.io); some builds use `data` or nesting.
    */
   private _extractBarayEncryptedPayload(body: Record<string, unknown>): string | null {
-    for (const key of ["encrypted_order_id", "data", "payload", "encrypted", "ciphertext"] as const) {
+    for (const key of ["encrypted_order_id", "encryptedOrderId", "data", "payload", "encrypted", "ciphertext"] as const) {
       const v = body[key];
       if (typeof v === "string" && v.length > 0) {
         return v;
@@ -292,10 +499,30 @@ export class BarayService {
     const data = body["data"];
     if (data && typeof data === "object" && !Array.isArray(data)) {
       const o = data as Record<string, unknown>;
-      for (const k of ["encrypted", "data", "ciphertext"] as const) {
+      for (const k of ["encrypted_order_id", "encryptedOrderId", "encrypted", "data", "payload", "ciphertext"] as const) {
         const inner = o[k];
         if (typeof inner === "string" && inner.length > 0) {
           return inner;
+        }
+      }
+    }
+    return null;
+  }
+
+  private _extractPlainBarayOrderValue(body: Record<string, unknown>): string | null {
+    for (const key of ["order_id", "orderId"] as const) {
+      const v = body[key];
+      if (typeof v === "string" && v.trim().length > 0) {
+        return v;
+      }
+    }
+    const data = body["data"];
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      const o = data as Record<string, unknown>;
+      for (const key of ["order_id", "orderId"] as const) {
+        const v = o[key];
+        if (typeof v === "string" && v.trim().length > 0) {
+          return v;
         }
       }
     }
@@ -307,20 +534,28 @@ export class BarayService {
    */
   async handleWebhook(body: Record<string, unknown>): Promise<void> {
     this._ensureConfigured();
-    const enc = this._extractBarayEncryptedPayload(body);
-    if (!enc) {
-      throw new BadRequestException("Missing encrypted payload.");
-    }
     const st = body["status"] ?? body["payment_status"] ?? body["state"];
     if (st && String(st).toLowerCase() === "failed") {
       return;
     }
-    const plain = this.decrypt(enc);
-    const localId = this.parseLocalOrderIdFromBarayValue(plain);
-    if (localId == null || !Number.isFinite(localId)) {
+    const enc = this._extractBarayEncryptedPayload(body);
+    const plain = enc ? this.decrypt(enc) : this._extractPlainBarayOrderValue(body);
+    if (!plain) {
+      this.logger.warn(`Baray webhook missing order payload. Keys: ${Object.keys(body).join(",")}`);
+      throw new BadRequestException("Missing Baray order payload.");
+    }
+    const walletDepositId = this.parseWalletDepositIdFromBarayValue(plain);
+    if (walletDepositId != null && Number.isFinite(walletDepositId)) {
+      await this._settleWalletDepositWebhook(walletDepositId);
+      return;
+    }
+
+    const localOrderId = this.parseLocalOrderIdFromBarayValue(plain);
+    if (localOrderId == null || !Number.isFinite(localOrderId)) {
+      this.logger.warn("Could not resolve local order from Baray webhook payload.");
       throw new BadRequestException("Could not resolve local order from webhook payload.");
     }
-    const order = await Order.findByPk(localId);
+    const order = await Order.findByPk(localOrderId);
     if (!order) {
       throw new NotFoundException("Order not found for webhook.");
     }
@@ -365,7 +600,7 @@ export class BarayService {
         : Number(order.total_price ?? 0);
 
     try {
-      await this._orderService.sendPlacedNotificationsAfterBarayPayment(localId, {
+      await this._orderService.sendPlacedNotificationsAfterBarayPayment(localOrderId, {
         paidBy,
         paidAmount,
       });
@@ -373,9 +608,45 @@ export class BarayService {
       // Telegram/FCM optional; payment is already recorded
     }
     this._notifications.emitBarayPaymentSuccess({
-      orderId: localId,
+      orderId: localOrderId,
       receiptNumber: String(order.receipt_number ?? ""),
       cashierId: Number(order.cashier_id ?? 0),
+    });
+  }
+
+  private async _settleWalletDepositWebhook(walletTransactionId: number): Promise<void> {
+    await WalletTransaction.sequelize.transaction(async (transaction) => {
+      const tx = await WalletTransaction.findByPk(walletTransactionId, {
+        transaction,
+        lock: true,
+      });
+      if (!tx) {
+        throw new NotFoundException("Wallet deposit transaction not found for webhook.");
+      }
+      const wallet = await Wallet.findByPk(tx.wallet_id, { transaction, lock: true });
+      if (!wallet) {
+        throw new NotFoundException("Wallet not found for webhook deposit.");
+      }
+      if (tx.type !== WalletTransactionType.DEPOSIT) {
+        throw new BadRequestException("Webhook target is not a deposit transaction.");
+      }
+      if (tx.status === DepositStatus.APPROVED) {
+        return;
+      }
+      if (tx.status !== DepositStatus.PENDING) {
+        throw new BadRequestException(`Cannot settle a ${tx.status} wallet deposit.`);
+      }
+      await tx.update(
+        {
+          status: DepositStatus.APPROVED,
+        },
+        { transaction },
+      );
+      await Wallet.increment("balance", {
+        by: Number(tx.amount),
+        where: { id: tx.wallet_id },
+        transaction,
+      });
     });
   }
 }

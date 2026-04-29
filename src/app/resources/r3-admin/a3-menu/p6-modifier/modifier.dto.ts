@@ -72,11 +72,6 @@ export class CreateModifierOptionDto {
     price_delta?: number;
 
     @IsOptional()
-    @IsNumber()
-    @Min(0)
-    sort_order?: number;
-
-    @IsOptional()
     @IsBoolean()
     is_active?: boolean;
 
@@ -105,11 +100,6 @@ export class UpdateModifierOptionDto {
     @IsOptional()
     @IsNumber()
     price_delta?: number;
-
-    @IsOptional()
-    @IsNumber()
-    @Min(0)
-    sort_order?: number;
 
     @IsOptional()
     @IsBoolean()

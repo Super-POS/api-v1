@@ -33,6 +33,18 @@ export class TelegramService {
         }
     }
 
+    async sendHTMLToChat(chatId: number | string, htmlText: string) {
+        const messageOptions: TelegramBot.SendMessageOptions = {
+            parse_mode: 'HTML' as TelegramBot.ParseMode,
+            disable_web_page_preview: true,
+        };
+        try {
+            await this.bot.sendMessage(String(chatId), htmlText, messageOptions);
+        } catch (error) {
+            this.handleSendMessageError(error);
+        }
+    }
+
     async sendDocument(fileBuffer: Buffer, fileName: string, caption?: string) {
         try {
             const documentOptions: TelegramBot.SendDocumentOptions = {

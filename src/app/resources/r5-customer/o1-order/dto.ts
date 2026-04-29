@@ -1,6 +1,6 @@
 // =========================================================================>> Custom Library
 import { OrderChannelEnum } from '@app/enums/order-channel.enum';
-import { IsEnum, IsJSON, IsNotEmpty } from 'class-validator';
+import { IsIn, IsJSON, IsNotEmpty } from 'class-validator';
 
 export class PlaceOrderDto {
     @IsNotEmpty()
@@ -8,7 +8,7 @@ export class PlaceOrderDto {
     cart: string;
 
     @IsNotEmpty()
-    @IsEnum([OrderChannelEnum.TELEGRAM, OrderChannelEnum.WEBSITE], {
+    @IsIn([OrderChannelEnum.TELEGRAM, OrderChannelEnum.WEBSITE], {
         message: `channel must be one of: ${OrderChannelEnum.TELEGRAM}, ${OrderChannelEnum.WEBSITE}`,
     })
     channel: OrderChannelEnum.TELEGRAM | OrderChannelEnum.WEBSITE;

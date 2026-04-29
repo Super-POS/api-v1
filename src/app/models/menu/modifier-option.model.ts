@@ -20,8 +20,6 @@ class ModifierOption extends Model<ModifierOption> {
     /** Added to menu line base price (per unit) */
     @Column({ allowNull: false, type: DataType.DECIMAL(12, 2), defaultValue: 0 })                price_delta: number;
 
-    @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                        sort_order: number;
-
     @Column({ allowNull: false, type: DataType.BOOLEAN, defaultValue: true })                     is_active: boolean;
 
     /** Suggested default when cashier does not pick (optional UX) */

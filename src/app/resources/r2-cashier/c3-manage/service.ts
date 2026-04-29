@@ -5,6 +5,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Op } from 'sequelize';
 
 // =========================================================================>> Custom Library
+import { OrderChannelEnum } from '@app/enums/order-channel.enum';
 import { OrderStatusEnum }  from '@app/enums/order-status.enum';
 import OrderDetails         from '@app/models/order/detail.model';
 import Order                from '@app/models/order/order.model';
@@ -12,6 +13,7 @@ import Menu              from '@app/models/menu/menu.model';
 import MenuType          from '@app/models/menu/menu-type.model';
 import User                 from '@app/models/user/user.model';
 import { OrderService }   from '../c1-order/service';
+import { TelegramService } from '@app/services/telegram.service';
 
 const ORDER_ATTRIBUTES  = ['id', 'receipt_number', 'total_price', 'channel', 'status', 'ordered_at'];
 const DETAIL_INCLUDES   = [
@@ -33,7 +35,30 @@ const DETAIL_INCLUDES   = [
 @Injectable()
 export class ManageService {
 
-    constructor(private readonly _orderService: OrderService) {}
+    constructor(
+        private readonly _orderService: OrderService,
+        private readonly _telegram: TelegramService,
+    ) {}
+
+    /** Orders placed from customer_web (`website` channel) still waiting on payment or cashier accept. */
+    async getIncomingWebsiteOrders() {
+        const data = await Order.findAll({
+            attributes : ORDER_ATTRIBUTES,
+            include    : DETAIL_INCLUDES,
+            where      : {
+                channel: OrderChannelEnum.WEBSITE,
+                status   : {
+                    [Op.in]: [
+                        OrderStatusEnum.PENDING,
+                        OrderStatusEnum.AWAITING_PAYMENT,
+                    ],
+                },
+            },
+            order      : [['ordered_at', 'DESC']],
+        });
+
+        return { data };
+    }
 
     async getOrders(status?: OrderStatusEnum) {
         const where: any = {};
@@ -115,6 +140,28 @@ export class ManageService {
         }
 
         await order.update({ status: toStatus });
+
+        // Telegram customer push (optional)
+        try {
+            const full = await Order.findByPk(id, {
+                attributes: ['id', 'receipt_number', 'status', 'channel', 'customer_id'],
+                include: [{ model: User, as: 'customer', attributes: ['id', 'name', 'telegram_user_id'] }],
+            });
+            if (
+                full?.channel === OrderChannelEnum.TELEGRAM
+                && full.customer
+                && full.customer.telegram_user_id
+            ) {
+                const statusLabel = String(toStatus);
+                const text =
+                    toStatus === OrderStatusEnum.READY
+                        ? `🎉 <b>Your order is ready for pickup</b>\nReceipt: <code>#${full.receipt_number}</code>`
+                        : `ℹ️ <b>Order update</b>\nReceipt: <code>#${full.receipt_number}</code>\nStatus: <b>${statusLabel}</b>`;
+                await this._telegram.sendHTMLToChat(full.customer.telegram_user_id, text);
+            }
+        } catch {
+            // optional channel
+        }
 
         const data = await Order.findByPk(id, {
             attributes : ORDER_ATTRIBUTES,

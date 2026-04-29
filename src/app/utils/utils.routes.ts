@@ -6,9 +6,14 @@ import { Routes } from '@nestjs/core';
 import { NotificationGetwayModule } from './notification-getway/notifications.gateway.module';
 import { NotificationModule } from './notification/notification.module';
 import { ReportModule } from './report/module';
+import { PublicMenuModule } from './public-menu/public-menu.module';
 
 
 export const utilsRoutes: Routes = [
+    {
+        path   : 'menus',
+        module : PublicMenuModule,
+    },
     {
         path: 'print',
         module: InvoiceModule

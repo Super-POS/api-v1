@@ -6,6 +6,7 @@ import { Sequelize, Transaction } from 'sequelize';
 
 // =========================================================================>> Custom Library
 import { OrderStatusEnum }  from '@app/enums/order-status.enum';
+import { OrderChannelEnum } from '@app/enums/order-channel.enum';
 import OrderDetails         from '@app/models/order/detail.model';
 import Order                from '@app/models/order/order.model';
 import Menu              from '@app/models/menu/menu.model';
@@ -20,6 +21,7 @@ import {
     toPlainMenuWithSortedModifiers,
 } from '@app/utils/modifier-order.util';
 import User                 from '@app/models/user/user.model';
+import { TelegramService } from '@app/services/telegram.service';
 import sequelizeConfig      from 'src/config/sequelize.config';
 import { PlaceOrderDto }    from './dto';
 
@@ -51,6 +53,7 @@ const DETAIL_INCLUDES  = [
 
 @Injectable()
 export class CustomerOrderService {
+    constructor(private readonly _telegram: TelegramService) {}
 
     /** Menu catalog (types + menus) — same query as cashier `OrderService.getMenus`. */
     async getMenus(): Promise<{ data: { id: number; name: string; menus: Menu[] }[] }> {
@@ -157,6 +160,22 @@ export class CustomerOrderService {
             });
 
             await transaction.commit();
+
+            // Telegram customer push (optional)
+            try {
+                if (body.channel === OrderChannelEnum.TELEGRAM) {
+                    const customer = await User.findByPk(customerId, { attributes: ['id', 'telegram_user_id', 'name'] });
+                    const chatId = customer?.telegram_user_id;
+                    if (chatId) {
+                        await this._telegram.sendHTMLToChat(
+                            chatId,
+                            `✅ <b>Order placed</b>\nReceipt: <code>#${data?.receipt_number ?? order.receipt_number}</code>\nStatus: <b>${data?.status ?? OrderStatusEnum.PENDING}</b>`,
+                        );
+                    }
+                }
+            } catch {
+                // optional channel
+            }
             return { data, message: 'Your order has been placed successfully.' };
 
         } catch (error) {

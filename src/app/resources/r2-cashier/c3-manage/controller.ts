@@ -10,6 +10,12 @@ export class ManageController {
 
     constructor(private readonly _service: ManageService) {}
 
+    /** Website (customer web) orders awaiting payment or cashier acceptance — listed before kitchen queue. */
+    @Get('incoming-website')
+    async getIncomingWebsiteOrders() {
+        return await this._service.getIncomingWebsiteOrders();
+    }
+
     // =============================================>> List active orders (optionally filter by status)
     @Get()
     async getOrders(@Query('status') status?: OrderStatusEnum) {

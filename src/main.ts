@@ -22,7 +22,13 @@ class AppInitializer {
     }
 
     private configureMiddlewares() {
-        const defaultOrigins = ['http://localhost:4444', 'http://localhost:4200'];
+        const defaultOrigins = [
+            'http://localhost:3000',
+            'http://localhost:4444',
+            'http://localhost:4200',
+            'https://92ba-203-176-133-182.ngrok-free.app',
+            'http://localhost:3001'
+        ];
         const envOrigins = (process.env.CORS_ORIGINS || '')
             .split(',')
             .map((origin) => origin.trim())
