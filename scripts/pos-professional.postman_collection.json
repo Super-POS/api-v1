@@ -838,6 +838,41 @@
               ]
             }
           }
+        },
+        {
+          "name": "Cash Drawer - View Current",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/cash-drawer"
+          }
+        },
+        {
+          "name": "Cash Drawer - Deposit",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"denominations\": {\n    \"usd_1\": 10,\n    \"usd_5\": 5,\n    \"usd_20\": 3,\n    \"usd_50\": 2,\n    \"usd_100\": 1,\n    \"khr_1000\": 20,\n    \"khr_2000\": 15,\n    \"khr_5000\": 10,\n    \"khr_10000\": 8,\n    \"khr_20000\": 5,\n    \"khr_50000\": 3,\n    \"khr_100000\": 2\n  },\n  \"note\": \"Opening float for today\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/cash-drawer/deposit"
+          }
+        },
+        {
+          "name": "Cash Drawer - Transaction Logs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/cash-drawer/logs?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "cash-drawer", "logs"],
+              "query": [
+                { "key": "page",  "value": "1",  "description": "Page number" },
+                { "key": "limit", "value": "20", "description": "Items per page" }
+              ]
+            }
+          }
         }
       ]
     },
@@ -942,6 +977,42 @@
             "method": "PATCH",
             "url": "{{baseUrl}}/api/cashier/orders/{{orderId}}/cancel"
           }
+        },
+        {
+          "name": "Cash Drawer - View Current",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/cashier/cash-drawer"
+          }
+        },
+        {
+          "name": "Cash Drawer - Make Change",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": {{orderId}},\n  \"exchange_rate\": 4100,\n  \"received\": {\n    \"usd_5\": 1,\n    \"khr_5000\": 1\n  },\n  \"note\": \"Customer paid with $5 + 5000 Riel\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/cashier/cash-drawer/change"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "const json = pm.response.json();",
+                  "if (json?.data?.change_khr !== undefined) {",
+                  "  console.log('Change (KHR):', json.data.change_khr);",
+                  "  console.log('Change breakdown:', JSON.stringify(json.data.change_breakdown));",
+                  "}"
+                ]
+              }
+            }
+          ]
         }
       ]
     },

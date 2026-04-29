@@ -4,7 +4,8 @@ import { Routes } from '@nestjs/core';
 // ===========================================================================>> Custom Library
 import { OrderModule }  from './c1-order/module';
 import { SaleModule }   from './c2-sale/module';
-import { ManageModule } from './c3-manage/module';
+import { ManageModule }            from './c3-manage/module';
+import { CashierCashDrawerModule } from './c4-cash-drawer/module';
 
 export const cashierRoutes: Routes = [
     {
@@ -18,5 +19,10 @@ export const cashierRoutes: Routes = [
     {
         path   : 'orders',
         module : ManageModule,
+    },
+
+    {
+        path  : 'cash-drawer',
+        module: CashierCashDrawerModule,
     },
 ];

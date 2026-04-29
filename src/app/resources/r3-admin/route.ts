@@ -14,6 +14,7 @@ import { AdminRewardModule }         from './a6-reward/module';
 import { AdminPaymentModule }        from './a7-payment/module';
 import { FinancialReportModule }     from './a8-report/module';
 import { ModifierAdminModule }       from './a3-menu/p6-modifier/module';
+import { AdminCashDrawerModule }     from './a9-cash-drawer/module';
 
 export const adminRoutes: Routes = [
     {
@@ -72,5 +73,9 @@ export const adminRoutes: Routes = [
     {
         path: 'menu/modifiers',
         module: ModifierAdminModule,
+    },
+    {
+        path  : 'cash-drawer',
+        module: AdminCashDrawerModule,
     },
 ];
