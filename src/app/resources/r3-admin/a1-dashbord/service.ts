@@ -222,8 +222,18 @@ export class DashboardService {
                 currentStart = this.getStartOfWeek(new Date());
             }
 
-            const totalSaleCurrent  = await Order.sum('total_price', currentPeriodFilter)  ?? 0;
-            const totalSalePrevious = await Order.sum('total_price', previousPeriodFilter) ?? 0;
+            const excludedStatuses = [OrderStatusEnum.CANCELLED, OrderStatusEnum.AWAITING_PAYMENT];
+            const withStatusFilter = (filter: any) => {
+                const statusClause = { status: { [Op.notIn]: excludedStatuses } };
+                if (!filter) return { where: statusClause };
+                if (filter.where) {
+                    return { ...filter, where: { [Op.and]: [filter.where, statusClause] } };
+                }
+                return { where: { ...filter, ...statusClause } };
+            };
+
+            const totalSaleCurrent  = await Order.sum('total_price', withStatusFilter(currentPeriodFilter))  ?? 0;
+            const totalSalePrevious = await Order.sum('total_price', withStatusFilter(previousPeriodFilter)) ?? 0;
             const saleIncrease           = totalSaleCurrent - totalSalePrevious;
             const saleDifferenceWithSign  = saleIncrease >= 0 ? `+${saleIncrease}` : `${saleIncrease}`;
 

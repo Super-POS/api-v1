@@ -9,6 +9,7 @@ import OrderDetails      from '@app/models/order/detail.model';
 import Order             from '@app/models/order/order.model';
 import Menu         from '@app/models/menu/menu.model';
 import MenuIngredient from '@app/models/menu/menu-ingredient.model';
+import { OrderStatusEnum } from '@app/enums/order-status.enum';
 
 export interface ProfitMetrics {
     revenue         : number;
@@ -28,9 +29,7 @@ export class ProfitService {
 
     /**
      * Calculate revenue, COGS, and profit for a given date window.
-     * Only orders that have an `ordered_at` timestamp inside [startDate, endDate]
-     * are included (regardless of status), matching the convention used by the
-     * rest of the dashboard.
+     * Cancelled and awaiting-payment orders are excluded from all metrics.
      */
     async calculate(startDate: Date, endDate: Date): Promise<ProfitMetrics> {
         const [revenue, cogs] = await Promise.all([
@@ -57,10 +56,17 @@ export class ProfitService {
     // Private helpers
     // =========================================================================
 
-    /** Total revenue = sum of order.total_price for the period */
+    private get _excludedStatuses() {
+        return [OrderStatusEnum.CANCELLED, OrderStatusEnum.AWAITING_PAYMENT];
+    }
+
+    /** Total revenue = sum of order.total_price for the period, excluding cancelled/unpaid orders */
     private async _revenue(startDate: Date, endDate: Date): Promise<number> {
         const total = await Order.sum('total_price', {
-            where: { ordered_at: { [Op.between]: [startDate, endDate] } },
+            where: {
+                ordered_at: { [Op.between]: [startDate, endDate] },
+                status: { [Op.notIn]: this._excludedStatuses },
+            },
         });
         return total ?? 0;
     }
@@ -72,7 +78,10 @@ export class ProfitService {
         // Step 1 — fetch order details for the window
         const orders = await Order.findAll({
             attributes: ['id'],
-            where     : { ordered_at: { [Op.between]: [startDate, endDate] } },
+            where     : {
+                ordered_at: { [Op.between]: [startDate, endDate] },
+                status: { [Op.notIn]: this._excludedStatuses },
+            },
             include   : [
                 {
                     model     : OrderDetails,

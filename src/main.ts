@@ -26,7 +26,12 @@ class AppInitializer {
             'http://localhost:3000',
             'http://localhost:4444',
             'http://localhost:4200',
-            'https://92ba-203-176-133-182.ngrok-free.app',
+            // 'https://9f63-96-9-79-108.ngrok-free.app',
+            'http://localhost:9007',
+            'http://localhost:9004',
+            'http://localhost:9008',
+            'http://localhost:9003',
+            'http://localhost:9006',
             'http://localhost:3001'
         ];
         const envOrigins = (process.env.CORS_ORIGINS || '')
