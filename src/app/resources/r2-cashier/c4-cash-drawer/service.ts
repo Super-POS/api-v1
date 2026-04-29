@@ -69,17 +69,18 @@ export class CashierCashDrawerService {
         });
         if (!order) throw new NotFoundException('Order not found.');
 
-        const orderTotalUsd = Number(order.total_price ?? 0);
-        if (orderTotalUsd <= 0) throw new BadRequestException('Order has no payable amount.');
+        // Order totals are stored in KHR (same as menu unit_price sums — see OrderService.makeOrder).
+        const orderTotalKhr = Math.round(Number(order.total_price ?? 0));
+        if (orderTotalKhr <= 0) throw new BadRequestException('Order has no payable amount.');
 
         // ---- Calculate total received in KHR ----
         const recv = body.received;
         const receivedKhr = this._denominationsToKhr(recv, rate);
-        const orderTotalKhr = Math.round(orderTotalUsd * rate);
 
         if (receivedKhr < orderTotalKhr) {
+            const approxUsd = (orderTotalKhr / rate).toFixed(2);
             throw new BadRequestException(
-                `Insufficient payment. Required: ${orderTotalKhr} KHR (~$${orderTotalUsd}), ` +
+                `Insufficient payment. Required: ${orderTotalKhr} KHR (~$${approxUsd}), ` +
                 `but received: ${receivedKhr} KHR.`,
             );
         }
@@ -149,7 +150,7 @@ export class CashierCashDrawerService {
         await this.auditLog.log(cashierId, 'CASH_DRAWER_CHANGE', {
             orderId      : order.id,
             receiptNumber: order.receipt_number,
-            orderTotalUsd,
+            orderTotalKhr,
             receivedKhr,
             changeKhr,
             changeDenominations: changeResult,
@@ -161,14 +162,21 @@ export class CashierCashDrawerService {
 
         return {
             data: {
-                order          : { id: order.id, receipt_number: order.receipt_number, total_price: orderTotalUsd },
-                exchange_rate  : rate,
-                received_khr   : receivedKhr,
-                order_total_khr: orderTotalKhr,
-                change_khr     : changeKhr,
-                change_breakdown: changeResult,
-                change_summary : changeSummary,
-                drawer         : await this._getOrCreateDrawer(),
+                order: {
+                    id              : order.id,
+                    receipt_number  : order.receipt_number,
+                    total_price     : orderTotalKhr,
+                },
+                exchange_rate      : rate,
+                received_khr       : receivedKhr,
+                received_total_khr : receivedKhr,
+                order_total        : orderTotalKhr,
+                order_total_khr    : orderTotalKhr,
+                change_khr         : changeKhr,
+                change_usd         : changeSummary.usd,
+                change_breakdown   : changeResult,
+                change_summary     : changeSummary,
+                drawer             : await this._getOrCreateDrawer(),
             },
             message: 'Change calculated and drawer updated successfully.',
         };
