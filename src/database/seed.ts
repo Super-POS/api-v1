@@ -9,6 +9,7 @@ import sequelizeConfig from '@config/sequelize.config';
 import { MyProfileSeeder }   from './seeds/my-profile/my_profile.seeder';
 import { CafeOrderSeeder }   from './seeds/pos/cafe-order.seeder';
 import { CafeMenuSeeder } from './seeds/pos/cafe-menu.seeder';
+import { CashDrawerSeeder } from './seeds/pos/cash-drawer.seeder';
 import { UserSeeder }        from './seeds/user/user.seed';
 
 class SeederInitializer {
@@ -47,7 +48,10 @@ class SeederInitializer {
         //    notifications, audit logs
         await CafeOrderSeeder.seed();
 
-        // 4. My-profile (admin + cashier profiles)
+        // 4. Cash drawer opening float for POS cash checkout/change
+        await CashDrawerSeeder.seed();
+
+        // 5. My-profile (admin + cashier profiles)
         await MyProfileSeeder.seed();
     }
 

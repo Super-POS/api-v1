@@ -7,7 +7,7 @@ import CashDrawer            from '@app/models/cash/cash_drawer.model';
 import CashDrawerLog, { CashDrawerLogType } from '@app/models/cash/cash_drawer_log.model';
 import Order                 from '@app/models/order/order.model';
 import User                  from '@app/models/user/user.model';
-import { MakeChangeDto, ReceivedDenominationsDto } from './dto';
+import { MakeChangeDto, PreviewChangeDto, ReceivedDenominationsDto } from './dto';
 
 const DEFAULT_EXCHANGE_RATE = 4100; // KHR per 1 USD
 
@@ -16,6 +16,7 @@ const DEFAULT_EXCHANGE_RATE = 4100; // KHR per 1 USD
 // This list is used by the greedy change algorithm.
 // =====================================================================
 type DenomDef = { field: keyof CashDrawer; faceKhr: number };
+type ChangeInput = MakeChangeDto | PreviewChangeDto;
 
 function buildDenomList(rate: number): DenomDef[] {
     const usd: DenomDef[] = [
@@ -59,6 +60,27 @@ export class CashierCashDrawerService {
         return { data: drawer };
     }
 
+    // ==========================================>> Preview change without creating logs or updating drawer
+    async previewChange(body: PreviewChangeDto): Promise<any> {
+        const rate = body.exchange_rate ?? DEFAULT_EXCHANGE_RATE;
+        const orderTotalKhr = Math.round(Number(body.order_total_khr ?? 0));
+        if (orderTotalKhr <= 0) throw new BadRequestException('Order total must be greater than 0.');
+
+        const preview = await this._prepareChange(orderTotalKhr, body, rate);
+        return {
+            data: {
+                exchange_rate: rate,
+                received_khr: preview.receivedKhr,
+                order_total_khr: orderTotalKhr,
+                change_khr: preview.changeKhr,
+                change_breakdown: preview.changeResult,
+                change_summary: preview.changeSummary,
+                drawer: preview.drawer,
+            },
+            message: 'Change preview calculated successfully.',
+        };
+    }
+
     // ==========================================>> Process payment and give change
     async makeChange(body: MakeChangeDto, cashierId: number): Promise<any> {
         const rate = body.exchange_rate ?? DEFAULT_EXCHANGE_RATE;
@@ -69,28 +91,90 @@ export class CashierCashDrawerService {
         });
         if (!order) throw new NotFoundException('Order not found.');
 
-        // Order totals are stored in KHR (same as menu unit_price sums — see OrderService.makeOrder).
         const orderTotalKhr = Math.round(Number(order.total_price ?? 0));
         if (orderTotalKhr <= 0) throw new BadRequestException('Order has no payable amount.');
 
-        // ---- Calculate total received in KHR ----
-        const recv = body.received;
+        const prepared = await this._prepareChange(orderTotalKhr, body, rate);
+
+        // ---- Step 3: Build final drawer updates (add received, deduct change) ----
+        const finalUpdates: Record<string, number> = { ...prepared.addUpdates };
+        const deductDeltas: Record<string, number> = {};
+
+        for (const [field, count] of Object.entries(prepared.changeResult)) {
+            if (count > 0) {
+                const current = (finalUpdates[field as keyof CashDrawer] ?? prepared.drawer[field as keyof CashDrawer]) as number;
+                (finalUpdates as any)[field] = current - count;
+                deductDeltas[field]          = count;
+            }
+        }
+
+        await prepared.drawer.update(finalUpdates as any);
+
+        // ---- Step 4: Log the transaction (net delta per denomination) ----
+        const logEntry: Record<string, any> = {
+            cashier_id   : cashierId,
+            order_id     : order.id,
+            type         : CashDrawerLogType.CHANGE,
+            exchange_rate: rate,
+            note         : body.note ?? `Change for order #${order.receipt_number}`,
+        };
+        for (const field of prepared.allDenomFields) {
+            const added   = (prepared.addDeltas[field as string]   ?? 0) as number;
+            const deducted = (deductDeltas[field as string] ?? 0) as number;
+            logEntry[field as string] = added - deducted;
+        }
+        await CashDrawerLog.create(logEntry);
+
+        await this.auditLog.log(cashierId, 'CASH_DRAWER_CHANGE', {
+            orderId      : order.id,
+            receiptNumber: order.receipt_number,
+            orderTotalKhr,
+            receivedKhr: prepared.receivedKhr,
+            changeKhr: prepared.changeKhr,
+            changeDenominations: prepared.changeResult,
+            exchangeRate : rate,
+        });
+
+        return {
+            data: {
+                order          : { id: order.id, receipt_number: order.receipt_number, total_price: orderTotalKhr },
+                exchange_rate  : rate,
+                received_khr   : prepared.receivedKhr,
+                order_total_khr: orderTotalKhr,
+                change_khr     : prepared.changeKhr,
+                change_breakdown: prepared.changeResult,
+                change_summary : prepared.changeSummary,
+                drawer         : await this._getOrCreateDrawer(),
+            },
+            message: 'Change calculated and drawer updated successfully.',
+        };
+    }
+
+    // ==========================================>> Helpers
+
+    private async _prepareChange(orderTotalKhr: number, body: ChangeInput, rate: number): Promise<{
+        recv: ReceivedDenominationsDto;
+        receivedKhr: number;
+        changeKhr: number;
+        drawer: CashDrawer;
+        allDenomFields: (keyof CashDrawer)[];
+        addUpdates: Record<string, number>;
+        addDeltas: Record<string, number>;
+        changeResult: Record<string, number>;
+        changeSummary: { usd: number; khr: number };
+    }> {
+        const recv = this._normalizeReceivedCash(body, rate);
         const receivedKhr = this._denominationsToKhr(recv, rate);
 
         if (receivedKhr < orderTotalKhr) {
-            const approxUsd = (orderTotalKhr / rate).toFixed(2);
             throw new BadRequestException(
-                `Insufficient payment. Required: ${orderTotalKhr} KHR (~$${approxUsd}), ` +
+                `Insufficient payment. Required: ${orderTotalKhr} KHR, ` +
                 `but received: ${receivedKhr} KHR.`,
             );
         }
 
         const changeKhr = receivedKhr - orderTotalKhr;
-
-        // ---- Get current drawer ----
         const drawer = await this._getOrCreateDrawer();
-
-        // ---- Step 1: Add received denominations to drawer ----
         const addUpdates: Record<string, number> = {};
         const addDeltas:  Record<string, number> = {};
         const allDenomFields = buildDenomList(rate).map(d => d.field);
@@ -103,13 +187,11 @@ export class CashierCashDrawerService {
             }
         }
 
-        // Apply adds to the in-memory drawer snapshot before computing change
         const drawerSnapshot: Record<string, number> = {};
         for (const field of allDenomFields) {
             drawerSnapshot[field as string] = ((drawer[field] as number) ?? 0) + ((addDeltas[field as string] ?? 0));
         }
 
-        // ---- Step 2: Compute change using greedy algorithm ----
         const changeResult = this._computeChange(changeKhr, drawerSnapshot, rate);
         if (changeResult === null) {
             throw new BadRequestException(
@@ -118,71 +200,91 @@ export class CashierCashDrawerService {
             );
         }
 
-        // ---- Step 3: Build final drawer updates (add received, deduct change) ----
-        const finalUpdates: Record<string, number> = { ...addUpdates };
-        const deductDeltas: Record<string, number> = {};
-
-        for (const [field, count] of Object.entries(changeResult)) {
-            if (count > 0) {
-                const current = (finalUpdates[field as keyof CashDrawer] ?? drawer[field as keyof CashDrawer]) as number;
-                (finalUpdates as any)[field] = current - count;
-                deductDeltas[field]          = count;
-            }
-        }
-
-        await drawer.update(finalUpdates as any);
-
-        // ---- Step 4: Log the transaction (net delta per denomination) ----
-        const logEntry: Record<string, any> = {
-            cashier_id   : cashierId,
-            order_id     : order.id,
-            type         : CashDrawerLogType.CHANGE,
-            exchange_rate: rate,
-            note         : body.note ?? `Change for order #${order.receipt_number}`,
-        };
-        for (const field of allDenomFields) {
-            const added   = (addDeltas[field as string]   ?? 0) as number;
-            const deducted = (deductDeltas[field as string] ?? 0) as number;
-            logEntry[field as string] = added - deducted;
-        }
-        await CashDrawerLog.create(logEntry);
-
-        await this.auditLog.log(cashierId, 'CASH_DRAWER_CHANGE', {
-            orderId      : order.id,
-            receiptNumber: order.receipt_number,
-            orderTotalKhr,
+        return {
+            recv,
             receivedKhr,
             changeKhr,
-            changeDenominations: changeResult,
-            exchangeRate : rate,
-        });
-
-        // ---- Build change summary in USD + KHR ----
-        const changeSummary = this._buildChangeSummary(changeResult, rate);
-
-        return {
-            data: {
-                order: {
-                    id              : order.id,
-                    receipt_number  : order.receipt_number,
-                    total_price     : orderTotalKhr,
-                },
-                exchange_rate      : rate,
-                received_khr       : receivedKhr,
-                received_total_khr : receivedKhr,
-                order_total        : orderTotalKhr,
-                order_total_khr    : orderTotalKhr,
-                change_khr         : changeKhr,
-                change_usd         : changeSummary.usd,
-                change_breakdown   : changeResult,
-                change_summary     : changeSummary,
-                drawer             : await this._getOrCreateDrawer(),
-            },
-            message: 'Change calculated and drawer updated successfully.',
+            drawer,
+            allDenomFields,
+            addUpdates,
+            addDeltas,
+            changeResult,
+            changeSummary: this._buildChangeSummary(changeResult, rate),
         };
     }
 
-    // ==========================================>> Helpers
+    private _normalizeReceivedCash(body: ChangeInput, rate: number): ReceivedDenominationsDto {
+        const amountKhr = Number(body.received_amount_khr ?? 0);
+        const amountUsd = Number(body.received_amount_usd ?? 0);
+        if (amountKhr > 0 || amountUsd > 0) {
+            return this._amountsToDenominations(amountKhr, amountUsd, rate);
+        }
+
+        const received = body.received ?? {};
+        if (Object.values(received).some((count) => Number(count) > 0)) {
+            return received;
+        }
+
+        throw new BadRequestException('Please enter the cash received from the customer.');
+    }
+
+    private _amountsToDenominations(amountKhr: number, amountUsd: number, rate: number): ReceivedDenominationsDto {
+        if (!Number.isInteger(amountKhr) || amountKhr < 0) {
+            throw new BadRequestException('KHR received amount must be a whole number.');
+        }
+        if (!Number.isInteger(amountUsd) || amountUsd < 0) {
+            throw new BadRequestException('USD received amount must be a whole number because the drawer tracks bills only.');
+        }
+
+        const received: ReceivedDenominationsDto = {};
+        let remainingUsd = amountUsd;
+        const usdDenoms: { key: keyof ReceivedDenominationsDto; value: number }[] = [
+            { key: 'usd_100', value: 100 },
+            { key: 'usd_50', value: 50 },
+            { key: 'usd_20', value: 20 },
+            { key: 'usd_5', value: 5 },
+            { key: 'usd_1', value: 1 },
+        ];
+        for (const denom of usdDenoms) {
+            const count = Math.floor(remainingUsd / denom.value);
+            if (count > 0) {
+                received[denom.key] = count;
+                remainingUsd -= count * denom.value;
+            }
+        }
+
+        let remainingKhr = amountKhr;
+        const khrDenoms: { key: keyof ReceivedDenominationsDto; value: number }[] = [
+            { key: 'khr_200000', value: 200000 },
+            { key: 'khr_100000', value: 100000 },
+            { key: 'khr_50000', value: 50000 },
+            { key: 'khr_30000', value: 30000 },
+            { key: 'khr_20000', value: 20000 },
+            { key: 'khr_15000', value: 15000 },
+            { key: 'khr_10000', value: 10000 },
+            { key: 'khr_5000', value: 5000 },
+            { key: 'khr_2000', value: 2000 },
+            { key: 'khr_1000', value: 1000 },
+            { key: 'khr_500', value: 500 },
+            { key: 'khr_200', value: 200 },
+            { key: 'khr_100', value: 100 },
+        ];
+        for (const denom of khrDenoms) {
+            const count = Math.floor(remainingKhr / denom.value);
+            if (count > 0) {
+                received[denom.key] = count;
+                remainingKhr -= count * denom.value;
+            }
+        }
+
+        if (remainingUsd !== 0 || remainingKhr !== 0) {
+            throw new BadRequestException(
+                `Received amount cannot be represented by supported drawer denominations at rate ${rate}.`,
+            );
+        }
+
+        return received;
+    }
 
     private _denominationsToKhr(recv: ReceivedDenominationsDto, rate: number): number {
         const usdTotal =

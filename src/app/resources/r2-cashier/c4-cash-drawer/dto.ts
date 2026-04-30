@@ -43,7 +43,26 @@ export class MakeChangeDto {
 
     @ValidateNested()
     @Type(() => ReceivedDenominationsDto)
-    received: ReceivedDenominationsDto;
+    @IsOptional()
+    received?: ReceivedDenominationsDto;
+
+    /**
+     * Simple cashier input: total KHR cash received from the customer.
+     * The service converts this amount to supported drawer denominations.
+     */
+    @IsInt()
+    @Min(0)
+    @IsOptional()
+    received_amount_khr?: number;
+
+    /**
+     * Simple cashier input: whole USD cash received from the customer.
+     * Fractional USD is not supported because the drawer tracks bills only.
+     */
+    @IsNumber()
+    @Min(0)
+    @IsOptional()
+    received_amount_usd?: number;
 
     /**
      * Exchange rate: how many KHR equals 1 USD.
@@ -57,4 +76,31 @@ export class MakeChangeDto {
     @IsString()
     @IsOptional()
     note?: string;
+}
+
+export class PreviewChangeDto {
+
+    @IsInt()
+    @IsPositive()
+    order_total_khr: number;
+
+    @ValidateNested()
+    @Type(() => ReceivedDenominationsDto)
+    @IsOptional()
+    received?: ReceivedDenominationsDto;
+
+    @IsInt()
+    @Min(0)
+    @IsOptional()
+    received_amount_khr?: number;
+
+    @IsNumber()
+    @Min(0)
+    @IsOptional()
+    received_amount_usd?: number;
+
+    @IsNumber()
+    @IsPositive()
+    @IsOptional()
+    exchange_rate?: number;
 }

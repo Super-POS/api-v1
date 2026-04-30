@@ -8,7 +8,7 @@ import { RoleGuard }       from '@app/core/guards/role.guard';
 import { RoleEnum }        from '@app/enums/role.enum';
 import User                from '@app/models/user/user.model';
 import { CashierCashDrawerService } from './service';
-import { MakeChangeDto } from './dto';
+import { MakeChangeDto, PreviewChangeDto } from './dto';
 
 @Controller()
 @UseGuards(RoleGuard)
@@ -24,6 +24,11 @@ export class CashierCashDrawerController {
     }
 
     // =============================================>> Process payment and give change
+    @Post('change-preview')
+    async previewChange(@Body() body: PreviewChangeDto) {
+        return await this._service.previewChange(body);
+    }
+
     @Post('change')
     async makeChange(
         @Body() body: MakeChangeDto,
