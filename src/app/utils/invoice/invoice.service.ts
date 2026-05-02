@@ -13,17 +13,16 @@ export class InvoiceService {
     constructor(private jsReportService: JsReportService) { }
 
     // Method to generate an invoice report
-    async generateReport(receiptNumber: number) {
+    /** `receipt_number` is stored as varchar; keep a string so PG never compares varchar to a number. */
+    async generateReport(receiptNumber: string) {
         // Retrieving orders related to the specified receipt number
         const orders = await Order.findAll({
             where: {
                 receipt_number: receiptNumber,
             },
             include: [
-                {
-                    model: User,
-                    attributes: ['id', 'name'],
-                },
+                { model: User, as: 'cashier', attributes: ['id', 'name'] },
+                { model: User, as: 'customer', attributes: ['id', 'name'] },
                 {
                     model: OrderDetails,
                     attributes: ['id', 'unit_price', 'qty'],
@@ -44,14 +43,26 @@ export class InvoiceService {
 
         let total = 0;
         orders.forEach((row) => {
-            total += row.total_price;
+            total += row.total_price ?? 0;
         });
 
         // Structuring the data for the report
-        const data = orders[0].toJSON();
+        const data = orders[0].toJSON() as unknown as Record<string, unknown>;
+
+        const detailsRaw = data.details as Array<Record<string, unknown>> | undefined;
+        const details = Array.isArray(detailsRaw)
+            ? detailsRaw.map((line) => ({
+                ...line,
+                product: line.product ?? line.menu ?? null,
+            }))
+            : [];
+
+        const orderedAt = data.ordered_at ?? data.created_at ?? new Date().toISOString();
 
         const dataWithServiceTitle = {
             ...data,
+            details,
+            ordered_at: orderedAt,
             title_of_service: 'CamCyber POS',
         };
         // Get the report template
@@ -80,10 +91,8 @@ export class InvoiceService {
                 },
             },
             include: [
-                {
-                    model: User,
-                    attributes: ['id', 'name'],
-                },
+                { model: User, as: 'cashier', attributes: ['id', 'name'] },
+                { model: User, as: 'customer', attributes: ['id', 'name'] },
                 {
                     model: OrderDetails,
                     attributes: ['id', 'unit_price', 'qty'],

@@ -32,7 +32,17 @@ export class JsReportService {
             const response: AxiosResponse<Buffer> = await axios(this.getAxiosConfig(template, data));
             result.data = response.data.toString('base64');
         } catch (error) {
-            this.logger.error(`Failed to generate the report: ${error.message}`);
+            const msg = error?.message ?? String(error);
+            const status = error?.response?.status;
+            const bodyPreview =
+                typeof error?.response?.data === 'string'
+                    ? error.response.data.slice(0, 500)
+                    : error?.response?.data
+                      ? JSON.stringify(error.response.data).slice(0, 500)
+                      : '';
+            this.logger.error(
+                `Failed to generate the report: ${msg}${status ? ` status=${status}` : ''}${bodyPreview ? ` body=${bodyPreview}` : ''}`,
+            );
             result.error = 'Something when wrong. Failed to generate the report';
         }
         return result;

@@ -10,9 +10,9 @@ export class InvoiceController {
     constructor(private readonly _service: InvoiceService) { };
 
     @Get('order-invoice/:receiptNumber')
-    async generateReport(@Param('receiptNumber') receiptNumber: number) {
-        if (isNaN(receiptNumber)) {
-            throw new BadRequestException('Id must be a number');
+    async generateReport(@Param('receiptNumber') receiptNumber: string) {
+        if (!/^\d{1,10}$/.test(receiptNumber)) {
+            throw new BadRequestException('Receipt number must be 1 to 10 digits');
         }
         return this._service.generateReport(receiptNumber);
     }
