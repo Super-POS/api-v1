@@ -11,6 +11,7 @@ class MigrationInitializer {
 
     constructor() {
         this.sequelize = new Sequelize(sequelizeConfig);
+        console.log('\x1b[36m%s\x1b[0m', `Sequelize dialect: ${this.sequelize.getDialect()}`);
     }
 
     private async confirmMigration(): Promise<boolean> {
