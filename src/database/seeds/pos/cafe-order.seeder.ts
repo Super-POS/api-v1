@@ -17,33 +17,42 @@ const CASHIER_IDS = [1, 2, 3];     // user ids that are cashiers
 const CUSTOMER_IDS= [4, 5, 6, 7, 8]; // user ids that are customers
 
 // ─── Popular products (weighted for realistic cafe orders) ────────────────────
-// [menu_id, weight]  higher weight = ordered more often
+// [menu_id, weight]  higher weight = ordered more often — CLUB 54 menu ids
 const POPULAR_PRODUCTS: [number, number][] = [
-    [3,  12], // Cafe Latte
-    [4,  10], // Cappuccino
-    [15, 10], // Iced Cafe Latte
-    [6,   9], // Caramel Macchiato
-    [9,   9], // Matcha Latte
-    [17,  8], // Brown Sugar Iced Latte
-    [2,   8], // Americano
-    [14,  8], // Iced Americano
-    [7,   7], // Mocha
-    [5,   7], // Flat White
-    [16,  7], // Iced Matcha Latte
-    [10,  6], // Thai Milk Tea
-    [1,   5], // Espresso
-    [8,   5], // Dirty Matcha
-    [13,  5], // Cold Brew Classic
-    [18,  8], // Butter Croissant
-    [19,  6], // Cheesecake Slice
-    [21,  5], // Chocolate Muffin
-    [20,  4], // Banana Bread
-    [22,  3], // Avocado Toast
-    [23,  5], // Strawberry Smoothie
-    [24,  5], // Mango Smoothie
-    [25,  4], // Fresh Orange Juice
-    [11,  3], // Chamomile Tea
-    [12,  4], // Taro Milk Tea
+    [5,  12], // Hot Café Latte M
+    [6,  10], // Hot Café Latte L
+    [13, 10], // Iced Latte M
+    [14,  9], // Iced Latte L
+    [7,   9], // Hot Cappuccino M
+    [8,   8], // Hot Cappuccino L
+    [21,  8], // Café Frappe M
+    [22,  8], // Café Frappe L
+    [3,   8], // Hot Americano M
+    [11,  8], // Iced Americano M
+    [9,   7], // Hot Matcha Latte M
+    [19,  7], // Iced Matcha M
+    [17,  6], // Iced Chocolate M
+    [23,  6], // Chocolate Frappe M
+    [25,  6], // Matcha Frappe M
+    [1,   5], // Single Espresso
+    [2,   5], // Double Espresso
+    [27,  5], // Strawberry Frappe M
+    [29,  5], // Mango Frappe M
+    [31,  5], // Strawberry Soda M
+    [33,  5], // Peach Soda M
+    [4,   4], // Hot Americano L
+    [12,  4], // Iced Americano L
+    [15,  4], // Iced Cappuccino M
+    [16,  4], // Iced Cappuccino L
+    [28,  3], // Strawberry Frappe L
+    [30,  3], // Mango Frappe L
+    [32,  3], // Strawberry Soda L
+    [34,  3], // Peach Soda L
+    [18,  3], // Iced Chocolate L
+    [20,  3], // Iced Matcha L
+    [24,  3], // Chocolate Frappe L
+    [26,  3], // Matcha Frappe L
+    [10,  3], // Hot Matcha Latte L
 ];
 
 // ─── Total weight for weighted-random pick ────────────────────────────────────
@@ -66,8 +75,8 @@ const AUDIT_ACTIONS = [
     { action: 'PAYMENT_MARKED_SUCCESS',  details: { paymentId: 1, method: 'cash', amount: 5.50,  orderId: 1 } },
     { action: 'PAYMENT_MARKED_SUCCESS',  details: { paymentId: 2, method: 'qr',   amount: 8.00,  orderId: 2 } },
     { action: 'PAYMENT_MARKED_FAILED',   details: { paymentId: 3, orderId: 5,     amount: 6.50 } },
-    { action: 'STOCK_ADJUSTMENT',        details: { movementId: 1, ingredientId: 2, ingredientName: 'Fresh Milk', type: 'in', quantity: 5000, newStock: 25000 } },
-    { action: 'STOCK_ADJUSTMENT',        details: { movementId: 2, ingredientId: 9, ingredientName: 'Matcha Powder', type: 'in', quantity: 500, newStock: 1500 } },
+    { action: 'STOCK_ADJUSTMENT',        details: { movementId: 1, ingredientId: 2, ingredientName: 'Fresh Milk', type: 'in', quantity: 5000, newStock: 30000 } },
+    { action: 'STOCK_ADJUSTMENT',        details: { movementId: 2, ingredientId: 8, ingredientName: 'Matcha Powder', type: 'in', quantity: 500, newStock: 2000 } },
     { action: 'USER_ROLE_CHANGED',       details: { targetUserId: 3, previousRoleIds: [2], addedRoleIds: [] } },
 ];
 
