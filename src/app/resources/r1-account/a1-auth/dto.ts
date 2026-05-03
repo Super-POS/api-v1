@@ -1,6 +1,7 @@
 
 // ===========================================================================>> Core Library
-import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsEmail, IsInt, IsNotEmpty, IsOptional, IsString, MinLength, ValidateNested } from 'class-validator';
 
 // ===========================================================================>> Costom Library
 import User from '@app/models/user/user.model';
@@ -91,4 +92,33 @@ export class TelegramWebAppLoginDto {
     @IsString()
     @IsNotEmpty({ message: 'platform is required' })
     platform: string;
+}
+
+/** Payload from grammY `ctx.from` — trusted only when header secret matches (bot server → API). */
+export class TelegramBotUserPayloadDto {
+    @IsInt()
+    @Type(() => Number)
+    id: number;
+
+    @IsOptional()
+    @IsString()
+    first_name?: string;
+
+    @IsOptional()
+    @IsString()
+    last_name?: string;
+
+    @IsOptional()
+    @IsString()
+    username?: string;
+}
+
+export class TelegramBotLoginDto {
+    @IsString()
+    @IsNotEmpty({ message: 'platform is required' })
+    platform: string;
+
+    @ValidateNested()
+    @Type(() => TelegramBotUserPayloadDto)
+    user: TelegramBotUserPayloadDto;
 }

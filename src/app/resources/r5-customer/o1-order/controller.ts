@@ -35,6 +35,12 @@ export class CustomerOrderController {
         return await this._service.getMyOrders(user.id, page, limit);
     }
 
+    /** Active coupon codes for checkout (website / Telegram). */
+    @Get('coupons')
+    async listCoupons(@UserDecorator() _user: User) {
+        return await this._service.listActiveCoupons();
+    }
+
     // =============================================>> Track a specific order
     @Get(':id')
     async trackOrder(

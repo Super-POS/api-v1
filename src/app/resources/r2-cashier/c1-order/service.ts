@@ -26,6 +26,7 @@ import {
 } from '@app/utils/modifier-order.util';
 import MenuType from '@app/models/menu/menu-type.model';
 import Coupon from '@app/models/coupon/coupon.model';
+import { allocateNextOrderNumber } from '@app/utils/order/allocate-order-number.util';
 import { CreateOrderDto } from './dto';
 
 // ======================================= >> Code Starts Here << ========================== //
@@ -117,6 +118,7 @@ export class OrderService {
                 status       : OrderStatusEnum.PENDING,
                 total_price  : 0,
                 receipt_number: await this._generateReceiptNumber(),
+                order_number : await allocateNextOrderNumber(transaction),
                 ordered_at   : null,
             }, { transaction });
 
@@ -239,6 +241,7 @@ export class OrderService {
                 attributes: [
                     'id',
                     'receipt_number',
+                    'order_number',
                     'total_price',
                     'channel',
                     'status',
@@ -279,6 +282,12 @@ export class OrderService {
                         model: User,
                         as: 'cashier',
                         attributes: ['id', 'avatar', 'name'],
+                    },
+                    {
+                        model: User,
+                        as: 'customer',
+                        attributes: ['id', 'name', 'telegram_first_name', 'telegram_last_name', 'telegram_username'],
+                        required: false,
                     },
                 ],
                 transaction, // Ensure this is inside the same transaction
@@ -322,6 +331,10 @@ export class OrderService {
         htmlMessage += `<b>Status: Success</b>\n`;
         htmlMessage += `-Receipt`;
         htmlMessage += `\u2003: ${data.receipt_number}\n`;
+        if (data.order_number != null && Number.isFinite(Number(data.order_number))) {
+            htmlMessage += `-Order no`;
+            htmlMessage += `\u2003: ${String(Math.floor(Number(data.order_number))).padStart(3, '0')}\n`;
+        }
         const disc = Number(data.discount_amount ?? 0);
         if (disc > 0 && data.coupon_code) {
             const sub = (Number(data.total_price ?? 0) + disc);
@@ -349,7 +362,7 @@ export class OrderService {
         const notifications = await Notifications.findAll({
             attributes: ["id", "read"],
             include: [
-                { model: Order, attributes: ["id", "receipt_number", "total_price", "ordered_at"] },
+                { model: Order, attributes: ["id", "receipt_number", "order_number", "total_price", "ordered_at"] },
                 { model: User, attributes: ["id", "avatar", "name"] },
             ],
             order: [["id", "DESC"]],
@@ -357,6 +370,7 @@ export class OrderService {
         const dataNotifications = notifications.map((n) => ({
             id: n.id,
             receipt_number: n.order.receipt_number,
+            order_number: n.order.order_number,
             total_price: n.order.total_price,
             ordered_at: n.order.ordered_at,
             cashier: { id: n.user.id, name: n.user.name, avatar: n.user.avatar },
@@ -370,7 +384,7 @@ export class OrderService {
      */
     async sendOrderCancelledTelegram(orderId: number): Promise<void> {
         const data = await Order.findByPk(orderId, {
-            attributes: ["id", "receipt_number", "total_price", "channel", "status", "ordered_at"],
+            attributes: ["id", "receipt_number", "order_number", "total_price", "channel", "status", "ordered_at"],
             include: [{ model: User, as: "cashier", attributes: ["id", "avatar", "name"] }],
         });
         if (!data) {
@@ -401,6 +415,7 @@ export class OrderService {
             attributes: [
                 "id",
                 "receipt_number",
+                "order_number",
                 "total_price",
                 "channel",
                 "status",
@@ -433,6 +448,12 @@ export class OrderService {
                     ],
                 },
                 { model: User, as: "cashier", attributes: ["id", "avatar", "name"] },
+                {
+                    model: User,
+                    as: "customer",
+                    attributes: ["id", "name", "telegram_first_name", "telegram_last_name", "telegram_username"],
+                    required: false,
+                },
             ],
         });
         if (!data) {

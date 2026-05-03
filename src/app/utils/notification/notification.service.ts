@@ -16,7 +16,7 @@ export class NotificationService {
                     include: [
                         {
                             model: Order,
-                            attributes: ['id', 'receipt_number', 'total_price', 'ordered_at'],
+                            attributes: ['id', 'receipt_number', 'order_number', 'total_price', 'ordered_at'],
                         },
                         {
                             model: User,
@@ -32,6 +32,7 @@ export class NotificationService {
             const data = resolvedNotifications.map(notification => ({
                 id: notification.id,
                 receipt_number: notification.order.receipt_number,
+                order_number: notification.order.order_number,
                 total_price: notification.order.total_price,
                 ordered_at: notification.order.ordered_at,
                 cashier: {
@@ -74,7 +75,7 @@ export class NotificationService {
             include: [
                 {
                     model: Order,
-                    attributes: ['id', 'receipt_number', 'total_price', 'ordered_at'],
+                    attributes: ['id', 'receipt_number', 'order_number', 'total_price', 'ordered_at'],
                 },
                 {
                     model: User,
@@ -87,6 +88,7 @@ export class NotificationService {
         const data = notifications.map(notification => ({
             id: notification.id,
             receipt_number: notification.order.receipt_number,
+            order_number: notification.order.order_number,
             total_price: notification.order.total_price,
             ordered_at: notification.order.ordered_at,
             cashier: {

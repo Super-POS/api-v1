@@ -1,6 +1,7 @@
 import { OrderChannelEnum }  from '@app/enums/order-channel.enum';
 import { OrderStatusEnum }   from '@app/enums/order-status.enum';
 import OrderDetails          from '@app/models/order/detail.model';
+import OrderSequenceCounter    from '@app/models/order/order-sequence-counter.model';
 import Order                 from '@app/models/order/order.model';
 import Notifications         from '@app/models/notification/notification.model';
 import PaymentTransaction, { PaymentMethod, PaymentStatus } from '@app/models/payment/payment_transaction.model';
@@ -188,6 +189,7 @@ export class CafeOrderSeeder {
 
             const order = await Order.create({
                 receipt_number: receiptNumber,
+                order_number  : (i % 100) + 1,
                 cashier_id,
                 customer_id,
                 channel,
@@ -262,6 +264,9 @@ export class CafeOrderSeeder {
                 });
             }
         }
+
+        const lastAssigned = ((ordersToCreate - 1) % 100) + 1;
+        await OrderSequenceCounter.upsert({ id: 1, last_assigned: lastAssigned });
 
         console.log('\x1b[32m✔  Orders + details + payments + notifications seeded (%d orders)', ordersToCreate);
     }

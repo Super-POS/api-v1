@@ -7,6 +7,7 @@ import { OrderModule }    from './c1-order/module';
 import { SaleModule }     from './c2-sale/module';
 import { ManageModule }            from './c3-manage/module';
 import { CashierCashDrawerModule } from './c4-cash-drawer/module';
+import { CashierExchangeSettingModule } from './c5-exchange-setting/module';
 import { DeviceTrackerMiddleware } from '@app/core/middlewares/device-tracker.middleware';
 
 @Module({
@@ -15,6 +16,7 @@ import { DeviceTrackerMiddleware } from '@app/core/middlewares/device-tracker.mi
         OrderModule,
         ManageModule,
         CashierCashDrawerModule,
+        CashierExchangeSettingModule,
     ]
 })
 

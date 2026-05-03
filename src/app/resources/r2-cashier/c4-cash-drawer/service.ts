@@ -3,13 +3,12 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 
 // ===========================================================================>> Custom Library
 import { AuditLogService }   from '@app/services/audit-log.service';
+import { ExchangeSettingService } from '@app/services/exchange-setting.service';
 import CashDrawer            from '@app/models/cash/cash_drawer.model';
 import CashDrawerLog, { CashDrawerLogType } from '@app/models/cash/cash_drawer_log.model';
 import Order                 from '@app/models/order/order.model';
 import User                  from '@app/models/user/user.model';
 import { MakeChangeDto, PreviewChangeDto, ReceivedDenominationsDto } from './dto';
-
-const DEFAULT_EXCHANGE_RATE = 4100; // KHR per 1 USD
 
 // =====================================================================
 // Denomination definitions sorted descending by face value in KHR.
@@ -52,7 +51,10 @@ function buildDenomList(rate: number): DenomDef[] {
 @Injectable()
 export class CashierCashDrawerService {
 
-    constructor(private readonly auditLog: AuditLogService) {}
+    constructor(
+        private readonly auditLog: AuditLogService,
+        private readonly exchangeSetting: ExchangeSettingService,
+    ) {}
 
     // ==========================================>> View current drawer
     async getDrawer(): Promise<any> {
@@ -62,7 +64,7 @@ export class CashierCashDrawerService {
 
     // ==========================================>> Preview change without creating logs or updating drawer
     async previewChange(body: PreviewChangeDto): Promise<any> {
-        const rate = body.exchange_rate ?? DEFAULT_EXCHANGE_RATE;
+        const rate = body.exchange_rate ?? (await this.exchangeSetting.getKhrPerUsd());
         const orderTotalKhr = Math.max(0, Math.round(Number(body.order_total_khr ?? 0)));
 
         const preview = await this._prepareChange(orderTotalKhr, body, rate);
@@ -82,11 +84,11 @@ export class CashierCashDrawerService {
 
     // ==========================================>> Process payment and give change
     async makeChange(body: MakeChangeDto, cashierId: number): Promise<any> {
-        const rate = body.exchange_rate ?? DEFAULT_EXCHANGE_RATE;
+        const rate = body.exchange_rate ?? (await this.exchangeSetting.getKhrPerUsd());
 
         // Fetch the order
         const order = await Order.findByPk(body.order_id, {
-            attributes: ['id', 'receipt_number', 'total_price', 'status'],
+            attributes: ['id', 'receipt_number', 'order_number', 'total_price', 'status'],
         });
         if (!order) throw new NotFoundException('Order not found.');
 

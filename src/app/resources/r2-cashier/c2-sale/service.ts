@@ -92,6 +92,7 @@ export class SaleService {
         attributes: [
           "id",
           "receipt_number",
+          "order_number",
           "total_price",
           "channel",
           "status",
@@ -132,6 +133,12 @@ export class SaleService {
             model: User,
             as: "cashier",
             attributes: ["id", "avatar", "name"],
+          },
+          {
+            model: User,
+            as: "customer",
+            attributes: ["id", "name", "telegram_first_name", "telegram_last_name", "telegram_username"],
+            required: false,
           },
         ],
         where: where,
@@ -206,6 +213,7 @@ export class SaleService {
         attributes: [
           "id",
           "receipt_number",
+          "order_number",
           "total_price",
           "channel",
           "status",
@@ -246,6 +254,12 @@ export class SaleService {
             model: User,
             as: "cashier",
             attributes: ["id", "avatar", "name"],
+          },
+          {
+            model: User,
+            as: "customer",
+            attributes: ["id", "name", "telegram_first_name", "telegram_last_name", "telegram_username"],
+            required: false,
           },
         ],
       });

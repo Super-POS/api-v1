@@ -22,6 +22,8 @@ class Order extends Model<Order> {
 
     // ============================================================================================= Field
     @Column({ allowNull: false, unique: true, type: DataType.STRING(10) })                          receipt_number: string;
+    /** Short cycling display number (001–100) for kitchen / counter; distinct from receipt_number. */
+    @Column({ allowNull: true, type: DataType.SMALLINT })                                         order_number?: number | null;
     @Column({ allowNull: true, type: DataType.DOUBLE })                                             total_price?: number;
     @Column({ allowNull: true, type: DataType.STRING(64) })                                         coupon_code?: string;
     @Column({ allowNull: true, type: DataType.DOUBLE })                                             discount_percent?: number;

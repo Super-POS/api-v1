@@ -1,6 +1,7 @@
 import { OrderChannelEnum } from "@app/enums/order-channel.enum";
 import { OrderStatusEnum }  from "@app/enums/order-status.enum";
 import OrderDetails         from "@app/models/order/detail.model";
+import OrderSequenceCounter from "@app/models/order/order-sequence-counter.model";
 import Order                from "@app/models/order/order.model";
 import Menu              from "@app/models/menu/menu.model";
 
@@ -39,6 +40,7 @@ export class OrderSeeder {
             const status        = statuses[Math.floor(Math.random() * statuses.length)];
             ordersData.push({
                 receipt_number : receiptNumber + '',
+                order_number   : ((i - 1) % 100) + 1,
                 cashier_id     : channel === OrderChannelEnum.WALK_IN ? Math.floor(Math.random() * (4 - 1) + 1) : null,
                 customer_id    : channel !== OrderChannelEnum.WALK_IN ? Math.floor(Math.random() * (4 - 1) + 1) : null,
                 total_price    : 0,
@@ -51,6 +53,8 @@ export class OrderSeeder {
         try {
 
             await Order.bulkCreate(ordersData);
+            const lastSeq = ((100 - 1) % 100) + 1;
+            await OrderSequenceCounter.upsert({ id: 1, last_assigned: lastSeq });
             console.log('\x1b[32mOrders data inserted successfully.');
 
         } catch (error) {

@@ -7,10 +7,14 @@ import OrderDetails from '@app/models/order/detail.model';
 import Order from '@app/models/order/order.model';
 import Menu from '@app/models/menu/menu.model';
 import User from '@app/models/user/user.model';
+import { ExchangeSettingService, khrToUsdDisplay } from '@app/services/exchange-setting.service';
 
 @Injectable()
 export class InvoiceService {
-    constructor(private jsReportService: JsReportService) { }
+    constructor(
+        private jsReportService: JsReportService,
+        private readonly _exchangeSetting: ExchangeSettingService,
+    ) { }
 
     // Method to generate an invoice report
     /** `receipt_number` is stored as varchar; keep a string so PG never compares varchar to a number. */
@@ -41,10 +45,7 @@ export class InvoiceService {
             throw new NotFoundException('Order not found');
         }
 
-        let total = 0;
-        orders.forEach((row) => {
-            total += row.total_price ?? 0;
-        });
+        const khrPerUsd = await this._exchangeSetting.getKhrPerUsd();
 
         // Structuring the data for the report
         const data = orders[0].toJSON() as unknown as Record<string, unknown>;
@@ -54,6 +55,11 @@ export class InvoiceService {
             ? detailsRaw.map((line) => ({
                 ...line,
                 product: line.product ?? line.menu ?? null,
+                unit_price_usd: khrToUsdDisplay(Number(line.unit_price ?? 0), khrPerUsd),
+                line_total_usd: khrToUsdDisplay(
+                    Number(line.unit_price ?? 0) * Number(line.qty ?? 0),
+                    khrPerUsd,
+                ),
             }))
             : [];
 
@@ -64,6 +70,8 @@ export class InvoiceService {
             details,
             ordered_at: orderedAt,
             title_of_service: 'CamCyber POS',
+            khr_per_usd: khrPerUsd,
+            total_price_usd: khrToUsdDisplay(Number(data.total_price ?? 0), khrPerUsd),
         };
         // Get the report template
         const template = process.env.JS_TEMPLATE;

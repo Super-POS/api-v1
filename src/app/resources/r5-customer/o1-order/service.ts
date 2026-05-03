@@ -1,5 +1,5 @@
 // =========================================================================>> Core Library
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
 
 // =========================================================================>> Third Party Library
 import { Sequelize, Transaction } from 'sequelize';
@@ -20,12 +20,25 @@ import {
     normalizeCartLines,
     toPlainMenuWithSortedModifiers,
 } from '@app/utils/modifier-order.util';
+import Coupon               from '@app/models/coupon/coupon.model';
 import User                 from '@app/models/user/user.model';
 import { TelegramService } from '@app/services/telegram.service';
+import { allocateNextOrderNumber } from '@app/utils/order/allocate-order-number.util';
 import sequelizeConfig      from 'src/config/sequelize.config';
 import { PlaceOrderDto }    from './dto';
 
-const ORDER_ATTRIBUTES = ['id', 'receipt_number', 'total_price', 'channel', 'status', 'ordered_at'];
+const ORDER_ATTRIBUTES = [
+    'id',
+    'receipt_number',
+    'order_number',
+    'total_price',
+    'channel',
+    'status',
+    'ordered_at',
+    'coupon_code',
+    'discount_percent',
+    'discount_amount',
+];
 const DETAIL_INCLUDES  = [
     {
         model: OrderDetails,
@@ -54,6 +67,22 @@ const DETAIL_INCLUDES  = [
 @Injectable()
 export class CustomerOrderService {
     constructor(private readonly _telegram: TelegramService) {}
+
+    /** Active coupons for customer checkout (same rules as cashier). */
+    async listActiveCoupons(): Promise<{ data: { id: number; code: string; discount_percent: number }[] }> {
+        const rows = await Coupon.findAll({
+            where: { is_active: true },
+            attributes: ['id', 'code', 'discount_percent'],
+            order: [['code', 'ASC']],
+        });
+        return {
+            data: rows.map((c) => ({
+                id: c.id,
+                code: c.code,
+                discount_percent: Number(c.discount_percent),
+            })),
+        };
+    }
 
     /** Menu catalog (types + menus) — same query as cashier `OrderService.getMenus`. */
     async getMenus(): Promise<{ data: { id: number; name: string; menus: Menu[] }[] }> {
@@ -98,6 +127,7 @@ export class CustomerOrderService {
                 status         : OrderStatusEnum.PENDING,
                 total_price    : 0,
                 receipt_number : await this._generateReceiptNumber(),
+                order_number   : await allocateNextOrderNumber(transaction),
                 ordered_at     : null,
             }, { transaction });
 
@@ -148,8 +178,57 @@ export class CustomerOrderService {
                 );
             }
 
+            const subtotalBeforeDiscount = totalPrice;
+            let couponId: number | null = null;
+            let couponCodeSnapshot: string | null = null;
+            let discountPercentApplied: number | null = null;
+            let discountAmount = 0;
+
+            const rawCoupon = body.coupon_code?.trim();
+            if (rawCoupon) {
+                const normalized = rawCoupon.trim().toUpperCase();
+                const coupon = await Coupon.findOne({
+                    where: { code: normalized, is_active: true },
+                    transaction,
+                });
+                if (!coupon) {
+                    throw new BadRequestException('Invalid or inactive coupon code.');
+                }
+                const pct = Number(coupon.discount_percent);
+                if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
+                    throw new BadRequestException('Coupon is misconfigured.');
+                }
+                discountAmount = Math.round((subtotalBeforeDiscount * pct) / 100);
+                if (discountAmount > subtotalBeforeDiscount) {
+                    discountAmount = subtotalBeforeDiscount;
+                }
+                couponId = coupon.id;
+                couponCodeSnapshot = coupon.code;
+                discountPercentApplied = pct;
+            }
+
+            const finalTotal = Math.max(0, subtotalBeforeDiscount - discountAmount);
+
+            const couponPatch = rawCoupon
+                ? {
+                      coupon_id: couponId,
+                      coupon_code: couponCodeSnapshot,
+                      discount_percent: discountPercentApplied,
+                      discount_amount: discountAmount > 0 ? discountAmount : null,
+                  }
+                : {
+                      coupon_id: null,
+                      coupon_code: null,
+                      discount_percent: null,
+                      discount_amount: null,
+                  };
+
             await Order.update(
-                { total_price: totalPrice, ordered_at: new Date() },
+                {
+                    total_price: finalTotal,
+                    ordered_at: new Date(),
+                    ...couponPatch,
+                },
                 { where: { id: order.id }, transaction },
             );
 
@@ -163,7 +242,10 @@ export class CustomerOrderService {
 
             // Telegram customer push (optional)
             try {
-                if (body.channel === OrderChannelEnum.TELEGRAM) {
+                if (
+                    body.channel === OrderChannelEnum.TELEGRAM
+                    || body.channel === OrderChannelEnum.WEBSITE
+                ) {
                     const customer = await User.findByPk(customerId, { attributes: ['id', 'telegram_user_id', 'name'] });
                     const chatId = customer?.telegram_user_id;
                     if (chatId) {
@@ -180,6 +262,9 @@ export class CustomerOrderService {
 
         } catch (error) {
             if (transaction) await transaction.rollback();
+            if (error instanceof HttpException) {
+                throw error;
+            }
             throw new BadRequestException('Something went wrong! Please try again later.');
         } finally {
             await sequelize.close();

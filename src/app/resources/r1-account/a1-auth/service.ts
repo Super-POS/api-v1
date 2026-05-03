@@ -1,5 +1,5 @@
 // ===========================================================================>> Core Library
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, InternalServerErrorException, Logger, UnauthorizedException } from '@nestjs/common';
 
 // ===========================================================================>> Third Party Library
 import * as bcrypt from 'bcryptjs';
@@ -15,8 +15,8 @@ import UsersLogs               from '@app/models/user/user_logs.model';
 import { EmailService }        from '@app/services/email.service';
 import { JwtTokenGenerator, TokenGenerator } from '@app/shared/jwt/token';
 import { ActiveEnum }          from 'src/app/enums/active.enum';
-import { LoginRequestOTPDto, RegisterDto, TelegramWebAppLoginDto } from './dto';
-import { verifyTelegramWebAppInitData } from '@app/utils/telegram-webapp.util';
+import { LoginRequestOTPDto, RegisterDto, TelegramBotLoginDto, TelegramWebAppLoginDto } from './dto';
+import { verifyTelegramWebAppInitData, type TelegramWebAppUser } from '@app/utils/telegram-webapp.util';
 
 interface LoginPayload {
     username: string
@@ -27,6 +27,7 @@ interface LoginPayload {
 @Injectable()
 export class AuthService {
 
+    private readonly logger = new Logger(AuthService.name);
     private tokenGenerator: TokenGenerator;
     constructor(private readonly emailService: EmailService) {
         this.tokenGenerator = new JwtTokenGenerator();
@@ -325,7 +326,8 @@ export class AuthService {
     }
 
     async telegramWebAppLogin(body: TelegramWebAppLoginDto, req: Request): Promise<{ token: string; message: string }> {
-        const botToken = process.env.TELEGRAM_BOT_TOKEN || '';
+        /** Bot that owns the Mini App / Web App button — signs initData. Push/notifications use TELEGRAM_BOT_TOKEN. */
+        const botToken = (process.env.TELEGRAM_WEBAPP_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || '').trim();
         let init: ReturnType<typeof verifyTelegramWebAppInitData>;
         try {
             init = verifyTelegramWebAppInitData(body.initData, botToken);
@@ -336,8 +338,42 @@ export class AuthService {
         if (!tgUser?.id) {
             throw new BadRequestException('Telegram user is missing.');
         }
+        return this.upsertTelegramCustomerAndIssueToken(
+            tgUser,
+            req,
+            body.platform || 'Telegram',
+            'User logged into the system via Telegram WebApp',
+        );
+    }
 
-        // Customer role must exist
+    /** Called from AuthController after `X-Telegram-Bot-Secret` matches env — same user lifecycle as Mini App login. */
+    async telegramBotTrustedLogin(body: TelegramBotLoginDto, req: Request): Promise<{ token: string; message: string }> {
+        this.logger.log(`[telegram-bot] AuthService.telegramBotTrustedLogin telegram_user_id=${body.user?.id}`);
+        const u = body.user;
+        const tgUser: TelegramWebAppUser = {
+            id: u.id,
+            first_name: u.first_name,
+            last_name: u.last_name,
+            username: u.username,
+        };
+        return this.upsertTelegramCustomerAndIssueToken(
+            tgUser,
+            req,
+            body.platform || 'TelegramBot',
+            'User logged into the system via Telegram bot /start',
+        );
+    }
+
+    private async upsertTelegramCustomerAndIssueToken(
+        tgUser: TelegramWebAppUser,
+        req: Request,
+        platform: string,
+        loginDetails: string,
+    ): Promise<{ token: string; message: string }> {
+        if (!tgUser?.id) {
+            throw new BadRequestException('Telegram user is missing.');
+        }
+
         const customerRole = await Role.findOne({ where: { id: RoleEnum.CUSTOMER } });
         if (!customerRole) {
             throw new InternalServerErrorException('Customer role not configured. Please contact support.');
@@ -385,19 +421,27 @@ export class AuthService {
                     { transaction },
                 );
 
-                // Reload with roles for token generation
                 user = await User.findByPk(user.id, {
                     attributes: ['id', 'name', 'avatar', 'phone', 'email', 'password', 'created_at'],
                     include: [Role],
                     transaction,
                 });
             } else {
-                // keep telegram profile up to date
+                const safeDisplayName =
+                    [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ').trim()
+                    || (tgUser.username ? `@${tgUser.username}` : null);
+
                 await user.update(
                     {
-                        telegram_username: tgUser.username ?? user.telegram_username ?? null,
-                        telegram_first_name: tgUser.first_name ?? user.telegram_first_name ?? null,
-                        telegram_last_name: tgUser.last_name ?? user.telegram_last_name ?? null,
+                        telegram_username    : tgUser.username ?? user.telegram_username ?? null,
+                        telegram_first_name  : tgUser.first_name ?? user.telegram_first_name ?? null,
+                        telegram_last_name   : tgUser.last_name ?? user.telegram_last_name ?? null,
+                        // Keep POS/receipt display name aligned for accounts created via Telegram (phone `tg_*`).
+                        ...(safeDisplayName
+                            && typeof user.phone === 'string'
+                            && user.phone.startsWith('tg_')
+                            ? { name: safeDisplayName.slice(0, 50) }
+                            : {}),
                     } as any,
                     { transaction },
                 );
@@ -417,11 +461,11 @@ export class AuthService {
                 {
                     user_id: user.id,
                     action: 'login',
-                    details: 'User logged into the system via Telegram WebApp',
+                    details: loginDetails,
                     ip_address: deviceInfo?.ip,
                     browser: deviceInfo?.browser,
                     os: deviceInfo?.os,
-                    platform: body.platform || 'Telegram',
+                    platform,
                     timestamp: deviceInfo?.timestamp,
                 } as any,
                 { transaction },

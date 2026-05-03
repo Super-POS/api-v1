@@ -80,19 +80,20 @@ export class SaleService {
     ): Promise<string> {
         const where = this._saleListWhere(params);
         const rows = await Order.findAll({
-            attributes: ['id', 'receipt_number', 'total_price', 'channel', 'status', 'ordered_at'],
+            attributes: ['id', 'receipt_number', 'order_number', 'total_price', 'channel', 'status', 'ordered_at'],
             where,
             include: [{ model: User, as: 'cashier', attributes: ['name'] }],
             order: [[col('id'), 'DESC']],
             limit: 50000,
         });
-        const header = 'id,receipt_number,total_price_riel,channel,status,ordered_at,cashier_name\n';
+        const header = 'id,receipt_number,order_number,total_price_riel,channel,status,ordered_at,cashier_name\n';
         const q = (s: string) => `"${String(s ?? '').replace(/"/g, '""')}"`;
         const body = rows
             .map((r) => {
                 const o = r.toJSON() as unknown as {
                     id: number;
                     receipt_number: string;
+                    order_number?: number | null;
                     total_price?: number;
                     channel: string;
                     status: string;
@@ -103,6 +104,7 @@ export class SaleService {
                 return [
                     o.id,
                     q(String(o.receipt_number)),
+                    o.order_number ?? '',
                     o.total_price ?? 0,
                     q(String(o.channel)),
                     q(String(o.status)),
@@ -163,7 +165,7 @@ export class SaleService {
 
             // ===>> Query Data from Database
             const { rows, count }  = await Order.findAndCountAll({
-                attributes: ['id', 'receipt_number', 'total_price', 'channel', 'status', 'ordered_at'],
+                attributes: ['id', 'receipt_number', 'order_number', 'total_price', 'channel', 'status', 'ordered_at'],
                 include: [
                     {
                         model: OrderDetails,

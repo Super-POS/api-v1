@@ -1,12 +1,30 @@
 import { Type } from 'class-transformer';
-import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import {
+    IsBoolean,
+    IsNotEmpty,
+    IsNumber,
+    IsOptional,
+    IsString,
+    Max,
+    MaxLength,
+    Min,
+    MinLength,
+    ValidateIf,
+} from 'class-validator';
 
 export class CreateCouponDto {
+    @ValidateIf((o: CreateCouponDto) => !o.auto_generate_code)
     @IsNotEmpty()
     @IsString()
     @MinLength(2)
     @MaxLength(64)
-    code: string;
+    code?: string;
+
+    @IsOptional()
+    @Type(() => Boolean)
+    @IsBoolean()
+    /** When true, the API assigns a unique random code and ignores `code`. */
+    auto_generate_code?: boolean;
 
     @IsNotEmpty()
     @Type(() => Number)

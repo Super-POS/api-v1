@@ -25,13 +25,18 @@ function parseInitData(initData: string): Record<string, string> {
     return out;
 }
 
-function dataCheckString(params: Record<string, string>): string {
+function dataCheckString(params: Record<string, string>, excludeKeys: Set<string>): string {
     const pairs: string[] = [];
     for (const k of Object.keys(params).sort()) {
-        if (k === 'hash') continue;
+        if (excludeKeys.has(k)) continue;
         pairs.push(`${k}=${params[k]}`);
     }
     return pairs.join('\n');
+}
+
+function hmacInitDataHash(botToken: string, dataCheckString: string): string {
+    const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
+    return crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 }
 
 /**
@@ -39,25 +44,29 @@ function dataCheckString(params: Record<string, string>): string {
  * Reference: Telegram "Validating data received via the Mini App".
  */
 export function verifyTelegramWebAppInitData(initData: string, botToken: string): TelegramWebAppInitData {
-    if (!initData || typeof initData !== 'string') {
+    const rawInit = typeof initData === 'string' ? initData.trim() : '';
+    if (!rawInit) {
         throw new Error('initData is required');
     }
-    if (!botToken) {
-        throw new Error('Missing TELEGRAM_BOT_TOKEN');
+    const token = (botToken || '').trim();
+    if (!token) {
+        throw new Error('Missing TELEGRAM_WEBAPP_BOT_TOKEN (or TELEGRAM_BOT_TOKEN) for Web App verification');
     }
 
-    const params = parseInitData(initData);
+    const params = parseInitData(rawInit);
     const providedHash = params['hash'];
     if (!providedHash) {
         throw new Error('initData hash is missing');
     }
 
-    const checkString = dataCheckString(params);
-    // Mini App spec: secret_key = HMAC_SHA256(key "WebAppData", data = bot_token) — not SHA256(bot_token).
-    const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
-    const computed = crypto.createHmac('sha256', secretKey).update(checkString).digest('hex');
-
-    if (computed.toLowerCase() !== providedHash.toLowerCase()) {
+    // Some clients send `signature` (Ed25519) alongside `hash` (HMAC). Telegram may or may not include
+    // `signature` in the bot-token HMAC payload — accept either construction.
+    const checkWithSignature = dataCheckString(params, new Set(['hash']));
+    const checkWithoutSignature = dataCheckString(params, new Set(['hash', 'signature']));
+    const computedA = hmacInitDataHash(token, checkWithSignature).toLowerCase();
+    const computedB = hmacInitDataHash(token, checkWithoutSignature).toLowerCase();
+    const want = providedHash.toLowerCase();
+    if (computedA !== want && computedB !== want) {
         throw new Error('Invalid initData signature');
     }
 

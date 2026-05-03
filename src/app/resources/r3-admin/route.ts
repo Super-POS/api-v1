@@ -16,6 +16,7 @@ import { FinancialReportModule }     from './a8-report/module';
 import { ModifierAdminModule }       from './a3-menu/p6-modifier/module';
 import { AdminCashDrawerModule }     from './a9-cash-drawer/module';
 import { AdminCouponModule }         from './a10-coupon/module';
+import { AdminExchangeSettingModule } from './a12-exchange-setting/module';
 
 export const adminRoutes: Routes = [
     {
@@ -82,5 +83,10 @@ export const adminRoutes: Routes = [
     {
         path  : 'coupons',
         module: AdminCouponModule,
+    },
+
+    {
+        path  : 'exchange-rate',
+        module: AdminExchangeSettingModule,
     },
 ];

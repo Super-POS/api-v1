@@ -12,6 +12,9 @@ import { JsReportService } from '@app/services/js-report.service';
 import { CashDrawerLogEnumPatchService } from './cash-drawer-log-enum.patch';
 import { CouponOrderSchemaPatchService } from './coupon-order-schema.patch';
 import { IngredientSchemaPatchService } from './ingredient-schema.patch';
+import { OrderNumberSchemaPatchService } from './order-number-schema.patch';
+import { ExchangeSettingSchemaPatchService } from './exchange-setting-schema.patch';
+import { ExchangeSettingService } from '@app/services/exchange-setting.service';
 
 /** @noded We use Global that allow all module can access and use all models */
 @Global()
@@ -34,10 +37,14 @@ import { IngredientSchemaPatchService } from './ingredient-schema.patch';
         IngredientSchemaPatchService,
         CouponOrderSchemaPatchService,
         CashDrawerLogEnumPatchService,
+        OrderNumberSchemaPatchService,
+        ExchangeSettingSchemaPatchService,
+        ExchangeSettingService,
     ],
     exports: [
         FileService,
         JsReportService,
+        ExchangeSettingService,
         HttpModule.register({
             timeout: 5000,
             maxRedirects: 5,

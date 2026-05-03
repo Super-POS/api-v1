@@ -4,14 +4,25 @@ import { Injectable, Logger } from '@nestjs/common';
 // ================================================================>> Third Party Library
 import * as TelegramBot from 'node-telegram-bot-api';
 
+const NO_POLL: TelegramBot.ConstructorOptions = { polling: false };
+
 @Injectable()
 export class TelegramService {
-    private bot: TelegramBot;
+    /** Admin / internal channel (TELEGRAM_CHAT_ID, reports, cashier alerts). */
+    private readonly bot: TelegramBot;
+    /** Private messages to customers — must be the same bot they use for Mini App / orders (TELEGRAM_WEBAPP_BOT_TOKEN). */
+    private readonly dmBot: TelegramBot;
     private readonly logger = new Logger(TelegramService.name);
 
     constructor() {
         try {
-            this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN || 'bot_token');
+            const mainToken = (process.env.TELEGRAM_BOT_TOKEN || '').trim() || 'bot_token';
+            const webToken = (process.env.TELEGRAM_WEBAPP_BOT_TOKEN || '').trim() || mainToken;
+            this.bot = new TelegramBot(mainToken, NO_POLL);
+            this.dmBot = webToken === mainToken ? this.bot : new TelegramBot(webToken, NO_POLL);
+            if (webToken !== mainToken) {
+                this.logger.log('Customer DMs use TELEGRAM_WEBAPP_BOT_TOKEN; admin channel uses TELEGRAM_BOT_TOKEN.');
+            }
         } catch (error) {
             this.handleInitializationError(error);
         }
@@ -39,7 +50,7 @@ export class TelegramService {
             disable_web_page_preview: true,
         };
         try {
-            await this.bot.sendMessage(String(chatId), htmlText, messageOptions);
+            await this.dmBot.sendMessage(String(chatId), htmlText, messageOptions);
         } catch (error) {
             this.handleSendMessageError(error);
         }

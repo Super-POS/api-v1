@@ -1,3 +1,5 @@
+import { randomBytes } from 'crypto';
+
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Op } from 'sequelize';
 import Coupon from '@app/models/coupon/coupon.model';
@@ -7,6 +9,17 @@ function normalizeCouponCode(code: string): string {
     return code.trim().toUpperCase();
 }
 
+const GENERATED_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+function randomCouponCodeCandidate(length: number): string {
+    const buf = randomBytes(length);
+    let out = '';
+    for (let i = 0; i < length; i++) {
+        out += GENERATED_CODE_ALPHABET[buf[i] % GENERATED_CODE_ALPHABET.length];
+    }
+    return out;
+}
+
 @Injectable()
 export class AdminCouponService {
     async list(): Promise<{ data: Coupon[] }> {
@@ -14,11 +27,31 @@ export class AdminCouponService {
         return { data };
     }
 
+    private async generateUniqueCouponCode(maxAttempts = 24): Promise<string> {
+        for (let i = 0; i < maxAttempts; i++) {
+            const candidate = randomCouponCodeCandidate(10);
+            const exists = await Coupon.findOne({ where: { code: candidate } });
+            if (!exists) {
+                return candidate;
+            }
+        }
+        throw new BadRequestException('Could not generate a unique coupon code. Try again.');
+    }
+
     async create(body: CreateCouponDto): Promise<{ data: Coupon; message: string }> {
-        const code = normalizeCouponCode(body.code);
-        const exists = await Coupon.findOne({ where: { code } });
-        if (exists) {
-            throw new BadRequestException('A coupon with this code already exists.');
+        let code: string;
+        if (body.auto_generate_code === true) {
+            code = await this.generateUniqueCouponCode();
+        } else {
+            const raw = body.code?.trim();
+            if (!raw) {
+                throw new BadRequestException('Coupon code is required unless auto-generate is enabled.');
+            }
+            code = normalizeCouponCode(raw);
+            const exists = await Coupon.findOne({ where: { code } });
+            if (exists) {
+                throw new BadRequestException('A coupon with this code already exists.');
+            }
         }
         const note = body.note != null && String(body.note).trim() !== '' ? String(body.note).trim() : null;
         const row = await Coupon.create({
@@ -27,7 +60,9 @@ export class AdminCouponService {
             is_active: body.is_active !== false,
             note,
         });
-        return { data: row, message: 'Coupon created.' };
+        const message =
+            body.auto_generate_code === true ? `Coupon created with code ${row.code}.` : 'Coupon created.';
+        return { data: row, message };
     }
 
     async update(id: number, body: UpdateCouponDto): Promise<{ data: Coupon; message: string }> {
