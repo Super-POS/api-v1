@@ -29,11 +29,17 @@ class AppInitializer {
             'https://faac-2a09-bac5-55fc-1d0f-00-2e5-25.ngrok-free.app',
             // 'https://9f63-96-9-79-108.ngrok-free.app',
             'http://localhost:9007',
+            'http://localhost',
             'http://localhost:9004',
             'http://localhost:9008',
             'http://localhost:9003',
             'http://localhost:9006',
-            'http://localhost:3001'
+            'http://localhost:3001',
+            'http://pos.navahub.org',
+            'https://pos.navahub.org',
+            'http://www.pos.navahub.org',
+            'https://www.pos.navahub.org',
+            'http://34.142.211.96',
         ];
         const envOrigins = (process.env.CORS_ORIGINS || '')
             .split(',')
