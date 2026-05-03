@@ -63,8 +63,7 @@ export class CashierCashDrawerService {
     // ==========================================>> Preview change without creating logs or updating drawer
     async previewChange(body: PreviewChangeDto): Promise<any> {
         const rate = body.exchange_rate ?? DEFAULT_EXCHANGE_RATE;
-        const orderTotalKhr = Math.round(Number(body.order_total_khr ?? 0));
-        if (orderTotalKhr <= 0) throw new BadRequestException('Order total must be greater than 0.');
+        const orderTotalKhr = Math.max(0, Math.round(Number(body.order_total_khr ?? 0)));
 
         const preview = await this._prepareChange(orderTotalKhr, body, rate);
         return {
@@ -91,8 +90,7 @@ export class CashierCashDrawerService {
         });
         if (!order) throw new NotFoundException('Order not found.');
 
-        const orderTotalKhr = Math.round(Number(order.total_price ?? 0));
-        if (orderTotalKhr <= 0) throw new BadRequestException('Order has no payable amount.');
+        const orderTotalKhr = Math.max(0, Math.round(Number(order.total_price ?? 0)));
 
         const prepared = await this._prepareChange(orderTotalKhr, body, rate);
 

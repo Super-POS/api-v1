@@ -1,7 +1,7 @@
 // =========================================================================>> Custom Library
 import { OrderChannelEnum } from '@app/enums/order-channel.enum';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsEnum, IsJSON, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsBoolean, IsEnum, IsJSON, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateOrderDto {
     @IsNotEmpty()
@@ -20,4 +20,9 @@ export class CreateOrderDto {
     @Type(() => Boolean)
     @IsBoolean()
     deferred_telegram?: boolean;
+
+    @IsOptional()
+    @IsString()
+    @MaxLength(64)
+    coupon_code?: string;
 }

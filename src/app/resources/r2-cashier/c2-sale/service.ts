@@ -96,6 +96,9 @@ export class SaleService {
           "channel",
           "status",
           "ordered_at",
+          "coupon_code",
+          "discount_percent",
+          "discount_amount",
         ],
         include: [
           {
@@ -207,6 +210,9 @@ export class SaleService {
           "channel",
           "status",
           "ordered_at",
+          "coupon_code",
+          "discount_percent",
+          "discount_amount",
         ],
         include: [
           {

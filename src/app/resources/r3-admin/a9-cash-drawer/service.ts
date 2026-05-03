@@ -6,7 +6,7 @@ import { AuditLogService }  from '@app/services/audit-log.service';
 import CashDrawer           from '@app/models/cash/cash_drawer.model';
 import CashDrawerLog, { CashDrawerLogType } from '@app/models/cash/cash_drawer_log.model';
 import User                 from '@app/models/user/user.model';
-import { CashDrawerLogQueryDto, DepositCashDto } from './dto';
+import { CashDrawerLogQueryDto, DepositCashDto, ResetBalanceDto, WithdrawCashDto } from './dto';
 
 // Denomination field definitions for USD and KHR
 export const USD_DENOMS: { field: keyof CashDrawer; face: number }[] = [
@@ -83,6 +83,96 @@ export class AdminCashDrawerService {
         return {
             data   : await this._getOrCreateDrawer(),
             message: 'Cash deposited successfully.',
+        };
+    }
+
+    // ==========================================>> Withdraw cash from drawer
+    async withdraw(body: WithdrawCashDto, adminId: number): Promise<any> {
+        const drawer = await this._getOrCreateDrawer();
+        const d = body.denominations;
+
+        const updates: Record<string, number> = {};
+        const logDeltas: Record<string, number> = {};
+
+        const allFields = [...USD_DENOMS, ...KHR_DENOMS].map((x) => x.field as string);
+        for (const field of allFields) {
+            const input = (d as any)[field] ?? 0;
+            if (input < 0) throw new BadRequestException(`Denomination ${field} cannot be negative.`);
+            if (input > 0) {
+                const current = (drawer[field as keyof CashDrawer] as number) ?? 0;
+                if (current < input) {
+                    throw new BadRequestException(
+                        `Not enough ${field} in the drawer (have ${current}, requested ${input}).`,
+                    );
+                }
+                updates[field] = current - input;
+                logDeltas[field] = input;
+            }
+        }
+
+        if (Object.keys(updates).length === 0) {
+            throw new BadRequestException('At least one denomination must be greater than 0.');
+        }
+
+        await drawer.update(updates as any);
+
+        await CashDrawerLog.create({
+            cashier_id: adminId,
+            type      : CashDrawerLogType.WITHDRAW,
+            note      : body.note ?? null,
+            ...logDeltas,
+        } as any);
+
+        await this.auditLog.log(adminId, 'CASH_DRAWER_WITHDRAW', {
+            denominations: d,
+            note         : body.note,
+        });
+
+        return {
+            data   : await this._getOrCreateDrawer(),
+            message: 'Cash withdrawn successfully.',
+        };
+    }
+
+    // ==========================================>> Reset drawer: zero all denominations (admin)
+    async resetBalance(body: ResetBalanceDto, adminId: number): Promise<any> {
+        const drawer = await this._getOrCreateDrawer();
+        const updates: Record<string, number> = {};
+        const logDeltas: Record<string, number> = {};
+        let hadAny = false;
+
+        for (const { field } of [...USD_DENOMS, ...KHR_DENOMS]) {
+            const current = (drawer[field as keyof CashDrawer] as number) ?? 0;
+            updates[field as string] = 0;
+            if (current > 0) {
+                logDeltas[field as string] = current;
+                hadAny = true;
+            }
+        }
+
+        if (!hadAny) {
+            return {
+                data   : drawer,
+                message: 'Drawer balance is already zero.',
+            };
+        }
+
+        await drawer.update(updates as any);
+
+        await CashDrawerLog.create({
+            cashier_id: adminId,
+            type      : CashDrawerLogType.RESET,
+            note      : body.note ?? null,
+            ...logDeltas,
+        } as any);
+
+        await this.auditLog.log(adminId, 'CASH_DRAWER_RESET_BALANCE', {
+            note: body.note,
+        });
+
+        return {
+            data   : await this._getOrCreateDrawer(),
+            message: 'Cash drawer balance has been reset to zero.',
         };
     }
 

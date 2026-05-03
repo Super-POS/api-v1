@@ -7,7 +7,9 @@ import User  from '@app/models/user/user.model';
 
 export enum CashDrawerLogType {
     DEPOSIT = 'deposit',
-    CHANGE  = 'change',
+    CHANGE = 'change',
+    WITHDRAW = 'withdraw',
+    RESET = 'reset',
 }
 
 @Table({ tableName: 'cash_drawer_log', createdAt: 'created_at', updatedAt: false })

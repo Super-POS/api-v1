@@ -80,8 +80,9 @@ export class MakeChangeDto {
 
 export class PreviewChangeDto {
 
+    /** Zero is allowed (e.g. 100% coupon); drawer preview still returns full change for cash received. */
     @IsInt()
-    @IsPositive()
+    @Min(0)
     order_total_khr: number;
 
     @ValidateNested()

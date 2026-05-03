@@ -44,6 +44,16 @@ export class DepositCashDto {
     note?: string;
 }
 
+/** Same shape as deposit: counts per denomination to remove from the drawer. */
+export class WithdrawCashDto extends DepositCashDto {}
+
+export class ResetBalanceDto {
+
+    @IsString()
+    @IsOptional()
+    note?: string;
+}
+
 export class CashDrawerLogQueryDto {
 
     @IsOptional()

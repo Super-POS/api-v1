@@ -26,6 +26,11 @@ export class OrderController {
         return await this._service.getIngredientsStock();
     }
 
+    @Get('coupons')
+    async listActiveCoupons(): Promise<{ data: { id: number; code: string; discount_percent: number }[] }> {
+        return await this._service.listActiveCoupons();
+    }
+
     @Post('order')
     @UseInterceptors(IdempotencyInterceptor)
     async makeOrder(@Body() body: CreateOrderDto, @UserDecorator() user: User): Promise<{ data: Order, message: string }> {

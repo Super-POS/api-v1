@@ -4,6 +4,7 @@ import { BelongsTo, Column, DataType, ForeignKey, HasMany, Model, Table } from '
 // ================================================================================================= Custom Library
 import { OrderChannelEnum } from '@app/enums/order-channel.enum';
 import { OrderStatusEnum }  from '@app/enums/order-status.enum';
+import Coupon               from '@app/models/coupon/coupon.model';
 import Notifications        from '@app/models/notification/notification.model';
 import User                 from '@app/models/user/user.model';
 import OrderDetails         from './detail.model';
@@ -17,10 +18,14 @@ class Order extends Model<Order> {
     // ============================================================================================= Foreign Key
     @ForeignKey(() => User) @Column({ allowNull: true, onDelete: 'CASCADE' })                       cashier_id?: number;
     @ForeignKey(() => User) @Column({ allowNull: true, onDelete: 'SET NULL' })                      customer_id?: number;
+    @ForeignKey(() => Coupon) @Column({ allowNull: true, onDelete: 'SET NULL' })                    coupon_id?: number;
 
     // ============================================================================================= Field
     @Column({ allowNull: false, unique: true, type: DataType.STRING(10) })                          receipt_number: string;
     @Column({ allowNull: true, type: DataType.DOUBLE })                                             total_price?: number;
+    @Column({ allowNull: true, type: DataType.STRING(64) })                                         coupon_code?: string;
+    @Column({ allowNull: true, type: DataType.DOUBLE })                                             discount_percent?: number;
+    @Column({ allowNull: true, type: DataType.DOUBLE })                                             discount_amount?: number;
     @Column({ allowNull: true, type: DataType.DATE, defaultValue: new Date() })                     ordered_at?: Date;
     @Column({
         allowNull : false,
@@ -41,6 +46,7 @@ class Order extends Model<Order> {
     // ============================================================================================= Many to One
     @BelongsTo(() => User, { foreignKey: 'cashier_id', as: 'cashier' })                            cashier?: User;
     @BelongsTo(() => User, { foreignKey: 'customer_id', as: 'customer' })                          customer?: User;
+    @BelongsTo(() => Coupon, { foreignKey: 'coupon_id' })                                          coupon?: Coupon;
 
     // ============================================================================================= One to Many
     @HasMany(() => OrderDetails)                                                                    details: OrderDetails[];

@@ -17,6 +17,7 @@ import { AdminPaymentModule }  from './a7-payment/module';
 import { FinancialReportModule } from './a8-report/module';
 import { ModifierAdminModule } from './a3-menu/p6-modifier/module';
 import { AdminCashDrawerModule } from './a9-cash-drawer/module';
+import { AdminCouponModule } from './a10-coupon/module';
 
 // ======================================= >> Code Starts Here << ========================== //
 @Module({
@@ -34,6 +35,7 @@ import { AdminCashDrawerModule } from './a9-cash-drawer/module';
         FinancialReportModule,
         ModifierAdminModule,
         AdminCashDrawerModule,
+        AdminCouponModule,
     ]
 })
 

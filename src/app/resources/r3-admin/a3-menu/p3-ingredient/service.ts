@@ -3,7 +3,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 
 // ===========================================================================>> Custom Library
 import MenuIngredient from '@app/models/menu/menu-ingredient.model';
-import { CreateMenuIngredientDto, UpdateMenuIngredientDto } from './dto';
+import { CreateMenuIngredientDto, RestockMenuIngredientDto, UpdateMenuIngredientDto } from './dto';
 
 @Injectable()
 export class MenuIngredientService {
@@ -72,6 +72,24 @@ export class MenuIngredientService {
         return {
             data,
             message: 'Menu ingredient has been updated.',
+        };
+    }
+
+    /** Add `body.add` to current quantity (atomic increment on the server). */
+    async restock(id: number, body: RestockMenuIngredientDto): Promise<any> {
+        const row = await MenuIngredient.findByPk(id);
+        if (!row) {
+            throw new NotFoundException('Menu ingredient is not found.');
+        }
+
+        await row.increment('quantity', { by: body.add });
+        await row.reload({
+            attributes: ['id', 'menu_id', 'name', 'unit', 'quantity', 'low_stock_threshold', 'created_at'],
+        });
+
+        return {
+            data: row,
+            message: 'Stock has been increased.',
         };
     }
 

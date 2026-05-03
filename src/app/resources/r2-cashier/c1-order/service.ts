@@ -1,5 +1,5 @@
 // =========================================================================>> Core Library
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
 
 // =========================================================================>> Third Party Library
 import { Sequelize, Transaction } from 'sequelize';
@@ -25,6 +25,7 @@ import {
     toPlainMenuWithSortedModifiers,
 } from '@app/utils/modifier-order.util';
 import MenuType from '@app/models/menu/menu-type.model';
+import Coupon from '@app/models/coupon/coupon.model';
 import { CreateOrderDto } from './dto';
 
 // ======================================= >> Code Starts Here << ========================== //
@@ -61,6 +62,22 @@ export class OrderService {
         }));
 
         return { data: dataFormat };
+    }
+
+    /** Active coupons for cashier checkout (code + percent). */
+    async listActiveCoupons(): Promise<{ data: { id: number; code: string; discount_percent: number }[] }> {
+        const rows = await Coupon.findAll({
+            where: { is_active: true },
+            attributes: ['id', 'code', 'discount_percent'],
+            order: [['code', 'ASC']],
+        });
+        return {
+            data: rows.map((c) => ({
+                id: c.id,
+                code: c.code,
+                discount_percent: Number(c.discount_percent),
+            })),
+        };
     }
 
     /** Cashier read-only view of ingredient stock so they can monitor availability while taking orders. */
@@ -151,14 +168,62 @@ export class OrderService {
                 );
             }
 
-            // Update Order with total price and ordered_at timestamp
-            await Order.update({
-                total_price: totalPrice,
-                ordered_at: new Date(),
-            }, {
-                where: { id: order.id },
-                transaction,
-            });
+            const subtotalBeforeDiscount = totalPrice;
+            let couponId: number | null = null;
+            let couponCodeSnapshot: string | null = null;
+            let discountPercentApplied: number | null = null;
+            let discountAmount = 0;
+
+            const rawCoupon = body.coupon_code?.trim();
+            if (rawCoupon) {
+                const normalized = rawCoupon.trim().toUpperCase();
+                const coupon = await Coupon.findOne({
+                    where: { code: normalized, is_active: true },
+                    transaction,
+                });
+                if (!coupon) {
+                    throw new BadRequestException('Invalid or inactive coupon code.');
+                }
+                const pct = Number(coupon.discount_percent);
+                if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
+                    throw new BadRequestException('Coupon is misconfigured.');
+                }
+                discountAmount = Math.round((subtotalBeforeDiscount * pct) / 100);
+                if (discountAmount > subtotalBeforeDiscount) {
+                    discountAmount = subtotalBeforeDiscount;
+                }
+                couponId = coupon.id;
+                couponCodeSnapshot = coupon.code;
+                discountPercentApplied = pct;
+            }
+
+            const finalTotal = Math.max(0, subtotalBeforeDiscount - discountAmount);
+
+            const couponPatch = rawCoupon
+                ? {
+                      coupon_id: couponId,
+                      coupon_code: couponCodeSnapshot,
+                      discount_percent: discountPercentApplied,
+                      discount_amount: discountAmount > 0 ? discountAmount : null,
+                  }
+                : {
+                      coupon_id: null,
+                      coupon_code: null,
+                      discount_percent: null,
+                      discount_amount: null,
+                  };
+
+            await Order.update(
+                {
+                    total_price: finalTotal,
+                    ordered_at: new Date(),
+                    ...couponPatch,
+                },
+                {
+                    where: { id: order.id },
+                    transaction,
+                },
+            );
 
             const skipEarlyNotify = body.deferred_telegram === true;
             if (!skipEarlyNotify) {
@@ -171,7 +236,17 @@ export class OrderService {
 
             // Get order details for client response
             const data: Order = await Order.findByPk(order.id, {
-                attributes: ['id', 'receipt_number', 'total_price', 'channel', 'status', 'ordered_at'],
+                attributes: [
+                    'id',
+                    'receipt_number',
+                    'total_price',
+                    'channel',
+                    'status',
+                    'ordered_at',
+                    'coupon_code',
+                    'discount_percent',
+                    'discount_amount',
+                ],
                 include: [
                     {
                         model: OrderDetails,
@@ -226,6 +301,9 @@ export class OrderService {
             if (transaction) {
                 await transaction.rollback(); // Rollback transaction on error
             }
+            if (error instanceof HttpException) {
+                throw error;
+            }
             console.error('Error during order creation:', error);
             throw new BadRequestException('Something went wrong! Please try again later.', 'Error during order creation.');
         } finally {
@@ -244,6 +322,14 @@ export class OrderService {
         htmlMessage += `<b>Status: Success</b>\n`;
         htmlMessage += `-Receipt`;
         htmlMessage += `\u2003: ${data.receipt_number}\n`;
+        const disc = Number(data.discount_amount ?? 0);
+        if (disc > 0 && data.coupon_code) {
+            const sub = (Number(data.total_price ?? 0) + disc);
+            htmlMessage += `-Subtotal`;
+            htmlMessage += `\u2003: ${this.formatPrice(sub)} KHR\n`;
+            htmlMessage += `-Discount (${data.coupon_code}, ${data.discount_percent}%)`;
+            htmlMessage += `\u2003: -${this.formatPrice(disc)} KHR\n`;
+        }
         htmlMessage += `-Total`;
         htmlMessage += `\u2003\u2003\u2003: ${this.formatPrice(data.total_price!)} KHR\n`;
         htmlMessage += `-Cashier`;
@@ -312,7 +398,17 @@ export class OrderService {
             return;
         }
         const data = await Order.findByPk(orderId, {
-            attributes: ["id", "receipt_number", "total_price", "channel", "status", "ordered_at"],
+            attributes: [
+                "id",
+                "receipt_number",
+                "total_price",
+                "channel",
+                "status",
+                "ordered_at",
+                "coupon_code",
+                "discount_percent",
+                "discount_amount",
+            ],
             include: [
                 {
                     model: OrderDetails,

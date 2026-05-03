@@ -1,4 +1,5 @@
 // ===========================================================================>> Custom Library
+import { Type } from 'class-transformer';
 import { IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString, Min } from 'class-validator';
 
 export class CreateMenuIngredientDto {
@@ -37,4 +38,12 @@ export class UpdateMenuIngredientDto {
     @Min(0)
     @IsOptional()
     low_stock_threshold?: number;
+}
+
+/** Add this amount to the ingredient's current `quantity` (server-side increment). */
+export class RestockMenuIngredientDto {
+    @Type(() => Number)
+    @IsNumber()
+    @IsPositive()
+    add: number;
 }

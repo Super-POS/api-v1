@@ -8,7 +8,7 @@ import { RoleGuard }       from '@app/core/guards/role.guard';
 import { RoleEnum }        from '@app/enums/role.enum';
 import User                from '@app/models/user/user.model';
 import { AdminCashDrawerService } from './service';
-import { CashDrawerLogQueryDto, DepositCashDto } from './dto';
+import { CashDrawerLogQueryDto, DepositCashDto, ResetBalanceDto, WithdrawCashDto } from './dto';
 
 @Controller()
 @UseGuards(RoleGuard)
@@ -30,6 +30,22 @@ export class AdminCashDrawerController {
         @UserDecorator() admin: User,
     ) {
         return await this._service.deposit(body, admin.id);
+    }
+
+    @Post('withdraw')
+    async withdraw(
+        @Body() body: WithdrawCashDto,
+        @UserDecorator() admin: User,
+    ) {
+        return await this._service.withdraw(body, admin.id);
+    }
+
+    @Post('reset')
+    async resetBalance(
+        @Body() body: ResetBalanceDto,
+        @UserDecorator() admin: User,
+    ) {
+        return await this._service.resetBalance(body ?? {}, admin.id);
     }
 
     // =============================================>> View transaction logs

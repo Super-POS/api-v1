@@ -2,7 +2,7 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put } from '@nestjs/common';
 
 // ===========================================================================>> Custom Library
-import { CreateMenuIngredientDto, UpdateMenuIngredientDto } from './dto';
+import { CreateMenuIngredientDto, RestockMenuIngredientDto, UpdateMenuIngredientDto } from './dto';
 import { MenuIngredientService } from './service';
 
 @Controller()
@@ -32,6 +32,12 @@ export class MenuIngredientController {
     @Post()
     async create(@Body() body: CreateMenuIngredientDto) {
         return await this._service.create(body);
+    }
+
+    // =============================================>> Restock (increment quantity; must be before generic :id routes that could collide)
+    @Post(':id/restock')
+    async restock(@Param('id', ParseIntPipe) id: number, @Body() body: RestockMenuIngredientDto) {
+        return await this._service.restock(id, body);
     }
 
     // =============================================>> Update
