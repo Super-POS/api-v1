@@ -26,6 +26,7 @@ class AppInitializer {
             'http://localhost:3000',
             'http://localhost:4444',
             'http://localhost:4200',
+            'https://faac-2a09-bac5-55fc-1d0f-00-2e5-25.ngrok-free.app',
             // 'https://9f63-96-9-79-108.ngrok-free.app',
             'http://localhost:9007',
             'http://localhost:9004',
