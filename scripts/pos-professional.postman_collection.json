@@ -1526,6 +1526,93 @@
           }
         }
       ]
+    },
+    {
+      "name": "9) Admin — Wastage",
+      "item": [
+        {
+          "name": "List ingredient wastages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/wastages/ingredients",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "wastages", "ingredients"]
+            }
+          }
+        },
+        {
+          "name": "List ingredient wastages (filter by ingredient_id)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/wastages/ingredients?ingredient_id={{ingredientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "wastages", "ingredients"],
+              "query": [
+                { "key": "ingredient_id", "value": "{{ingredientId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Record ingredient wastage (Admin only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ingredient_id\": 1,\n  \"reason\": \"expired\",\n  \"quantity\": 0.5,\n  \"note\": \"Found expired milk in fridge\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/wastages/ingredients"
+          }
+        },
+        {
+          "name": "List recipe wastages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/wastages/recipes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "wastages", "recipes"]
+            }
+          }
+        },
+        {
+          "name": "List recipe wastages (filter by menu_id)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/wastages/recipes?menu_id={{menuId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "wastages", "recipes"],
+              "query": [
+                { "key": "menu_id", "value": "{{menuId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Record recipe wastage (Admin only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"menu_id\": 1,\n  \"reason\": \"over_cooked\",\n  \"quantity\": 2,\n  \"note\": \"Burnt batch during rush hour\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/wastages/recipes"
+          }
+        }
+      ]
     }
   ],
   "event": [
@@ -1608,6 +1695,10 @@
     },
     {
       "key": "auditLogId",
+      "value": "1"
+    },
+    {
+      "key": "wastageId",
       "value": "1"
     }
   ]

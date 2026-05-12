@@ -17,6 +17,7 @@ import { ModifierAdminModule }       from './a3-menu/p6-modifier/module';
 import { AdminCashDrawerModule }     from './a9-cash-drawer/module';
 import { AdminCouponModule }         from './a10-coupon/module';
 import { AdminExchangeSettingModule } from './a12-exchange-setting/module';
+import { WastageModule }              from './a3-menu/p7-wastage/module';
 
 export const adminRoutes: Routes = [
     {
@@ -88,5 +89,10 @@ export const adminRoutes: Routes = [
     {
         path  : 'exchange-rate',
         module: AdminExchangeSettingModule,
+    },
+
+    {
+        path  : 'wastages',
+        module: WastageModule,
     },
 ];
