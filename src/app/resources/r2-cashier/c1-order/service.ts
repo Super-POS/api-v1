@@ -43,7 +43,9 @@ export class OrderService {
             include: [
                 {
                     model: Menu,
-                    attributes: ['id', 'type_id', 'name', 'image', 'unit_price', 'code'],
+                    attributes: ['id', 'type_id', 'name', 'image', 'unit_price', 'code', 'is_available'],
+                    where: { is_available: true },
+                    required: false,
                     include: [
                         {
                             model: MenuType,
@@ -131,6 +133,11 @@ export class OrderService {
                 if (!menu) {
                     throw new BadRequestException(
                         `Menu #${item.menuId} is not in the catalog. Check cart and try again.`,
+                    );
+                }
+                if (!menu.is_available) {
+                    throw new BadRequestException(
+                        `"${menu.name}" is currently unavailable and cannot be ordered.`,
                     );
                 }
 

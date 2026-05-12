@@ -11,6 +11,7 @@
         "start:dev": "nest start --watch",
         "start:prod": "node dist/main",
         "migrate": "ts-node -r tsconfig-paths/register src/database/migrate.ts",
+        "sync": "ts-node -r tsconfig-paths/register src/database/sync.ts",
         "seeder": "ts-node -r tsconfig-paths/register src/database/seed.ts",
         "start:debug": "nest start --debug --watch",
         "ngrok": "ngrok http ${PORT:-3000}",

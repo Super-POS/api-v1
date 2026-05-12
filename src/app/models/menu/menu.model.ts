@@ -27,6 +27,9 @@ class Menu extends Model<Menu> {
 
     @Column({ allowNull: false, type: DataType.DECIMAL(10, 2), defaultValue: 0 })                   discount: number;
 
+    /** Admin can toggle availability. Unavailable items are hidden from ordering. */
+    @Column({ allowNull: false, type: DataType.BOOLEAN, defaultValue: true })                       is_available: boolean;
+
     /** Per-serving ingredient usage. Stock is deducted on order. */
     @Column({ allowNull: false, type: DataType.JSON, defaultValue: [] })
     recipes: { ingredient_id: number; quantity: number }[];

@@ -1,5 +1,5 @@
 // ===========================================================================>> Core Library
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, UsePipes } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, Query, UsePipes } from '@nestjs/common';
 
 // ===========================================================================>> Costom Library
 import UserDecorator from '@app/core/decorators/user.decorator';
@@ -67,6 +67,11 @@ export class MenuController {
         @Body() body: UpdateMenuDto
     ) {
         return this._service.update(body, id);
+    }
+
+    @Patch(':id/toggle-availability')
+    async toggleAvailability(@Param('id', ParseIntPipe) id: number) {
+        return await this._service.toggleAvailability(id);
     }
 
     @Delete(':id')

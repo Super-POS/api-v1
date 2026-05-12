@@ -328,6 +328,13 @@
           }
         },
         {
+          "name": "Menus - Toggle Availability",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/admin/menus/{{menuId}}/toggle-availability"
+          }
+        },
+        {
           "name": "Menu Categories - List",
           "request": {
             "method": "GET",

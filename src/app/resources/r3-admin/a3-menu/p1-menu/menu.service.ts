@@ -505,6 +505,19 @@ export class MenuService {
   }
 
   // Method to delete a product by ID
+  async toggleAvailability(id: number): Promise<{ data: { id: number; is_available: boolean }; message: string }> {
+    const menu = await Menu.findByPk(id, { attributes: ['id', 'is_available'] });
+    if (!menu) {
+      throw new NotFoundException('Menu not found.');
+    }
+    menu.is_available = !menu.is_available;
+    await menu.save();
+    return {
+      data   : { id: menu.id, is_available: menu.is_available },
+      message: `Menu has been ${menu.is_available ? 'enabled' : 'disabled'}.`,
+    };
+  }
+
   async delete(id: number): Promise<{ message: string }> {
     try {
       // Attempt to delete the product
