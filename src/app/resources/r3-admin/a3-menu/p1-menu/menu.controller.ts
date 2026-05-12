@@ -69,7 +69,7 @@ export class MenuController {
         return this._service.update(body, id);
     }
 
-    @Patch(':id/toggle-availability')
+    @Patch(':id/availability')
     async toggleAvailability(@Param('id', ParseIntPipe) id: number) {
         return await this._service.toggleAvailability(id);
     }

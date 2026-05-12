@@ -25,7 +25,7 @@ export class RecipeWastage extends Model<RecipeWastage> {
 
     created_at: Date;
 
-    @BelongsTo(() => Menu)                                                                        menu: Menu;
+    @BelongsTo(() => Menu, { foreignKey: 'menu_id', as: 'menu' })                                 menu: Menu;
     @BelongsTo(() => User, { foreignKey: 'created_by', as: 'creator' })                             creator?: User;
 }
 

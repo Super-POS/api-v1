@@ -24,7 +24,7 @@ export class WastageService {
                 where,
                 attributes: ['id', 'ingredient_id', 'reason', 'quantity', 'note', 'created_by', 'created_at'],
                 include: [
-                    { model: MenuIngredient, attributes: ['id', 'name', 'unit', 'quantity'] },
+                    { model: MenuIngredient, as: 'ingredient', attributes: ['id', 'name', 'unit', 'quantity'] },
                     { model: User, as: 'creator', attributes: ['id', 'name', 'avatar'], required: false },
                 ],
                 order: [['created_at', 'DESC']],
@@ -60,7 +60,7 @@ export class WastageService {
         const data = await IngredientWastage.findByPk(record.id, {
             attributes: ['id', 'ingredient_id', 'reason', 'quantity', 'note', 'created_by', 'created_at'],
             include: [
-                { model: MenuIngredient, attributes: ['id', 'name', 'unit', 'quantity'] },
+                { model: MenuIngredient, as: 'ingredient', attributes: ['id', 'name', 'unit', 'quantity'] },
                 { model: User, as: 'creator', attributes: ['id', 'name', 'avatar'], required: false },
             ],
         });
@@ -89,7 +89,7 @@ export class WastageService {
                 where,
                 attributes: ['id', 'menu_id', 'reason', 'quantity', 'note', 'created_by', 'created_at'],
                 include: [
-                    { model: Menu, attributes: ['id', 'code', 'name', 'image', 'unit_price', 'recipes'] },
+                    { model: Menu, as: 'menu', attributes: ['id', 'code', 'name', 'image', 'unit_price', 'recipes'] },
                     { model: User, as: 'creator', attributes: ['id', 'name', 'avatar'], required: false },
                 ],
                 order: [['created_at', 'DESC']],
@@ -132,7 +132,7 @@ export class WastageService {
         const data = await RecipeWastage.findByPk(record.id, {
             attributes: ['id', 'menu_id', 'reason', 'quantity', 'note', 'created_by', 'created_at'],
             include: [
-                { model: Menu, attributes: ['id', 'code', 'name', 'image', 'unit_price', 'recipes'] },
+                { model: Menu, as: 'menu', attributes: ['id', 'code', 'name', 'image', 'unit_price', 'recipes'] },
                 { model: User, as: 'creator', attributes: ['id', 'name', 'avatar'], required: false },
             ],
         });

@@ -32,7 +32,7 @@ export class IngredientWastage extends Model<IngredientWastage> {
 
     created_at: Date;
 
-    @BelongsTo(() => MenuIngredient)                                                              ingredient: MenuIngredient;
+    @BelongsTo(() => MenuIngredient, { foreignKey: 'ingredient_id', as: 'ingredient' })           ingredient: MenuIngredient;
     @BelongsTo(() => User, { foreignKey: 'created_by', as: 'creator' })                             creator?: User;
 }
 
