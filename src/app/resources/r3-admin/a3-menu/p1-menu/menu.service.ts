@@ -188,6 +188,7 @@ export class MenuService {
           "image",
           "unit_price",
           "recipes",
+          "is_available",
           "created_at",
           [
             literal(`(
