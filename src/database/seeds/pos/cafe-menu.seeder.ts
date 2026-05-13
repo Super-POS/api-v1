@@ -16,10 +16,10 @@ import MenuModifierGroup      from '@app/models/menu/menu-modifier-group.model';
 // =========================================================================
 
 const TYPES = [
-    { id: 1, name: 'CLUB 54 — Hot Beverages',    image: 'static/pos/products/type/coffee.jpg' },
-    { id: 2, name: 'CLUB 54 — Chill Beverages',  image: 'static/pos/products/type/cold-brew.jpg' },
-    { id: 3, name: 'CLUB 54 — Frappe',            image: 'static/pos/products/type/smoothie.jpg' },
-    { id: 4, name: 'CLUB 54 — Soda',              image: 'static/pos/products/smoothie/strawberry.jpg' },
+    { id: 1, name: 'CLUB 54 — Hot Beverages',    image: 'static/pos/products/menu/hot_americano.png' },
+    { id: 2, name: 'CLUB 54 — Chill Beverages',  image: 'static/pos/products/menu/ice_americano.png' },
+    { id: 3, name: 'CLUB 54 — Frappe',            image: 'static/pos/products/menu/cafe_frappe.png' },
+    { id: 4, name: 'CLUB 54 — Soda',              image: 'static/pos/products/menu/strawberry_soda.png' },
 ];
 
 // Single-price items (no sizes): espresso shots served as fixed volume.
@@ -27,28 +27,28 @@ const TYPES = [
 //   — actual price + recipe live in menu_sizes.
 const MENUS = [
     // ── Hot — no sizes (fixed serving) ───────────────────────────────────
-    { id:  1, code: 'C54-H01', type_id: 1, name: 'Single Espresso',    has_sizes: false, unit_price:  6000, discount: 0, image: 'static/pos/products/coffee/espresso.jpg',  creator_id: 1 },
-    { id:  2, code: 'C54-H02', type_id: 1, name: 'Double Espresso',    has_sizes: false, unit_price:  9000, discount: 0, image: 'static/pos/products/coffee/espresso.jpg',  creator_id: 1 },
+    { id:  1, code: 'C54-H01', type_id: 1, name: 'Single Espresso',    has_sizes: false, unit_price:  6000, discount: 0, image: 'static/pos/products/menu/single_expresso.png',  creator_id: 1 },
+    { id:  2, code: 'C54-H02', type_id: 1, name: 'Double Espresso',    has_sizes: false, unit_price:  9000, discount: 0, image: 'static/pos/products/menu/single_expresso.png',  creator_id: 1 },
     // ── Hot — S / M / L ───────────────────────────────────────────────────
-    { id:  3, code: 'C54-H03', type_id: 1, name: 'Hot Americano',      has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/coffee/americano.jpg',  creator_id: 1 },
-    { id:  4, code: 'C54-H04', type_id: 1, name: 'Hot Café Latte',     has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/coffee/latte.jpg',       creator_id: 1 },
-    { id:  5, code: 'C54-H05', type_id: 1, name: 'Hot Cappuccino',     has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/coffee/cappuccino.jpg',  creator_id: 1 },
-    { id:  6, code: 'C54-H06', type_id: 1, name: 'Hot Matcha Latte',   has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/tea/matcha-latte.jpg',   creator_id: 1 },
+    { id:  3, code: 'C54-H03', type_id: 1, name: 'Hot Americano',      has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/menu/hot_americano.png',     creator_id: 1 },
+    { id:  4, code: 'C54-H04', type_id: 1, name: 'Hot Café Latte',     has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/menu/hot_cafe_latte.png',    creator_id: 1 },
+    { id:  5, code: 'C54-H05', type_id: 1, name: 'Hot Cappuccino',     has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/menu/hot_cappuccino.png',    creator_id: 1 },
+    { id:  6, code: 'C54-H06', type_id: 1, name: 'Hot Matcha Latte',   has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/menu/hot_matcha_latte.png', creator_id: 1 },
     // ── Iced — S / M / L ─────────────────────────────────────────────────
-    { id:  7, code: 'C54-C01', type_id: 2, name: 'Iced Americano',     has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/cold/iced-americano.jpg', creator_id: 1 },
-    { id:  8, code: 'C54-C02', type_id: 2, name: 'Iced Latte',         has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/cold/iced-latte.jpg',      creator_id: 1 },
-    { id:  9, code: 'C54-C03', type_id: 2, name: 'Iced Cappuccino',    has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/coffee/cappuccino.jpg',    creator_id: 1 },
-    { id: 10, code: 'C54-C04', type_id: 2, name: 'Iced Chocolate',     has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/coffee/mocha.jpg',          creator_id: 1 },
-    { id: 11, code: 'C54-C05', type_id: 2, name: 'Iced Matcha Latte',  has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/cold/iced-matcha.jpg',     creator_id: 1 },
+    { id:  7, code: 'C54-C01', type_id: 2, name: 'Iced Americano',     has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/menu/ice_americano.png',     creator_id: 1 },
+    { id:  8, code: 'C54-C02', type_id: 2, name: 'Iced Latte',         has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/menu/ice_latte.png',         creator_id: 1 },
+    { id:  9, code: 'C54-C03', type_id: 2, name: 'Iced Cappuccino',    has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/menu/ice_cappuccino.png',    creator_id: 1 },
+    { id: 10, code: 'C54-C04', type_id: 2, name: 'Iced Chocolate',     has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/menu/ice_chocolate.png',     creator_id: 1 },
+    { id: 11, code: 'C54-C05', type_id: 2, name: 'Iced Matcha Latte',  has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/menu/ice_matcha_latte.png',  creator_id: 1 },
     // ── Frappe — S / M / L ───────────────────────────────────────────────
-    { id: 12, code: 'C54-F01', type_id: 3, name: 'Café Frappe',        has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/cold/iced-latte.jpg',      creator_id: 1 },
-    { id: 13, code: 'C54-F02', type_id: 3, name: 'Chocolate Frappe',   has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/coffee/mocha.jpg',          creator_id: 1 },
-    { id: 14, code: 'C54-F03', type_id: 3, name: 'Matcha Frappe',      has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/cold/iced-matcha.jpg',     creator_id: 1 },
-    { id: 15, code: 'C54-F04', type_id: 3, name: 'Strawberry Frappe',  has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/smoothie/strawberry.jpg',  creator_id: 1 },
-    { id: 16, code: 'C54-F05', type_id: 3, name: 'Mango Frappe',       has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/smoothie/mango.jpg',        creator_id: 1 },
+    { id: 12, code: 'C54-F01', type_id: 3, name: 'Café Frappe',        has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/menu/cafe_frappe.png',       creator_id: 1 },
+    { id: 13, code: 'C54-F02', type_id: 3, name: 'Chocolate Frappe',   has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/menu/chocolate_frappe.png',  creator_id: 1 },
+    { id: 14, code: 'C54-F03', type_id: 3, name: 'Matcha Frappe',      has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/menu/matcha_frappe.png',     creator_id: 1 },
+    { id: 15, code: 'C54-F04', type_id: 3, name: 'Strawberry Frappe',  has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/menu/strawberry_frappe.png', creator_id: 1 },
+    { id: 16, code: 'C54-F05', type_id: 3, name: 'Mango Frappe',       has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/menu/mango_frappe.png',      creator_id: 1 },
     // ── Soda — S / M / L ─────────────────────────────────────────────────
-    { id: 17, code: 'C54-S01', type_id: 4, name: 'Strawberry Soda',    has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/smoothie/strawberry.jpg',  creator_id: 1 },
-    { id: 18, code: 'C54-S02', type_id: 4, name: 'Peach Soda',         has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/smoothie/orange-juice.jpg', creator_id: 1 },
+    { id: 17, code: 'C54-S01', type_id: 4, name: 'Strawberry Soda',    has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/menu/strawberry_soda.png',  creator_id: 1 },
+    { id: 18, code: 'C54-S02', type_id: 4, name: 'Peach Soda',         has_sizes: true,  unit_price: null,  discount: 0, image: 'static/pos/products/menu/peach_soda.png',       creator_id: 1 },
 ];
 
 // Fixed-price recipes (menu_id has has_sizes = false)
