@@ -1101,10 +1101,41 @@
           }
         },
         {
-          "name": "Rewards - My Profile",
+          "name": "Rewards - My Profile (balance + rank + badge + history)",
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/customer/rewards"
+          }
+        },
+        {
+          "name": "Rewards - My Rank",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customer/rewards/rank"
+          }
+        },
+        {
+          "name": "Rewards - Badge Questions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customer/rewards/badge/questions"
+          }
+        },
+        {
+          "name": "Rewards - Assign Badge (AI)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    \"Studying or working\",\n    \"Student\",\n    \"Coding or building tech\",\n    \"I love the ritual and slow process\",\n    \"Youth education and future generations\"\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/customer/rewards/badge"
           }
         },
         {

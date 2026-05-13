@@ -17,6 +17,8 @@ class RewardPoint extends Model<RewardPoint> {
     // ============================================================================================= Field
     @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          balance: number;
 
+    @Column({ allowNull: true, type: DataType.STRING(200) })                                        badge?: string;
+
     created_at: Date;
 
     // ===========================================================================================>> Many to One

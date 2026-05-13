@@ -16,6 +16,7 @@ import { OrderNumberSchemaPatchService } from './order-number-schema.patch';
 import { ExchangeSettingSchemaPatchService } from './exchange-setting-schema.patch';
 import { ExchangeSettingService } from '@app/services/exchange-setting.service';
 import { WastageSchemaPatchService } from './wastage-schema.patch';
+import { BadgeSchemaPatchService } from './badge-schema.patch';
 
 /** @noded We use Global that allow all module can access and use all models */
 @Global()
@@ -42,6 +43,7 @@ import { WastageSchemaPatchService } from './wastage-schema.patch';
         ExchangeSettingSchemaPatchService,
         ExchangeSettingService,
         WastageSchemaPatchService,
+        BadgeSchemaPatchService,
     ],
     exports: [
         FileService,
