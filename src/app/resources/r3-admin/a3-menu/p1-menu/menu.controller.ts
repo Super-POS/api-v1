@@ -49,6 +49,11 @@ export class MenuController {
         return await this._service.getData(params);
     }
 
+    @Get(':id/detail')
+    async detail(@Param('id', ParseIntPipe) id: number) {
+        return await this._service.detail(id);
+    }
+
     @Get('/:id')
     async view(@Param('id', ParseIntPipe) id: number) {
         return await this._service.view(id);

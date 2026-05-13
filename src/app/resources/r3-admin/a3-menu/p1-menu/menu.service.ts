@@ -266,6 +266,20 @@ export class MenuService {
     }
   }
 
+  async detail(id: number): Promise<{ data: Menu }> {
+    const menu = await Menu.findByPk(id, {
+      attributes: ['id', 'code', 'name', 'image', 'has_sizes', 'unit_price', 'recipes', 'type_id', 'created_at'],
+      include: [
+        { model: MenuType, attributes: ['id', 'name'] },
+        this._sizeInclude(),
+      ],
+    });
+    if (!menu) {
+      throw new NotFoundException('Menu not found.');
+    }
+    return { data: menu };
+  }
+
   async view(menu_id: number) {
     const where: any = {
       menu_id: menu_id,
