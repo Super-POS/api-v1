@@ -6,6 +6,7 @@ import OrderDetails from '@app/models/order/detail.model';
 import User from '@app/models/user/user.model';
 import MenuType from './menu-type.model';
 import MenuIngredient from './menu-ingredient.model';
+import MenuSize from './menu-size.model';
 import ModifierGroup from './modifier-group.model';
 import MenuModifierGroup from './menu-modifier-group.model';
 
@@ -27,12 +28,14 @@ class Menu extends Model<Menu> {
 
     @Column({ allowNull: false, type: DataType.DECIMAL(10, 2), defaultValue: 0 })                   discount: number;
 
-    /** Admin can toggle availability. Unavailable items are hidden from ordering. */
-    @Column({ allowNull: false, type: DataType.BOOLEAN, defaultValue: true })                       is_available: boolean;
+    /** When true, pricing and recipes come from menu_sizes (S/M/L) instead of unit_price/recipes. */
+    @Column({ allowNull: false, type: DataType.BOOLEAN, defaultValue: false })                      has_sizes: boolean;
 
-    /** Per-serving ingredient usage. Stock is deducted on order. */
+    /** Per-serving ingredient usage. Used only when has_sizes = false. */
     @Column({ allowNull: false, type: DataType.JSON, defaultValue: [] })
     recipes: { ingredient_id: number; quantity: number }[];
+
+    @Column({ allowNull: false, type: DataType.BOOLEAN, defaultValue: true })                         is_available: boolean;
 
     created_at: Date
     // ===========================================================================================>> Many to One
@@ -42,6 +45,7 @@ class Menu extends Model<Menu> {
     // ===========================================================================================>> One to Many
     @HasMany(() => OrderDetails)                                                                    orderDetails: OrderDetails[];
     @HasMany(() => MenuIngredient)                                                                 ingredients: MenuIngredient[];
+    @HasMany(() => MenuSize)                                                                        sizes: MenuSize[];
     @BelongsToMany(() => ModifierGroup, () => MenuModifierGroup)                                 modifierGroups: ModifierGroup[];
 }
 

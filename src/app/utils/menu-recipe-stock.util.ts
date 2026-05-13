@@ -7,6 +7,7 @@ import { Transaction } from 'sequelize';
 // =========================================================================>> Custom Library
 import MenuIngredient from '@app/models/menu/menu-ingredient.model';
 import Menu from '@app/models/menu/menu.model';
+import MenuSize from '@app/models/menu/menu-size.model';
 import ModifierOption from '@app/models/menu/modifier-option.model';
 import IngredientStockMovement, { StockMovementType } from '@app/models/menu/stock_movement.model';
 
@@ -55,8 +56,15 @@ export async function deductStockForMenuRecipeLines(
     orderLineQty: number,
     transaction: Transaction,
     options: { receiptRef: string; createdBy: number | null },
+    size?: 'S' | 'M' | 'L',
 ): Promise<void> {
-    const lines = parseMenuRecipesJson((menu as any).get?.('recipes') ?? (menu as any).recipes);
+    let lines: MenuRecipeLine[];
+    if (menu.has_sizes && size) {
+        const sizeRow = await MenuSize.findOne({ where: { menu_id: menu.id, size }, transaction });
+        lines = parseMenuRecipesJson(sizeRow?.recipes ?? []);
+    } else {
+        lines = parseMenuRecipesJson((menu as any).get?.('recipes') ?? (menu as any).recipes);
+    }
     for (const line of lines) {
         const ingredient = await MenuIngredient.findByPk(line.ingredient_id, { transaction });
         if (!ingredient) {

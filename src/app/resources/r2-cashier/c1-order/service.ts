@@ -25,6 +25,7 @@ import {
     toPlainMenuWithSortedModifiers,
 } from '@app/utils/modifier-order.util';
 import MenuType from '@app/models/menu/menu-type.model';
+import MenuSize from '@app/models/menu/menu-size.model';
 import Coupon from '@app/models/coupon/coupon.model';
 import { allocateNextOrderNumber } from '@app/utils/order/allocate-order-number.util';
 import { CreateOrderDto } from './dto';
@@ -43,13 +44,19 @@ export class OrderService {
             include: [
                 {
                     model: Menu,
-                    attributes: ['id', 'type_id', 'name', 'image', 'unit_price', 'code', 'is_available'],
+                    attributes: ['id', 'type_id', 'name', 'image', 'unit_price', 'has_sizes', 'code', 'is_available'],
                     where: { is_available: true },
                     required: false,
                     include: [
                         {
                             model: MenuType,
                             attributes: ['name'],
+                        },
+                        {
+                            model: MenuSize,
+                            as: 'sizes',
+                            attributes: ['id', 'size', 'price'],
+                            required: false,
                         },
                         getMenuCatalogInclude(),
                     ],
@@ -145,6 +152,7 @@ export class OrderService {
                     menu,
                     item.modifier_option_ids,
                     transaction,
+                    item.size,
                 );
 
                 const detail = await OrderDetails.create(
@@ -167,6 +175,7 @@ export class OrderService {
                     item.qty,
                     transaction,
                     { receiptRef: order.receipt_number + '', createdBy: cashierId },
+                    item.size,
                 );
                 await deductStockForModifierOptionRecipes(
                     menu,

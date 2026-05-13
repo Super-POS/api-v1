@@ -4,6 +4,7 @@ import { BadRequestException } from '@nestjs/common';
 import { Transaction } from 'sequelize';
 // =========================================================================>> Custom Library
 import Menu from '@app/models/menu/menu.model';
+import MenuSize from '@app/models/menu/menu-size.model';
 import MenuModifierGroup from '@app/models/menu/menu-modifier-group.model';
 import ModifierGroup from '@app/models/menu/modifier-group.model';
 import ModifierOption from '@app/models/menu/modifier-option.model';
@@ -15,6 +16,7 @@ export type CartLineInput = {
     qty: number;
     modifier_option_ids: number[];
     line_note?: string;
+    size?: 'S' | 'M' | 'L';
 };
 
 /**
@@ -86,10 +88,14 @@ export function normalizeCartLines(raw: unknown): CartLineInput[] {
                 ? rawItem.line_note.trim().slice(0, 500)
                 : undefined;
 
+        const rawSize = rawItem?.size;
+        const size: 'S' | 'M' | 'L' | undefined =
+            rawSize === 'S' || rawSize === 'M' || rawSize === 'L' ? rawSize : undefined;
+
         if (!Number.isFinite(menuId) || menuId <= 0 || !Number.isFinite(qty) || qty <= 0) {
             return null;
         }
-        return { menuId, qty, modifier_option_ids, line_note };
+        return { menuId, qty, modifier_option_ids, line_note, size };
     };
 
     if (Array.isArray(parsed)) {
@@ -128,13 +134,26 @@ export async function buildLineModifiers(
     menu: Menu,
     modifierOptionIds: number[],
     transaction?: Transaction,
+    size?: 'S' | 'M' | 'L',
 ): Promise<{
     unitPrice: number;
     modifierDeltaPerUnit: number;
     snapshots: ModifierSnapshot[];
     selectedOptions: ModifierOption[];
 }> {
-    const base = Number(menu.unit_price ?? 0);
+    let base: number;
+    if (menu.has_sizes) {
+        if (!size) {
+            throw new BadRequestException(`"${menu.name}" has multiple sizes — please select a size (S, M, or L).`);
+        }
+        const sizeRow = await MenuSize.findOne({ where: { menu_id: menu.id, size }, transaction });
+        if (!sizeRow) {
+            throw new BadRequestException(`Size "${size}" is not available for "${menu.name}".`);
+        }
+        base = Number(sizeRow.price ?? 0);
+    } else {
+        base = Number(menu.unit_price ?? 0);
+    }
     const ids = Array.from(
         new Set(
             (modifierOptionIds || []).filter(

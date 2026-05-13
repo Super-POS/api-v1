@@ -15,6 +15,7 @@ import User from "@app/models/user/user.model";
 import { Col, Fn, Literal } from "sequelize/types/utils";
 import Menu from "@app/models/menu/menu.model";
 import MenuIngredient from "@app/models/menu/menu-ingredient.model";
+import MenuSize from "@app/models/menu/menu-size.model";
 import MenuType from "@app/models/menu/menu-type.model";
 import { getMenuCatalogInclude } from "@app/utils/modifier-order.util";
 import { FileService } from "src/app/services/file.service";
@@ -50,6 +51,37 @@ export class MenuService {
     }
   }
 
+  private async _replaceSizes(
+    menu_id: number,
+    sizes: { size: string; price: number; recipes: MenuRecipeLineDto[] }[]
+  ): Promise<void> {
+    const allowed = new Set(['S', 'M', 'L']);
+    const seen = new Set<string>();
+    for (const s of sizes) {
+      if (!allowed.has(s.size)) {
+        throw new BadRequestException(`Invalid size "${s.size}". Must be S, M, or L.`);
+      }
+      if (seen.has(s.size)) {
+        throw new BadRequestException(`Duplicate size "${s.size}" in sizes array.`);
+      }
+      seen.add(s.size);
+      this._validateRecipeLines(s.recipes ?? []);
+      await this._assertIngredientsExist(s.recipes ?? []);
+    }
+    if (seen.size === 0) {
+      throw new BadRequestException('sizes must contain at least one entry.');
+    }
+    await MenuSize.destroy({ where: { menu_id } });
+    await MenuSize.bulkCreate(
+      sizes.map((s) => ({
+        menu_id,
+        size: s.size as any,
+        price: s.price,
+        recipes: s.recipes ?? [],
+      }))
+    );
+  }
+
   /**
    * After bulk seed rows with explicit ids, PostgreSQL SERIAL may still point at 1.
    * Call before retrying Menu.create, or from seed.
@@ -68,15 +100,17 @@ export class MenuService {
     );
   }
 
+  private _sizeInclude() {
+    return { model: MenuSize, as: 'sizes', attributes: ['id', 'size', 'price', 'recipes'] };
+  }
+
   // Method to retrieve the setup data for product types
   async getSetupData(): Promise<any> {
-    // Fetch product types
     try {
       const menuTypes = await MenuType.findAll({
         attributes: ["id", "name"],
       });
 
-      // Fetch users
       const users = await User.findAll({
         attributes: ["id", "name"],
       });
@@ -85,7 +119,7 @@ export class MenuService {
         users,
       };
     } catch (error) {
-      console.error("Error in setup method:", error); // Log the error for debugging
+      console.error("Error in setup method:", error);
       return {
         status: "error",
         message: "menus/setup",
@@ -105,29 +139,23 @@ export class MenuService {
     order?: string;
   }) {
     try {
-      // Calculate offset for pagination
       const offset = (params?.page - 1) * params?.limit;
 
-      // Helper to convert to UTC+7 (Cambodia time)
       const toCambodiaDate = (dateString: string, isEndOfDay = false): Date => {
         const date = new Date(dateString);
-        const utcOffset = 7 * 60; // UTC+7 offset in minutes
+        const utcOffset = 7 * 60;
         const localDate = new Date(date.getTime() + utcOffset * 60 * 1000);
-
         if (isEndOfDay) {
-          localDate.setHours(23, 59, 59, 999); // End of day
+          localDate.setHours(23, 59, 59, 999);
         } else {
-          localDate.setHours(0, 0, 0, 0); // Start of day
+          localDate.setHours(0, 0, 0, 0);
         }
-
         return localDate;
       };
 
-      // Prepare date range
       const start = params?.startDate ? toCambodiaDate(params.startDate) : null;
       const end = params?.endDate ? toCambodiaDate(params.endDate, true) : null;
 
-      // Construct WHERE clause
       const where: any = {};
 
       if (params?.key) {
@@ -145,7 +173,6 @@ export class MenuService {
         where.creator_id = Number(params.creator);
       }
 
-      // Smart date range logic
       if (start && end) {
         where.created_at = { [Op.between]: [start, end] };
       } else if (start) {
@@ -154,7 +181,6 @@ export class MenuService {
         where.created_at = { [Op.lte]: end };
       }
 
-      // Sorting
       const sortField = params?.sort_by || "name";
       const sortOrder = ["ASC", "DESC"].includes(
         (params?.order || "DESC").toUpperCase()
@@ -179,13 +205,13 @@ export class MenuService {
           break;
       }
 
-      // Run query
       const { rows, count } = await Menu.findAndCountAll({
         attributes: [
           "id",
           "code",
           "name",
           "image",
+          "has_sizes",
           "unit_price",
           "recipes",
           "is_available",
@@ -198,21 +224,20 @@ export class MenuService {
                     )`),
             "total_sale",
           ],
+          [
+            literal(`(
+                        SELECT SUM(od.unit_price * od.qty)
+                        FROM order_details AS od
+                        WHERE od.menu_id = "Menu"."id"
+                    )`),
+            "total_revenue",
+          ],
         ],
         include: [
-          {
-            model: MenuType,
-            attributes: ["id", "name"],
-          },
-          {
-            model: OrderDetails,
-            as: "orderDetails",
-            attributes: [],
-          },
-          {
-            model: User,
-            attributes: ["id", "name", "avatar"],
-          },
+          { model: MenuType, attributes: ["id", "name"] },
+          { model: OrderDetails, as: "orderDetails", attributes: [] },
+          { model: User, attributes: ["id", "name", "avatar"] },
+          this._sizeInclude(),
         ],
         where,
         distinct: true,
@@ -221,7 +246,6 @@ export class MenuService {
         order: sort,
       });
 
-      // Pagination info
       const totalPages = Math.ceil(count / params?.limit);
       return {
         status: "success",
@@ -276,50 +300,46 @@ export class MenuService {
     return { data: data };
   }
 
-  // Method to create a new menu
   async create(
     body: CreateMenuDto,
     creator_id: number
   ): Promise<{ data: Menu; message: string }> {
     try {
-      // Check if the menu code already exists
-      const checkExistCode = await Menu.findOne({
-        where: { code: body.code },
-      });
+      const checkExistCode = await Menu.findOne({ where: { code: body.code } });
       if (checkExistCode) {
-        throw new BadRequestException(
-          "This code already exists in the system."
-        );
+        throw new BadRequestException("This code already exists in the system.");
       }
 
-      // Check if the menu name already exists
-      const checkExistName = await Menu.findOne({
-        where: { name: body.name },
-      });
+      const checkExistName = await Menu.findOne({ where: { name: body.name } });
       if (checkExistName) {
-        throw new BadRequestException(
-          "This name already exists in the system."
-        );
+        throw new BadRequestException("This name already exists in the system.");
       }
 
-      const rawRecipes = body.recipes ?? [];
-      this._validateRecipeLines(rawRecipes);
-      await this._assertIngredientsExist(rawRecipes);
+      if (body.has_sizes) {
+        if (!body.sizes?.length) {
+          throw new BadRequestException("sizes is required when has_sizes is true.");
+        }
+      } else {
+        const rawRecipes = body.recipes ?? [];
+        this._validateRecipeLines(rawRecipes);
+        await this._assertIngredientsExist(rawRecipes);
+      }
 
-      //   console.log("Before image upload");
       const { data: fileData } = await this.fileService.uploadBase64Image("menu", body.image);
       body.image = fileData.uri;
 
-      //   console.log("Before menu creation", body);
-      const { recipes, ...rest } = body;
-      const { id: _clientId, ...row } = rest as CreateMenuDto & { id?: number };
-      void _clientId;
       const insert = () =>
         Menu.create({
-          ...row,
-          recipes: rawRecipes,
+          code: body.code,
+          name: body.name,
+          type_id: body.type_id,
+          image: body.image,
+          has_sizes: !!body.has_sizes,
+          unit_price: body.has_sizes ? null : body.unit_price,
+          recipes: body.has_sizes ? [] : (body.recipes ?? []),
           creator_id,
         });
+
       let menu: Menu;
       try {
         menu = await insert();
@@ -335,38 +355,24 @@ export class MenuService {
           throw e;
         }
       }
-      //   console.log("After menu creation", menu);
+
+      if (body.has_sizes) {
+        await this._replaceSizes(menu.id, body.sizes as any);
+      }
 
       const data = await Menu.findByPk(menu.id, {
         attributes: [
-          "id",
-          "code",
-          "name",
-          "image",
-          "unit_price",
-          "recipes",
-          "created_at",
+          "id", "code", "name", "image", "has_sizes", "unit_price", "recipes", "created_at",
           [
-            literal(
-              `(SELECT COUNT(*) FROM order_details AS od WHERE od.menu_id = "Menu"."id" )`
-            ),
+            literal(`(SELECT COUNT(*) FROM order_details AS od WHERE od.menu_id = "Menu"."id" )`),
             "total_sale",
           ],
         ],
         include: [
-          {
-            model: MenuType,
-            attributes: ["id", "name"],
-          },
-          {
-            model: OrderDetails,
-            as: "orderDetails",
-            attributes: [],
-          },
-          {
-            model: User,
-            attributes: ["id", "name", "avatar"],
-          },
+          { model: MenuType, attributes: ["id", "name"] },
+          { model: OrderDetails, as: "orderDetails", attributes: [] },
+          { model: User, attributes: ["id", "name", "avatar"] },
+          this._sizeInclude(),
           getMenuCatalogInclude(),
         ],
       });
@@ -381,112 +387,87 @@ export class MenuService {
     }
   }
 
-  // Method to update an existing product
   async update(
     body: UpdateMenuDto,
     id: number
   ): Promise<{ data: Menu; message: string }> {
     try {
-    //   console.log("Starting product update for ID:", id);
-    //   console.log("Update data:", body);
-
-      // Check if the product exists
       const checkExist = await Menu.findByPk(id);
       if (!checkExist) {
-        // console.log("Menu not found for ID:", id);
         throw new BadRequestException("No data found for the provided ID.");
       }
 
-      // Check for duplicate code
       const checkExistCode = await Menu.findOne({
-        where: {
-          id: { [Op.not]: id },
-          code: body.code,
-        },
+        where: { id: { [Op.not]: id }, code: body.code },
       });
       if (checkExistCode) {
-        // console.log("Duplicate code found:", body.code);
-        throw new BadRequestException(
-          "This code already exists in the system."
-        );
+        throw new BadRequestException("This code already exists in the system.");
       }
 
-      // Check for duplicate name
       const checkExistName = await Menu.findOne({
-        where: {
-          id: { [Op.not]: id },
-          name: body.name,
-        },
+        where: { id: { [Op.not]: id }, name: body.name },
       });
       if (checkExistName) {
-        // console.log("Duplicate name found:", body.name);
-        throw new BadRequestException(
-          "This name already exists in the system."
-        );
+        throw new BadRequestException("This name already exists in the system.");
       }
 
-      // Handle image update if provided
       if (body.image) {
-        // console.log("Processing image update");
         const { data: fileData } = await this.fileService.uploadBase64Image("menu", body.image);
         body.image = fileData.uri;
       } else {
-        // Keep existing image if not provided in update
         body.image = checkExist.image;
       }
 
-      if (body.recipes !== undefined) {
-        this._validateRecipeLines(body.recipes);
-        await this._assertIngredientsExist(body.recipes);
+      const hasSizes = body.has_sizes ?? checkExist.has_sizes;
+
+      if (hasSizes) {
+        if (body.sizes?.length) {
+          await this._replaceSizes(id, body.sizes as any);
+        }
+      } else {
+        if (body.recipes !== undefined) {
+          this._validateRecipeLines(body.recipes);
+          await this._assertIngredientsExist(body.recipes);
+        }
       }
 
-      // Perform the update
-    //   console.log("Executing update query");
-      const { recipes: nextRecipes, ...updateFields } = body;
-      const payload: Parameters<typeof Menu.update>[0] = { ...updateFields };
-      if (nextRecipes !== undefined) {
-        payload.recipes = nextRecipes;
+      const payload: any = {
+        name: body.name,
+        code: body.code,
+        type_id: body.type_id,
+        image: body.image,
+        has_sizes: hasSizes,
+      };
+
+      if (!hasSizes) {
+        payload.unit_price = body.unit_price ?? checkExist.unit_price;
+        if (body.recipes !== undefined) {
+          payload.recipes = body.recipes;
+        }
+      } else {
+        payload.unit_price = null;
+        payload.recipes = [];
       }
-      const [rowsAffected] = await Menu.update(payload, {
-        where: { id: id },
-      });
+
+      const [rowsAffected] = await Menu.update(payload, { where: { id } });
 
       if (rowsAffected === 0) {
         throw new Error("No rows were affected by the update");
       }
 
-      // Retrieve updated product
-    //   console.log("Fetching updated product");
       const data = await Menu.findByPk(id, {
         attributes: [
-          "id",
-          "code",
-          "name",
-          "image",
-          "unit_price",
-          "recipes",
-          "created_at",
+          "id", "code", "name", "image", "has_sizes", "unit_price", "recipes", "created_at",
           [
-            literal(
-              `(SELECT COUNT(*) FROM order_details AS od WHERE od.menu_id = "Menu"."id" )`
-            ),
+            literal(`(SELECT COUNT(*) FROM order_details AS od WHERE od.menu_id = "Menu"."id" )`),
             "total_sale",
           ],
         ],
         include: [
-          {
-            model: MenuType,
-            attributes: ["id", "name"],
-          },
-          {
-            model: OrderDetails,
-            as: "orderDetails",
-            attributes: [],
-          },
-          {
-            model: User,
-            attributes: ["id", "name", "avatar"],
-          },
+          { model: MenuType, attributes: ["id", "name"] },
+          { model: OrderDetails, as: "orderDetails", attributes: [] },
+          { model: User, attributes: ["id", "name", "avatar"] },
+          this._sizeInclude(),
           getMenuCatalogInclude(),
         ],
       });
@@ -521,21 +502,12 @@ export class MenuService {
 
   async delete(id: number): Promise<{ message: string }> {
     try {
-      // Attempt to delete the product
-      const rowsAffected = await Menu.destroy({
-        where: {
-          id: id,
-        },
-      });
-
-      // Check if the product was found and deleted
+      const rowsAffected = await Menu.destroy({ where: { id } });
       if (rowsAffected === 0) {
         throw new NotFoundException("Menu not found.");
       }
-
       return { message: "This menu has been deleted successfully." };
     } catch (error) {
-      // Handle any errors during the delete operation
       throw new BadRequestException(
         error.message ?? "Something went wrong! Please try again later.",
         "Error Delete"
