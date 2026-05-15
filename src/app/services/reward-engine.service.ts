@@ -4,6 +4,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 // ===========================================================================>> Custom Library
 import RewardPoint                        from '@app/models/reward/reward_point.model';
 import RewardTransaction, { RewardTransactionType } from '@app/models/reward/reward_transaction.model';
+import { COFFEE_RANKS }                   from '@app/services/badge-ai.service';
 
 // 1 point earned per this many currency units spent
 const POINTS_PER_UNIT = 1;
@@ -14,25 +15,49 @@ const REDEMPTION_RATE = 100;
 // Points expire after this many days from earn date
 const EXPIRY_DAYS = 365;
 
+export interface EarnResult {
+    transaction  : RewardTransaction | null;
+    rankedUp     : boolean;
+    prevTier     : number;
+    newTier      : number;
+    newRankLabel : string;
+    badgeAnswers : string | null;   // stored Q&A for auto-badge reassignment
+    rewardPointId: number;
+}
+
+function tierFromTotal(total: number): { tier: number; label: string } {
+    let current = COFFEE_RANKS[0];
+    for (const r of COFFEE_RANKS) {
+        if (total >= r.min) current = r;
+        else break;
+    }
+    return { tier: current.tier, label: current.label };
+}
+
 @Injectable()
 export class RewardEngineService {
 
     // ===================================================>> Earn points after a successful purchase
-    async earn(customer_id: number, amount: number, reference?: string): Promise<RewardTransaction> {
+    async earn(customer_id: number, amount: number, reference?: string): Promise<EarnResult> {
         const points = Math.floor(amount / POINTS_PER_UNIT);
-        if (points <= 0) return null;
+        if (points <= 0) {
+            const rp = await RewardPoint.findOne({ where: { customer_id } });
+            return { transaction: null, rankedUp: false, prevTier: rp?.rank_tier ?? 1, newTier: rp?.rank_tier ?? 1, newRankLabel: COFFEE_RANKS[0].label, badgeAnswers: null, rewardPointId: rp?.id ?? 0 };
+        }
 
         const [rewardPoint] = await RewardPoint.findOrCreate({
             where   : { customer_id },
-            defaults: { customer_id, balance: 0 },
+            defaults: { customer_id, balance: 0, rank_tier: 1 },
         });
+
+        const prevTier = rewardPoint.rank_tier ?? 1;
 
         await RewardPoint.increment('balance', { by: points, where: { id: rewardPoint.id } });
 
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + EXPIRY_DAYS);
 
-        return await RewardTransaction.create({
+        const transaction = await RewardTransaction.create({
             reward_point_id: rewardPoint.id,
             customer_id,
             type      : RewardTransactionType.EARN,
@@ -41,6 +66,30 @@ export class RewardEngineService {
             note      : `Earned ${points} pts from purchase`,
             expires_at: expiresAt,
         });
+
+        // Compute new total earned to resolve rank
+        const totalResult = await RewardTransaction.findOne({
+            where     : { customer_id, type: RewardTransactionType.EARN },
+            attributes: [[RewardTransaction.sequelize!.fn('SUM', RewardTransaction.sequelize!.col('points')), 'total']],
+            raw       : true,
+        }) as any;
+        const totalEarned = Number(totalResult?.total ?? points);
+        const { tier: newTier, label: newRankLabel } = tierFromTotal(totalEarned);
+
+        const rankedUp = newTier > prevTier;
+        if (rankedUp) {
+            await RewardPoint.update({ rank_tier: newTier }, { where: { id: rewardPoint.id } });
+        }
+
+        return {
+            transaction,
+            rankedUp,
+            prevTier,
+            newTier,
+            newRankLabel,
+            badgeAnswers : rewardPoint.badge_answers ?? null,
+            rewardPointId: rewardPoint.id,
+        };
     }
 
     // ===================================================>> Redeem points, returns monetary discount value

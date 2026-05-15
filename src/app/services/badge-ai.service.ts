@@ -6,6 +6,7 @@ import { firstValueFrom } from 'rxjs';
 // ===========================================================================>> Custom Library — badge catalogue (read at startup, never mutated)
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const BADGE_CATALOGUE: Record<string, string[]> = require('../../../scripts/badge.json');
+import RewardPoint from '@app/models/reward/reward_point.model';
 
 // ---------------------------------------------------------------------------
 // Flat list of every badge name across all categories (used in the prompt)
@@ -143,13 +144,13 @@ export class BadgeAiService {
 
     /**
      * Sends user answers + context to GPT-4o-mini and returns the chosen badge name.
-     * answers[i] corresponds to BADGE_QUESTIONS[i].
+     * answers[i] corresponds to BADGE_QUESTIONS[i]. Pass empty array when no Q&A available.
      */
     async decideBadge(params: {
         customerName : string;
         totalEarned  : number;
         rankLabel    : string;
-        answers      : string[];
+        answers      ?: string[];
     }): Promise<string> {
 
         const apiKey = process.env.OPENAI_API_KEY;
@@ -157,12 +158,14 @@ export class BadgeAiService {
             throw new BadRequestException('OPENAI_API_KEY is not configured on this server.');
         }
 
-        const { customerName, totalEarned, rankLabel, answers } = params;
+        const { customerName, totalEarned, rankLabel, answers = [] } = params;
 
-        // Build the Q&A section of the prompt
-        const qa = BADGE_QUESTIONS.map((q, i) =>
-            `Q${i + 1}: ${q.question}\nA: ${answers[i] ?? '(no answer)'}`,
-        ).join('\n\n');
+        // Build the Q&A section — omit if no answers
+        const qa = answers.length > 0
+            ? BADGE_QUESTIONS.map((q, i) =>
+                `Q${i + 1}: ${q.question}\nA: ${answers[i] ?? '(no answer)'}`,
+              ).join('\n\n')
+            : '(Customer has not completed the personality questionnaire yet. Use rank and loyalty to decide.)';
 
         // Compact badge list for the prompt (category: [badge1, badge2, ...])
         const badgeList = Object.entries(BADGE_CATALOGUE)
@@ -223,6 +226,37 @@ Based on everything above, choose the single best badge for this customer.`;
         } catch (err) {
             this.logger.error('OpenAI badge call failed', (err as Error).message);
             throw new BadRequestException('Could not determine badge at this time. Please try again later.');
+        }
+    }
+
+    /**
+     * Auto-assign badge on rank-up. Fire-and-forget safe — never throws.
+     * Uses stored Q&A answers if available, otherwise decides by rank alone.
+     */
+    async decideBadgeForRankUp(params: {
+        customerName  : string;
+        totalEarned   : number;
+        newRankLabel  : string;
+        badgeAnswers  : string | null;  // JSON string from reward_point.badge_answers
+        rewardPointId : number;
+    }): Promise<void> {
+        try {
+            const answers: string[] = params.badgeAnswers
+                ? JSON.parse(params.badgeAnswers)
+                : [];
+
+            const badge = await this.decideBadge({
+                customerName : params.customerName,
+                totalEarned  : params.totalEarned,
+                rankLabel    : params.newRankLabel,
+                answers,
+            });
+
+            await RewardPoint.update({ badge }, { where: { id: params.rewardPointId } });
+            this.logger.log(`Rank-up badge assigned: "${badge}" → rewardPoint #${params.rewardPointId}`);
+        } catch (err) {
+            // Never fail the order over a badge error
+            this.logger.error('decideBadgeForRankUp failed', (err as Error).message);
         }
     }
 

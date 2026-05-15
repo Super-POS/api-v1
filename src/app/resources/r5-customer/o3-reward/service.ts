@@ -101,11 +101,12 @@ export class CustomerRewardService {
             answers  : body.answers,
         });
 
-        // Persist the badge
+        // Persist the badge and questionnaire answers
+        const answersJson = JSON.stringify(body.answers);
         if (rewardPoint) {
-            await rewardPoint.update({ badge });
+            await rewardPoint.update({ badge, badge_answers: answersJson });
         } else {
-            await RewardPoint.create({ customer_id, balance: 0, badge } as any);
+            await RewardPoint.create({ customer_id, balance: 0, badge, badge_answers: answersJson } as any);
         }
 
         return {

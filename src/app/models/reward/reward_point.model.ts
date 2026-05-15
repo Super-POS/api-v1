@@ -19,6 +19,10 @@ class RewardPoint extends Model<RewardPoint> {
 
     @Column({ allowNull: true, type: DataType.STRING(200) })                                        badge?: string;
 
+    @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 1 })                          rank_tier: number;
+
+    @Column({ allowNull: true, type: DataType.TEXT })                                               badge_answers?: string;
+
     created_at: Date;
 
     // ===========================================================================================>> Many to One

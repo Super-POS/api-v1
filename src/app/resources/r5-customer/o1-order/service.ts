@@ -22,10 +22,12 @@ import {
 } from '@app/utils/modifier-order.util';
 import Coupon               from '@app/models/coupon/coupon.model';
 import User                 from '@app/models/user/user.model';
-import { TelegramService } from '@app/services/telegram.service';
-import { allocateNextOrderNumber } from '@app/utils/order/allocate-order-number.util';
-import sequelizeConfig      from 'src/config/sequelize.config';
-import { PlaceOrderDto }    from './dto';
+import { TelegramService }         from '@app/services/telegram.service';
+import { RewardEngineService }      from '@app/services/reward-engine.service';
+import { BadgeAiService }           from '@app/services/badge-ai.service';
+import { allocateNextOrderNumber }  from '@app/utils/order/allocate-order-number.util';
+import sequelizeConfig              from 'src/config/sequelize.config';
+import { PlaceOrderDto }            from './dto';
 
 const ORDER_ATTRIBUTES = [
     'id',
@@ -66,7 +68,11 @@ const DETAIL_INCLUDES  = [
 
 @Injectable()
 export class CustomerOrderService {
-    constructor(private readonly _telegram: TelegramService) {}
+    constructor(
+        private readonly _telegram : TelegramService,
+        private readonly _reward   : RewardEngineService,
+        private readonly _badgeAi  : BadgeAiService,
+    ) {}
 
     /** Active coupons for customer checkout (same rules as cashier). */
     async listActiveCoupons(): Promise<{ data: { id: number; code: string; discount_percent: number }[] }> {
@@ -239,6 +245,32 @@ export class CustomerOrderService {
             });
 
             await transaction.commit();
+
+            // ── Earn reward points on net spend (post-coupon) ──────────────────────
+            if (finalTotal > 0) {
+                const receiptRef = data?.receipt_number ?? order.receipt_number;
+                this._reward.earn(customerId, finalTotal, receiptRef).then(async (earnResult) => {
+                    if (earnResult.rankedUp) {
+                        const customer = await User.findByPk(customerId, { attributes: ['id', 'name', 'telegram_user_id'] });
+                        // Auto-assign new badge via LLM (fire-and-forget)
+                        this._badgeAi.decideBadgeForRankUp({
+                            customerName : customer?.name ?? 'Customer',
+                            totalEarned  : earnResult.newTier * 1000, // approximate — real total is in DB
+                            newRankLabel : earnResult.newRankLabel,
+                            badgeAnswers : earnResult.badgeAnswers,
+                            rewardPointId: earnResult.rewardPointId,
+                        });
+                        // Notify customer of rank-up via Telegram
+                        const chatId = customer?.telegram_user_id;
+                        if (chatId) {
+                            this._telegram.sendHTMLToChat(
+                                chatId,
+                                `🏆 <b>You ranked up!</b>\nYou are now a <b>${earnResult.newRankLabel}</b>. Keep brewing! ☕`,
+                            ).catch(() => {});
+                        }
+                    }
+                }).catch(() => {});
+            }
 
             // Telegram customer push (optional)
             try {
