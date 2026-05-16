@@ -1,5 +1,5 @@
 // =========================================================================>> Core Library
-import { BadRequestException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/sequelize';
 
 // =========================================================================>> Third Party Library
@@ -69,6 +69,8 @@ const DETAIL_INCLUDES  = [
 
 @Injectable()
 export class CustomerOrderService {
+    private readonly logger = new Logger(CustomerOrderService.name);
+
     constructor(
         @InjectConnection() private readonly _sequelize: Sequelize,
         private readonly _telegram : TelegramService,
@@ -298,6 +300,7 @@ export class CustomerOrderService {
             if (error instanceof HttpException) {
                 throw error;
             }
+            this.logger.error('placeOrder unexpected error', error);
             throw new BadRequestException('Something went wrong! Please try again later.');
         } finally {}
     }
