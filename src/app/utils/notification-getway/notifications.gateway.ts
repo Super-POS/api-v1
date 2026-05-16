@@ -36,6 +36,15 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   }): void {
     this.server.emit("baray-payment-success", payload);
   }
+
+  /** Emits when Bakong KHQR payment is confirmed by polling. POS listens to update the order state. */
+  emitBakongPaymentSuccess(payload: {
+    orderId: number;
+    receiptNumber: string;
+    cashierId: number;
+  }): void {
+    this.server.emit("bakong-payment-success", payload);
+  }
   
   sendNotificationToUser(userId: string, notification: any): void {
     const user = this.registeredUsers.find(user => user.userId === userId);

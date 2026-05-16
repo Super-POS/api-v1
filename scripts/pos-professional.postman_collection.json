@@ -986,6 +986,74 @@
           }
         },
         {
+          "name": "Bakong (KHQR) - Create Payment Intent",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": {{orderId}}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/cashier/ordering/bakong/payment-intent",
+            "description": "Generates a dynamic KHQR string for the order. Returns qr (display to customer), md5 (for polling), and expires_at. Order status → awaiting_payment."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "const json = pm.response.json();",
+                  "if (json?.data?.payment_transaction_id) {",
+                  "  pm.collectionVariables.set('paymentTransactionId', json.data.payment_transaction_id);",
+                  "}",
+                  "if (json?.data?.md5) {",
+                  "  pm.collectionVariables.set('bakongMd5', json.data.md5);",
+                  "}",
+                  "if (json?.data?.qr) {",
+                  "  console.log('KHQR String:', json.data.qr);",
+                  "  console.log('MD5:', json.data.md5);",
+                  "  console.log('Expires at:', json.data.expires_at);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bakong (KHQR) - Poll Payment State",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/cashier/ordering/bakong/order/{{orderId}}/payment-state",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cashier", "ordering", "bakong", "order", "{{orderId}}", "payment-state"]
+            },
+            "description": "Poll this endpoint every 3–5 seconds while showing the QR. Automatically checks Bakong API for confirmed payment. Returns order_status and bakong_transaction_status (pending → success)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "if (json?.data?.bakong_transaction_status === 'success') {",
+                  "  console.log('Payment confirmed! Order:', json.data.order_id);",
+                  "} else {",
+                  "  console.log('Status:', json?.data?.bakong_transaction_status, '— keep polling');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Cash Drawer - View Current",
           "request": {
             "method": "GET",
@@ -1738,6 +1806,14 @@
     {
       "key": "wastageId",
       "value": "1"
+    },
+    {
+      "key": "paymentTransactionId",
+      "value": "1"
+    },
+    {
+      "key": "bakongMd5",
+      "value": ""
     }
   ]
 }
