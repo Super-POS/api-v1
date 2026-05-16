@@ -1,8 +1,10 @@
 // =========================================================================>> Core Library
 import { BadRequestException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectConnection } from '@nestjs/sequelize';
 
 // =========================================================================>> Third Party Library
-import { Sequelize, Transaction } from 'sequelize';
+import { Transaction } from 'sequelize';
+import { Sequelize } from 'sequelize-typescript';
 
 // =========================================================================>> Custom Library
 import { OrderStatusEnum }  from '@app/enums/order-status.enum';
@@ -26,7 +28,6 @@ import { TelegramService }         from '@app/services/telegram.service';
 import { RewardEngineService }      from '@app/services/reward-engine.service';
 import { BadgeAiService }           from '@app/services/badge-ai.service';
 import { allocateNextOrderNumber }  from '@app/utils/order/allocate-order-number.util';
-import sequelizeConfig              from 'src/config/sequelize.config';
 import { PlaceOrderDto }            from './dto';
 
 const ORDER_ATTRIBUTES = [
@@ -69,6 +70,7 @@ const DETAIL_INCLUDES  = [
 @Injectable()
 export class CustomerOrderService {
     constructor(
+        @InjectConnection() private readonly _sequelize: Sequelize,
         private readonly _telegram : TelegramService,
         private readonly _reward   : RewardEngineService,
         private readonly _badgeAi  : BadgeAiService,
@@ -121,11 +123,10 @@ export class CustomerOrderService {
 
     // =============================================>> Place a new order (telegram / website)
     async placeOrder(customerId: number, body: PlaceOrderDto): Promise<{ data: Order; message: string }> {
-        const sequelize = new Sequelize(sequelizeConfig);
         let transaction: Transaction;
 
         try {
-            transaction = await sequelize.transaction();
+            transaction = await this._sequelize.transaction();
 
             const order = await Order.create({
                 customer_id    : customerId,
@@ -298,9 +299,7 @@ export class CustomerOrderService {
                 throw error;
             }
             throw new BadRequestException('Something went wrong! Please try again later.');
-        } finally {
-            await sequelize.close();
-        }
+        } finally {}
     }
 
     // =============================================>> List my orders (history)
