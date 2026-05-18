@@ -1,4 +1,4 @@
-import { Column, DataType, Model, Table } from 'sequelize-typescript';
+import { Column, DataType, Model, Table, UpdatedAt } from 'sequelize-typescript';
 
 @Table({
     tableName: 'pos_exchange_setting',
@@ -12,5 +12,7 @@ export default class PosExchangeSetting extends Model<PosExchangeSetting> {
     @Column({ allowNull: false, type: DataType.DECIMAL(14, 4), defaultValue: 4100 })
     khr_per_usd: string | number;
 
-    updated_at: Date | null;
+    @UpdatedAt
+    @Column({ allowNull: false, type: DataType.DATE })
+    updated_at: Date;
 }
