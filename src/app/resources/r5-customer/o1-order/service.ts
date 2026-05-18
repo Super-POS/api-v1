@@ -13,6 +13,7 @@ import OrderDetails         from '@app/models/order/detail.model';
 import Order                from '@app/models/order/order.model';
 import Menu              from '@app/models/menu/menu.model';
 import MenuType          from '@app/models/menu/menu-type.model';
+import MenuSize          from '@app/models/menu/menu-size.model';
 import { deductStockForMenuRecipeLines, deductStockForModifierOptionRecipes } from '@app/utils/menu-recipe-stock.util';
 import OrderDetailModifier from '@app/models/order/order-detail-modifier.model';
 import {
@@ -101,11 +102,19 @@ export class CustomerOrderService {
             include: [
                 {
                     model: Menu,
-                    attributes: ['id', 'type_id', 'name', 'image', 'unit_price', 'code'],
+                    attributes: ['id', 'type_id', 'name', 'image', 'unit_price', 'has_sizes', 'code'],
                     include: [
                         {
                             model: MenuType,
                             attributes: ['name'],
+                        },
+                        {
+                            // Sized items keep their per-size prices on the `menu_sizes` table; the customer storefront
+                            // needs these to render the right price (and let the customer pick S/M/L).
+                            model: MenuSize,
+                            as: 'sizes',
+                            attributes: ['id', 'size', 'price'],
+                            required: false,
                         },
                         getMenuCatalogInclude(),
                     ],
@@ -155,6 +164,7 @@ export class CustomerOrderService {
                     menu,
                     item.modifier_option_ids,
                     transaction,
+                    item.size,
                 );
 
                 const detail = await OrderDetails.create(

@@ -5,7 +5,7 @@ import { BadRequestException, Body, Controller, Headers, HttpCode, HttpStatus, L
 import UserDecorator from '@app/core/decorators/user.decorator';
 import { RoleExistsPipe } from '@app/core/pipes/role.pipe';
 import User from '@app/models/user/user.model';
-import { LoginRequestDto, LoginRequestOTPDto, RegisterDto, TelegramBotLoginDto, TelegramWebAppLoginDto } from './dto';
+import { LoginRequestDto, LoginRequestOTPDto, RegisterDto, TelegramBotLoginDto, TelegramLoginWidgetDto, TelegramWebAppLoginDto } from './dto';
 import { AuthService } from './service';
 
 @Controller()
@@ -52,6 +52,17 @@ export class AuthController {
     @HttpCode(HttpStatus.OK)
     async telegramWebAppLogin(@Body() body: TelegramWebAppLoginDto, @Req() req: Request) {
         return await this.authService.telegramWebAppLogin(body, req);
+    }
+
+    /**
+     * Telegram Login Widget callback — browser flow used by `customer_web_v1`'s
+     * "Continue with Telegram" button. Signature is verified with the bot
+     * token; on success the user is upserted (same lifecycle as Mini App).
+     */
+    @Post('telegram-login-widget')
+    @HttpCode(HttpStatus.OK)
+    async telegramLoginWidget(@Body() body: TelegramLoginWidgetDto, @Req() req: Request) {
+        return await this.authService.telegramLoginWidgetLogin(body, req);
     }
 
     /** Server-to-server: Telegram bot calls this after /start with shared secret (not callable by browsers). */

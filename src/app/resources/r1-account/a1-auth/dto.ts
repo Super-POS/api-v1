@@ -122,3 +122,42 @@ export class TelegramBotLoginDto {
     @Type(() => TelegramBotUserPayloadDto)
     user: TelegramBotUserPayloadDto;
 }
+
+/**
+ * Telegram Login Widget callback payload — sent by the browser widget after
+ * the user approves the OAuth on telegram.org. Signature scheme differs from
+ * the Mini App (`initData`); see {@link verifyTelegramLoginWidgetPayload}.
+ */
+export class TelegramLoginWidgetDto {
+    @IsString()
+    @IsNotEmpty({ message: 'platform is required' })
+    platform: string;
+
+    @IsInt()
+    @Type(() => Number)
+    id: number;
+
+    @IsInt()
+    @Type(() => Number)
+    auth_date: number;
+
+    @IsString()
+    @IsNotEmpty({ message: 'hash is required' })
+    hash: string;
+
+    @IsOptional()
+    @IsString()
+    first_name?: string;
+
+    @IsOptional()
+    @IsString()
+    last_name?: string;
+
+    @IsOptional()
+    @IsString()
+    username?: string;
+
+    @IsOptional()
+    @IsString()
+    photo_url?: string;
+}

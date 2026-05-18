@@ -15,8 +15,8 @@ import UsersLogs               from '@app/models/user/user_logs.model';
 import { EmailService }        from '@app/services/email.service';
 import { JwtTokenGenerator, TokenGenerator } from '@app/shared/jwt/token';
 import { ActiveEnum }          from 'src/app/enums/active.enum';
-import { LoginRequestOTPDto, RegisterDto, TelegramBotLoginDto, TelegramWebAppLoginDto } from './dto';
-import { verifyTelegramWebAppInitData, type TelegramWebAppUser } from '@app/utils/telegram-webapp.util';
+import { LoginRequestOTPDto, RegisterDto, TelegramBotLoginDto, TelegramLoginWidgetDto, TelegramWebAppLoginDto } from './dto';
+import { verifyTelegramLoginWidgetPayload, verifyTelegramWebAppInitData, type TelegramWebAppUser } from '@app/utils/telegram-webapp.util';
 
 interface LoginPayload {
     username: string
@@ -325,6 +325,54 @@ export class AuthService {
         }
     }
 
+    /**
+     * Verify a Telegram Login Widget payload (browser OAuth from telegram.org)
+     * and upsert / sign in the user. Same downstream user lifecycle as the
+     * Mini App flow, but a different signing scheme — see
+     * {@link verifyTelegramLoginWidgetPayload}.
+     */
+    async telegramLoginWidgetLogin(
+        body: TelegramLoginWidgetDto,
+        req: Request,
+    ): Promise<{ token: string; message: string }> {
+        const botToken = (process.env.TELEGRAM_WEBAPP_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || '').trim();
+        this.logger.log(
+            `[telegram-login-widget] received id=${body?.id} auth_date=${body?.auth_date} tokenLen=${botToken.length}`,
+        );
+        let verified;
+        try {
+            verified = verifyTelegramLoginWidgetPayload(
+                {
+                    id: body.id,
+                    auth_date: body.auth_date,
+                    hash: body.hash,
+                    first_name: body.first_name,
+                    last_name: body.last_name,
+                    username: body.username,
+                    photo_url: body.photo_url,
+                },
+                botToken,
+            );
+        } catch (e) {
+            this.logger.warn(
+                `[telegram-login-widget] verify failed id=${body?.id}: ${e instanceof Error ? e.message : String(e)}`,
+            );
+            throw new BadRequestException(e instanceof Error ? e.message : 'Invalid Telegram login.');
+        }
+        const tgUser: TelegramWebAppUser = {
+            id: verified.id,
+            first_name: verified.first_name,
+            last_name: verified.last_name,
+            username: verified.username,
+        };
+        return this.upsertTelegramCustomerAndIssueToken(
+            tgUser,
+            req,
+            body.platform || 'TelegramLoginWidget',
+            'User logged into the system via Telegram Login Widget',
+        );
+    }
+
     async telegramWebAppLogin(body: TelegramWebAppLoginDto, req: Request): Promise<{ token: string; message: string }> {
         /** Bot that owns the Mini App / Web App button — signs initData. Push/notifications use TELEGRAM_BOT_TOKEN. */
         const botToken = (process.env.TELEGRAM_WEBAPP_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || '').trim();
@@ -475,9 +523,17 @@ export class AuthService {
             return { token, message: 'Signed in successfully.' };
         } catch (e) {
             await transaction.rollback();
-            throw e instanceof BadRequestException || e instanceof ForbiddenException || e instanceof InternalServerErrorException
-                ? e
-                : new InternalServerErrorException('Telegram login failed.');
+            if (e instanceof BadRequestException || e instanceof ForbiddenException || e instanceof InternalServerErrorException) {
+                throw e;
+            }
+            // Anything that reaches here is an unexpected DB / model failure — log the
+            // real cause before wrapping in 500 so we can diagnose from container logs.
+            const cause = e instanceof Error ? e : new Error(String(e));
+            this.logger.error(
+                `[telegram-upsert] platform=${platform} tg_user_id=${tgUser.id} failed: ${cause.message}`,
+                cause.stack,
+            );
+            throw new InternalServerErrorException(`Telegram login failed: ${cause.message}`);
         }
     }
 

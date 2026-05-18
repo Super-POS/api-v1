@@ -49,15 +49,37 @@ class AppInitializer {
             .filter(Boolean);
         const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
 
+        // Hostname patterns we always allow — common dev tunneling services. Telegram requires HTTPS,
+        // so customer_web_v1 + telegram-mini-app are typically reached through ngrok / cloudflared
+        // tunnels whose hostnames rotate on every restart. We accept any subdomain of those services
+        // so devs don't have to redeploy the API every time the tunnel URL changes.
+        const allowedOriginHostPatterns: RegExp[] = [
+            /\.ngrok-free\.app$/i,
+            /\.ngrok\.io$/i,
+            /\.ngrok\.app$/i,
+            /\.ngrok\.dev$/i,
+            /\.trycloudflare\.com$/i,
+            /\.loca\.lt$/i,
+        ];
+        const matchesAllowedPattern = (origin: string): boolean => {
+            try {
+                const host = new URL(origin).hostname;
+                return allowedOriginHostPatterns.some((re) => re.test(host));
+            } catch {
+                return false;
+            }
+        };
+
         this.app.enableCors({
             origin: (origin, callback) => {
                 // Allow non-browser tools (Postman/curl) and same-machine server calls.
                 if (!origin) {
                     return callback(null, true);
                 }
-                if (allowedOrigins.includes(origin)) {
+                if (allowedOrigins.includes(origin) || matchesAllowedPattern(origin)) {
                     return callback(null, true);
                 }
+                this.logger.warn(`CORS blocked for origin: ${origin}`);
                 return callback(new Error(`CORS blocked for origin: ${origin}`), false);
             },
             credentials: true,
