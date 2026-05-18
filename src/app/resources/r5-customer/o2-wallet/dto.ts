@@ -26,3 +26,14 @@ export class CreateBarayWalletDepositIntentDto {
     @IsOptional()
     note?: string;
 }
+
+export class CreateBakongWalletDepositIntentDto {
+    @Type(() => Number)
+    @IsNumber()
+    @IsPositive()
+    amount: number;
+
+    @IsString()
+    @IsOptional()
+    note?: string;
+}

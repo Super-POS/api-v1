@@ -139,10 +139,14 @@ export class CustomerOrderService {
         try {
             transaction = await this._sequelize.transaction();
 
+            // Customer-placed orders (web + Telegram Mini App) must be paid before reaching the
+            // kitchen queue. Start in AWAITING_PAYMENT so the Bakong intent flow can promote
+            // the order to PENDING once the KHQR is settled. Walk-in / cashier orders go through
+            // a different controller and keep their own lifecycle.
             const order = await Order.create({
                 customer_id    : customerId,
                 channel        : body.channel,
-                status         : OrderStatusEnum.PENDING,
+                status         : OrderStatusEnum.AWAITING_PAYMENT,
                 total_price    : 0,
                 receipt_number : await this._generateReceiptNumber(),
                 order_number   : await allocateNextOrderNumber(transaction),
@@ -296,7 +300,7 @@ export class CustomerOrderService {
                     if (chatId) {
                         await this._telegram.sendHTMLToChat(
                             chatId,
-                            `✅ <b>Order placed</b>\nReceipt: <code>#${data?.receipt_number ?? order.receipt_number}</code>\nStatus: <b>${data?.status ?? OrderStatusEnum.PENDING}</b>`,
+                            `🧾 <b>Order received</b>\nReceipt: <code>#${data?.receipt_number ?? order.receipt_number}</code>\nStatus: <b>${data?.status ?? OrderStatusEnum.AWAITING_PAYMENT}</b>\n\nScan the KHQR in the app to confirm your order.`,
                         );
                     }
                 }

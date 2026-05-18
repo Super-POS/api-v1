@@ -7,6 +7,8 @@ import WalletTransaction, { DepositStatus, WalletTransactionType } from '@app/mo
 import User              from '@app/models/user/user.model';
 import { RequestDepositDto } from './dto';
 
+const BAKONG_DEPOSIT_NOTE = 'bakong';
+
 @Injectable()
 export class CustomerWalletService {
 
@@ -51,6 +53,35 @@ export class CustomerWalletService {
 
         const data = await WalletTransaction.findByPk(tx.id);
         return { data, message: 'Deposit request has been submitted and is pending approval.' };
+    }
+
+    /** Which payment rail created this pending deposit (for polling routing). */
+    async getDepositChannel(
+        customerId: number,
+        walletTransactionId: number,
+    ): Promise<'bakong' | 'baray' | 'other'> {
+        const tx = await WalletTransaction.findOne({
+            where: {
+                id: walletTransactionId,
+                type: WalletTransactionType.DEPOSIT,
+            },
+            include: [{ model: Wallet, attributes: ['customer_id'] }],
+        });
+        if (!tx?.wallet || Number(tx.wallet.customer_id) !== Number(customerId)) {
+            throw new NotFoundException('Wallet deposit transaction not found.');
+        }
+        const note = String(tx.note ?? '').toLowerCase();
+        if (
+            note === BAKONG_DEPOSIT_NOTE ||
+            note.startsWith(`${BAKONG_DEPOSIT_NOTE}|`) ||
+            note.startsWith(`${BAKONG_DEPOSIT_NOTE}\n`)
+        ) {
+            return 'bakong';
+        }
+        if (note === 'baray' || note.startsWith('baray|')) {
+            return 'baray';
+        }
+        return 'other';
     }
 
     // ==========================================>> Deposit / transaction history

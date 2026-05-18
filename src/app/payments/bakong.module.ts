@@ -6,10 +6,11 @@ import { HttpModule } from "@nestjs/axios";
 import { OrderModule } from "src/app/resources/r2-cashier/c1-order/module";
 import { NotificationGetwayModule } from "src/app/utils/notification-getway/notifications.gateway.module";
 import { BakongService } from "src/app/services/bakong.service";
+import { BakongPendingPollerService } from "src/app/services/bakong-pending-poller.service";
 
 @Module({
   imports: [HttpModule, NotificationGetwayModule, forwardRef(() => OrderModule)],
-  providers: [BakongService],
+  providers: [BakongService, BakongPendingPollerService],
   exports: [BakongService, HttpModule],
 })
 export class BakongModule {}

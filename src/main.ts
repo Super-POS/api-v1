@@ -83,7 +83,16 @@ class AppInitializer {
                 return callback(new Error(`CORS blocked for origin: ${origin}`), false);
             },
             credentials: true,
-            allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'withcredentials'],
+            allowedHeaders: [
+                'Content-Type',
+                'Authorization',
+                'Accept',
+                'Origin',
+                'X-Requested-With',
+                'withcredentials',
+                'Cache-Control',
+                'Pragma',
+            ],
             methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         });
         this.app.useGlobalPipes(new ValidationPipe({

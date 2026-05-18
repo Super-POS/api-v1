@@ -25,6 +25,11 @@ import PaymentTransaction, {
   PaymentMethod,
   PaymentStatus,
 } from "@app/models/payment/payment_transaction.model";
+import Wallet from "@app/models/wallet/wallet.model";
+import WalletTransaction, {
+  DepositStatus,
+  WalletTransactionType,
+} from "@app/models/wallet/wallet_transaction.model";
 import { ExchangeSettingService } from "src/app/services/exchange-setting.service";
 
 /**
@@ -67,6 +72,21 @@ export interface BakongCreateIntentResult {
   qr_amount: number;
   /** Currency tag carried in the KHQR (KHR or USD). */
   qr_currency: "USD" | "KHR";
+  /** Bakong short link — NBC hosted redirect (optional if API fails). */
+  deeplink?: string | null;
+  /** Full NBC payment URL with embedded KHQR (used for per-bank deep links on mobile). */
+  deeplink_full?: string | null;
+}
+
+export interface BakongCreateWalletDepositIntentResult {
+  qr: string;
+  md5: string;
+  wallet_transaction_id: number;
+  expires_at: string;
+  qr_amount: number;
+  qr_currency: "USD" | "KHR";
+  deeplink?: string | null;
+  deeplink_full?: string | null;
 }
 
 interface BakongApiResponse {
@@ -84,6 +104,22 @@ interface BakongRenewTokenResponse extends BakongApiResponse {
 
 /** Discriminator used in `PaymentTransaction.note` so we can tell Bakong + Baray apart. */
 const BAKONG_NOTE = "bakong";
+
+/** Persist KHQR on the tx so the customer can resume the same code (note is TEXT). */
+function bakongNoteWithQr(qr: string): string {
+  return `${BAKONG_NOTE}\n${qr}`;
+}
+
+function parseQrFromBakongPaymentNote(note: string | null | undefined): string | null {
+  if (!note) return null;
+  const raw = String(note);
+  if (raw === BAKONG_NOTE) return null;
+  if (raw.startsWith(`${BAKONG_NOTE}\n`)) {
+    const qr = raw.slice(BAKONG_NOTE.length + 1).trim();
+    return qr.length > 0 ? qr : null;
+  }
+  return null;
+}
 
 /** Default QR validity. Bakong doc: "The QR code time-out which shall not exceed 10 mins." */
 const DEFAULT_QR_EXPIRY_MINUTES = 10;
@@ -135,6 +171,293 @@ export class BakongService {
     const order = await Order.findByPk(orderId);
     if (!order) throw new NotFoundException("Order not found.");
     return this._createBakongIntentFromOrder(order, cashierId);
+  }
+
+  /**
+   * Customer-initiated KHQR intent (web + Telegram Mini App). Looks up the order by
+   * `(id, customer_id)` so a customer can only ever generate a QR for their own order.
+   */
+  async createIntentForCustomerOrder(
+    customerId: number,
+    orderId: number,
+  ): Promise<BakongCreateIntentResult> {
+    this._ensureConfigured();
+    const order = await Order.findOne({
+      where: { id: orderId, customer_id: customerId },
+    });
+    if (!order) throw new NotFoundException("Order not found.");
+    return this._createBakongIntentFromOrder(order, null);
+  }
+
+  /** Ownership guard for polling endpoints — same shape as `BarayService.assertCustomerOwnsOrder`. */
+  async assertCustomerOwnsOrder(customerId: number, orderId: number): Promise<void> {
+    const row = await Order.findOne({
+      where: { id: orderId, customer_id: customerId },
+      attributes: ["id"],
+    });
+    if (!row) {
+      throw new NotFoundException("Order not found.");
+    }
+  }
+
+  /**
+   * Customer closed the QR modal or wants a fresh code before the server expiry window.
+   * Marks any PENDING Bakong payment on this order as EXPIRED so a new intent can be created.
+   */
+  async abandonPendingBakongForOrder(
+    customerId: number,
+    orderId: number,
+  ): Promise<{ data: { abandoned_count: number } }> {
+    await this.assertCustomerOwnsOrder(customerId, orderId);
+    const order = await Order.findByPk(orderId, { attributes: ["id", "status"] });
+    if (!order || order.status !== OrderStatusEnum.AWAITING_PAYMENT) {
+      return { data: { abandoned_count: 0 } };
+    }
+    const [abandonedCount] = await PaymentTransaction.update(
+      { status: PaymentStatus.EXPIRED },
+      {
+        where: {
+          order_id: orderId,
+          note: { [Op.like]: `${BAKONG_NOTE}%` },
+          status: PaymentStatus.PENDING,
+        },
+      },
+    );
+    if (abandonedCount > 0) {
+      this.logger.log(`Bakong abandon: order=${orderId} expired ${abandonedCount} pending tx(s).`);
+    }
+    return { data: { abandoned_count: abandonedCount } };
+  }
+
+  /** Same as order abandon — for wallet top-up when the user dismisses the deposit QR. */
+  async abandonPendingBakongWalletDeposit(
+    customerId: number,
+    walletTransactionId: number,
+  ): Promise<{ data: { abandoned: boolean } }> {
+    const tx = await WalletTransaction.findOne({
+      where: {
+        id: walletTransactionId,
+        type: WalletTransactionType.DEPOSIT,
+        status: DepositStatus.PENDING,
+      },
+      include: [{ model: Wallet, attributes: ["id", "customer_id"] }],
+    });
+    if (!tx || !tx.wallet || Number(tx.wallet.customer_id) !== Number(customerId)) {
+      throw new NotFoundException("Wallet deposit transaction not found.");
+    }
+    const note = String(tx.note ?? "").toLowerCase();
+    if (!this._isBakongWalletDeposit(tx) && !note.startsWith(BAKONG_NOTE)) {
+      return { data: { abandoned: false } };
+    }
+    await tx.update({
+      status: DepositStatus.REJECTED,
+      note: `${String(tx.note ?? BAKONG_NOTE).split("\n")[0].split("|")[0]}|abandoned`,
+    });
+    this.logger.log(`Bakong abandon: wallet deposit tx=${walletTransactionId} rejected.`);
+    return { data: { abandoned: true } };
+  }
+
+  /** Cancel every pending Bakong deposit for this customer (e.g. closed modal without paying). */
+  async abandonAllPendingBakongWalletDeposits(
+    customerId: number,
+  ): Promise<{ data: { abandoned_count: number } }> {
+    const wallet = await Wallet.findOne({ where: { customer_id: customerId } });
+    if (!wallet) {
+      return { data: { abandoned_count: 0 } };
+    }
+
+    await this._expireStalePendingWalletDeposits(wallet.id);
+
+    const pending = await WalletTransaction.findAll({
+      where: {
+        wallet_id: wallet.id,
+        type: WalletTransactionType.DEPOSIT,
+        status: DepositStatus.PENDING,
+        note: { [Op.like]: `${BAKONG_NOTE}%` },
+      },
+    });
+
+    let abandonedCount = 0;
+    for (const tx of pending) {
+      const base = String(tx.note ?? BAKONG_NOTE).split("\n")[0].split("|")[0];
+      await tx.update({
+        status: DepositStatus.REJECTED,
+        note: `${base}|abandoned`,
+      });
+      abandonedCount += 1;
+    }
+
+    if (abandonedCount > 0) {
+      this.logger.log(
+        `Bakong abandon: customer=${customerId} rejected ${abandonedCount} pending wallet deposit(s).`,
+      );
+    }
+    return { data: { abandoned_count: abandonedCount } };
+  }
+
+  /**
+   * Customer wallet top-up via KHQR (web + Telegram Mini App). Mirrors
+   * `BarayService.createIntentForCustomerWalletDeposit` but uses Bakong polling.
+   */
+  async createIntentForCustomerWalletDeposit(
+    customerId: number,
+    amount: number,
+    note?: string,
+  ): Promise<BakongCreateWalletDepositIntentResult> {
+    this._ensureConfigured();
+    if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) {
+      throw new BadRequestException("Amount must be a positive number.");
+    }
+
+    const [wallet] = await Wallet.findOrCreate({
+      where: { customer_id: customerId },
+      defaults: { customer_id: customerId, balance: 0 },
+    });
+
+    return this._createBakongIntentFromWalletDeposit(wallet.id, Number(amount), note);
+  }
+
+  /**
+   * Poll wallet deposit settlement. While the tx is PENDING we call Bakong's
+   * `check_transaction_by_md5` (same as order payments) and credit the wallet on success.
+   */
+  async getWalletDepositPaymentState(
+    customerId: number,
+    walletTransactionId: number,
+  ): Promise<{
+    data: {
+      wallet_transaction_id: number;
+      wallet_transaction_status: string;
+      balance: number;
+      bakong_response_message: string | null;
+    };
+  }> {
+    const tx = await WalletTransaction.findOne({
+      where: {
+        id: walletTransactionId,
+        type: WalletTransactionType.DEPOSIT,
+      },
+      include: [{ model: Wallet, attributes: ["id", "customer_id", "balance"] }],
+    });
+    if (!tx || !tx.wallet || Number(tx.wallet.customer_id) !== Number(customerId)) {
+      throw new NotFoundException("Wallet deposit transaction not found.");
+    }
+
+    let lastResponseMessage: string | null = null;
+    if (this._isBakongWalletDeposit(tx) && tx.wallet) {
+      await this._expireStalePendingWalletDeposits(tx.wallet.id);
+      await tx.reload({ include: [{ model: Wallet, attributes: ["id", "customer_id", "balance"] }] });
+    }
+    if (this._isBakongWalletDeposit(tx) && tx.status === DepositStatus.PENDING && tx.reference) {
+      lastResponseMessage = await this._checkAndSettleWalletDeposit(tx);
+      await tx.reload({ include: [{ model: Wallet, attributes: ["id", "customer_id", "balance"] }] });
+    }
+
+    return {
+      data: {
+        wallet_transaction_id: tx.id,
+        wallet_transaction_status: String(tx.status),
+        balance: Number(tx.wallet?.balance ?? 0),
+        bakong_response_message: lastResponseMessage,
+      },
+    };
+  }
+
+  /**
+   * Background sweep: expire stale QRs and poll NBC for any pending Bakong order
+   * payments and wallet deposits (so settlement works when the client is closed).
+   */
+  async pollAllPendingBakongSettlements(): Promise<{
+    payment_checked: number;
+    deposit_checked: number;
+  }> {
+    if (!this.merchantId) {
+      return { payment_checked: 0, deposit_checked: 0 };
+    }
+
+    const now = new Date();
+    await PaymentTransaction.update(
+      { status: PaymentStatus.EXPIRED },
+      {
+        where: {
+          note: { [Op.like]: `${BAKONG_NOTE}%` },
+          status: PaymentStatus.PENDING,
+          expires_at: { [Op.lt]: now },
+        },
+      },
+    );
+
+    const staleWalletDeposits = await WalletTransaction.findAll({
+      where: {
+        type: WalletTransactionType.DEPOSIT,
+        status: DepositStatus.PENDING,
+        note: { [Op.like]: `${BAKONG_NOTE}%` },
+      },
+    });
+    for (const tx of staleWalletDeposits) {
+      if (!this._isBakongWalletDeposit(tx)) continue;
+      const expiresAt = this._walletDepositExpiresAt(tx);
+      if (Date.now() > expiresAt.getTime()) {
+        const base = String(tx.note ?? BAKONG_NOTE).split("\n")[0].split("|")[0];
+        await tx.update({
+          status: DepositStatus.REJECTED,
+          note: `${base}|expired`,
+        });
+      }
+    }
+
+    const pendingPayments = await PaymentTransaction.findAll({
+      where: {
+        status: PaymentStatus.PENDING,
+        reference: { [Op.ne]: null },
+        note: { [Op.like]: `${BAKONG_NOTE}%` },
+      },
+      include: [{ model: Order, required: true }],
+    });
+
+    let paymentChecked = 0;
+    for (const tx of pendingPayments) {
+      const order = tx.order;
+      if (!order) continue;
+      paymentChecked += 1;
+      try {
+        await this._checkAndSettleTransaction(tx, order);
+      } catch (e) {
+        this.logger.warn(
+          `Bakong background poll payment tx=${tx.id}: ${(e as Error).message}`,
+        );
+      }
+    }
+
+    const pendingDeposits = await WalletTransaction.findAll({
+      where: {
+        type: WalletTransactionType.DEPOSIT,
+        status: DepositStatus.PENDING,
+        reference: { [Op.ne]: null },
+        note: { [Op.like]: `${BAKONG_NOTE}%` },
+      },
+    });
+
+    let depositChecked = 0;
+    for (const tx of pendingDeposits) {
+      if (!this._isBakongWalletDeposit(tx)) continue;
+      depositChecked += 1;
+      try {
+        await this._checkAndSettleWalletDeposit(tx);
+      } catch (e) {
+        this.logger.warn(
+          `Bakong background poll wallet deposit tx=${tx.id}: ${(e as Error).message}`,
+        );
+      }
+    }
+
+    if (paymentChecked > 0 || depositChecked > 0) {
+      this.logger.debug(
+        `Bakong background poll: checked ${paymentChecked} order payment(s), ${depositChecked} wallet deposit(s).`,
+      );
+    }
+
+    return { payment_checked: paymentChecked, deposit_checked: depositChecked };
   }
 
   async getPaymentStateForPos(orderId: number): Promise<{
@@ -241,6 +564,8 @@ export class BakongService {
       throw new BadRequestException("Order has no total to charge.");
     }
 
+    // Cashier orders are created as `pending`; we promote to `awaiting_payment` when the QR is issued.
+    // Customer web orders may already be `awaiting_payment`. Block kitchen/terminal states only.
     const disallowed: OrderStatusEnum[] = [
       OrderStatusEnum.PREPARING,
       OrderStatusEnum.READY,
@@ -248,17 +573,48 @@ export class BakongService {
       OrderStatusEnum.CANCELLED,
     ];
     if (disallowed.includes(order.status as OrderStatusEnum)) {
-      throw new BadRequestException("Bakong payment is not available for this order state.");
+      throw new BadRequestException("This order has already been paid or is no longer awaiting payment.");
+    }
+
+    const alreadyPaid = await PaymentTransaction.findOne({
+      where: { order_id: orderId, status: PaymentStatus.SUCCESS },
+    });
+    if (alreadyPaid) {
+      throw new BadRequestException("This order has already been paid.");
     }
 
     await this._expireStalePendingTransactions(orderId);
 
     const existingPending = await PaymentTransaction.findOne({
-      where: { order_id: orderId, status: PaymentStatus.PENDING },
+      where: { order_id: orderId, status: PaymentStatus.PENDING, note: { [Op.like]: `${BAKONG_NOTE}%` } },
+      order: [["id", "DESC"]],
     });
     if (existingPending) {
-      throw new BadRequestException(
-        "This order already has a pending payment. Wait for it to complete or mark it failed first.",
+      const cachedQr = parseQrFromBakongPaymentNote(existingPending.note);
+      const expiresAt = existingPending.expires_at;
+      if (
+        cachedQr &&
+        existingPending.reference &&
+        expiresAt &&
+        expiresAt.getTime() > Date.now()
+      ) {
+        const qrAmount = await this._amountInQrCurrency(Number(order.total_price));
+        const { shortLink, fullLink } = await this._generateKhqrDeepLink(cachedQr);
+        return {
+          qr: cachedQr,
+          md5: String(existingPending.reference),
+          payment_transaction_id: existingPending.id,
+          expires_at: expiresAt.toISOString(),
+          qr_amount: qrAmount,
+          qr_currency: this.currency,
+          deeplink: shortLink,
+          deeplink_full: fullLink,
+        };
+      }
+      // Stale or broken pending row (e.g. cashier closed the QR modal) — expire so a fresh QR can be issued.
+      await existingPending.update({ status: PaymentStatus.EXPIRED });
+      this.logger.log(
+        `Bakong: expired stale pending tx=${existingPending.id} for order=${orderId} (could not reuse cached QR).`,
       );
     }
 
@@ -302,7 +658,7 @@ export class BakongService {
       status: PaymentStatus.PENDING,
       amount: Number(order.total_price),
       reference: md5,
-      note: BAKONG_NOTE,
+      note: bakongNoteWithQr(qr),
       expires_at: expiresAt,
     });
 
@@ -312,6 +668,8 @@ export class BakongService {
       `Bakong intent created for order=${orderId} tx=${tx.id} amount=${qrAmount} ${this.currency} expires_at=${expiresAt.toISOString()}`,
     );
 
+    const { shortLink, fullLink } = await this._generateKhqrDeepLink(qr);
+
     return {
       qr,
       md5,
@@ -319,6 +677,8 @@ export class BakongService {
       expires_at: expiresAt.toISOString(),
       qr_amount: qrAmount,
       qr_currency: this.currency,
+      deeplink: shortLink,
+      deeplink_full: fullLink,
     };
   }
 
@@ -442,6 +802,43 @@ export class BakongService {
     }
   }
 
+  /**
+   * NBC Bakong deep link — on mobile opens the system bank-app picker (ABA, ACLEDA, Wing, …)
+   * with the KHQR pre-filled. See `bakong-khqr` README / POST `/v1/generate_deeplink_by_qr`.
+   */
+  private async _generateKhqrDeepLink(
+    qr: string,
+  ): Promise<{ shortLink: string | null; fullLink: string | null }> {
+    const empty = { shortLink: null, fullLink: null };
+    try {
+      const url = `${this.baseUrl}/v1/generate_deeplink_by_qr`;
+      const res = (await BakongKHQR.generateDeepLink(url, qr)) as {
+        status?: { code?: number; message?: string };
+        data?: { shortLink?: string; fullLink?: string } | null;
+      };
+      if (res?.status?.code === 0 && res.data) {
+        const shortLink =
+          typeof res.data.shortLink === "string" && res.data.shortLink.trim().length > 0
+            ? res.data.shortLink.trim()
+            : null;
+        const fullLink =
+          typeof res.data.fullLink === "string" && res.data.fullLink.trim().length > 0
+            ? res.data.fullLink.trim()
+            : null;
+        return { shortLink, fullLink };
+      }
+      this.logger.warn(
+        `Bakong deeplink failed: ${res?.status?.message ?? "unknown"} (QR payment still works via scan).`,
+      );
+      return empty;
+    } catch (e) {
+      this.logger.warn(
+        `Bakong deeplink error: ${(e as Error).message} (QR payment still works via scan).`,
+      );
+      return empty;
+    }
+  }
+
   private _getCurrencyCode(): number {
     return this.currency === "KHR"
       ? (khqrData.currency.khr as number)
@@ -474,7 +871,7 @@ export class BakongService {
   /** Latest Bakong transaction (any status) for the order — used by the polling endpoint. */
   private _latestBakongTx(orderId: number): Promise<PaymentTransaction | null> {
     return PaymentTransaction.findOne({
-      where: { order_id: orderId, note: BAKONG_NOTE },
+      where: { order_id: orderId, note: { [Op.like]: `${BAKONG_NOTE}%` } },
       order: [["id", "DESC"]],
     });
   }
@@ -494,11 +891,282 @@ export class BakongService {
       {
         where: {
           order_id: orderId,
-          note: BAKONG_NOTE,
+          note: { [Op.like]: `${BAKONG_NOTE}%` },
           status: PaymentStatus.PENDING,
           expires_at: { [Op.lt]: now },
         },
       },
+    );
+  }
+
+  // =========================================================================>> Wallet deposits
+
+  private _isBakongWalletDeposit(tx: WalletTransaction): boolean {
+    const note = String(tx.note ?? "").toLowerCase();
+    return (
+      note === BAKONG_NOTE ||
+      note.startsWith(`${BAKONG_NOTE}|`) ||
+      note.startsWith(`${BAKONG_NOTE}\n`)
+    );
+  }
+
+  /**
+   * Deposit amounts from the customer web are entered in USD (same as Baray wallet deposits).
+   * Convert to the configured KHQR currency before encoding tag 54.
+   */
+  private async _depositAmountForQr(depositAmountUsd: number): Promise<number> {
+    if (!Number.isFinite(depositAmountUsd) || depositAmountUsd <= 0) {
+      throw new BadRequestException("Deposit amount must be positive.");
+    }
+    if (this.currency === "USD") {
+      return Math.round(depositAmountUsd * 100) / 100;
+    }
+    const khrPerUsd = await this._exchange.getKhrPerUsd();
+    if (!Number.isFinite(khrPerUsd) || khrPerUsd <= 0) {
+      throw new BadRequestException("Cannot convert deposit — exchange rate is unavailable.");
+    }
+    return Math.round(depositAmountUsd * khrPerUsd);
+  }
+
+  private _walletDepositExpired(tx: WalletTransaction, expiresAt: Date): boolean {
+    return Date.now() > expiresAt.getTime();
+  }
+
+  private _walletDepositExpiresAt(tx: WalletTransaction): Date {
+    const created = tx.created_at ? new Date(tx.created_at) : new Date();
+    return new Date(created.getTime() + this.qrExpiryMs);
+  }
+
+  private async _expireStalePendingWalletDeposits(walletId: number): Promise<void> {
+    const pending = await WalletTransaction.findAll({
+      where: {
+        wallet_id: walletId,
+        type: WalletTransactionType.DEPOSIT,
+        status: DepositStatus.PENDING,
+        note: { [Op.like]: `${BAKONG_NOTE}%` },
+      },
+    });
+    const now = Date.now();
+    for (const tx of pending) {
+      if (!this._isBakongWalletDeposit(tx)) continue;
+      const expiresAt = this._walletDepositExpiresAt(tx);
+      if (now > expiresAt.getTime()) {
+        const base = String(tx.note ?? BAKONG_NOTE).split("\n")[0].split("|")[0];
+        await tx.update({
+          status: DepositStatus.REJECTED,
+          note: `${base}|expired`,
+        });
+      }
+    }
+  }
+
+  private async _createBakongIntentFromWalletDeposit(
+    walletId: number,
+    amountUsd: number,
+    note?: string,
+  ): Promise<BakongCreateWalletDepositIntentResult> {
+    await this._expireStalePendingWalletDeposits(walletId);
+
+    const existingPending = await WalletTransaction.findOne({
+      where: {
+        wallet_id: walletId,
+        type: WalletTransactionType.DEPOSIT,
+        status: DepositStatus.PENDING,
+        note: { [Op.like]: `${BAKONG_NOTE}%` },
+      },
+      order: [["id", "DESC"]],
+    });
+    if (existingPending && this._isBakongWalletDeposit(existingPending)) {
+      const cachedQr = parseQrFromBakongPaymentNote(existingPending.note);
+      const expiresAt = this._walletDepositExpiresAt(existingPending);
+      if (
+        cachedQr &&
+        existingPending.reference &&
+        !this._walletDepositExpired(existingPending, expiresAt)
+      ) {
+        const qrAmount = await this._depositAmountForQr(Number(existingPending.amount));
+        const { shortLink, fullLink } = await this._generateKhqrDeepLink(cachedQr);
+        return {
+          qr: cachedQr,
+          md5: String(existingPending.reference),
+          wallet_transaction_id: existingPending.id,
+          expires_at: expiresAt.toISOString(),
+          qr_amount: qrAmount,
+          qr_currency: this.currency,
+          deeplink: shortLink,
+          deeplink_full: fullLink,
+        };
+      }
+      throw new BadRequestException(
+        "You already have a pending Bakong deposit. Complete or cancel it before starting another.",
+      );
+    }
+
+    const expiresAt = new Date(Date.now() + this.qrExpiryMs);
+    const qrAmount = await this._depositAmountForQr(amountUsd);
+
+    const tx = await WalletTransaction.create({
+      wallet_id: walletId,
+      type: WalletTransactionType.DEPOSIT,
+      amount: amountUsd,
+      status: DepositStatus.PENDING,
+      note: note && note.trim().length > 0 ? `${BAKONG_NOTE}|${note.trim()}` : BAKONG_NOTE,
+    });
+
+    const individualInfo = new IndividualInfo(
+      this.merchantId,
+      this.merchantName,
+      this.merchantCity,
+      {
+        currency: this._getCurrencyCode(),
+        amount: qrAmount,
+        billNumber: `DEPOSIT-${tx.id}`,
+        storeLabel: this.merchantName,
+        expirationTimestamp: expiresAt.getTime(),
+      },
+    );
+
+    const khqr = new BakongKHQR();
+    const result = khqr.generateIndividual(individualInfo) as {
+      status: { code: number; message?: string };
+      data: { qr: string; md5: string } | null;
+    };
+
+    if (result.status.code !== 0 || !result.data) {
+      await tx.update({ status: DepositStatus.REJECTED, note: "bakong_qr_failed" });
+      throw new BadRequestException(
+        `Failed to generate KHQR: ${result.status.message ?? "unknown error"}`,
+      );
+    }
+
+    const { qr, md5 } = result.data;
+    await tx.update({ reference: md5, note: bakongNoteWithQr(qr) });
+
+    this.logger.log(
+      `Bakong wallet deposit intent walletTx=${tx.id} amount=${qrAmount} ${this.currency} expires_at=${expiresAt.toISOString()}`,
+    );
+
+    const { shortLink, fullLink } = await this._generateKhqrDeepLink(qr);
+
+    return {
+      qr,
+      md5,
+      wallet_transaction_id: tx.id,
+      expires_at: expiresAt.toISOString(),
+      qr_amount: qrAmount,
+      qr_currency: this.currency,
+      deeplink: shortLink,
+      deeplink_full: fullLink,
+    };
+  }
+
+  private async _checkAndSettleWalletDeposit(tx: WalletTransaction): Promise<string | null> {
+    const expiresAt = this._walletDepositExpiresAt(tx);
+    if (this._walletDepositExpired(tx, expiresAt)) {
+      const base = String(tx.note ?? BAKONG_NOTE).split("\n")[0].split("|")[0];
+      await tx.update({
+        status: DepositStatus.REJECTED,
+        note: `${base}|expired`,
+      });
+      this.logger.log(`Bakong wallet tx=${tx.id} expired before settlement.`);
+      return "QR expired before payment was received.";
+    }
+
+    try {
+      await this._ensureValidToken();
+    } catch (e) {
+      this.logger.warn(`Bakong token unavailable during wallet deposit poll: ${(e as Error).message}`);
+      return (e as Error).message;
+    }
+
+    try {
+      const res = await firstValueFrom(
+        this._http.post<BakongApiResponse>(
+          `${this.baseUrl}/v1/check_transaction_by_md5`,
+          { md5: tx.reference },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              Authorization: `Bearer ${this.token}`,
+            },
+            timeout: 30_000,
+          },
+        ),
+      );
+      const body = res.data;
+      const message = body?.responseMessage ?? "";
+
+      if (body?.responseCode === 0 && body.data) {
+        await this._markWalletDepositPaid(tx, body);
+        return message || "Deposit confirmed.";
+      }
+
+      if (body?.responseCode === 1) {
+        const lower = message.toLowerCase();
+        if (lower.includes("could not be found") || lower.includes("not found")) {
+          return message;
+        }
+        if (lower.includes("failed")) {
+          const base = String(tx.note ?? BAKONG_NOTE).split("\n")[0].split("|")[0];
+          await tx.update({
+            status: DepositStatus.REJECTED,
+            note: `${base}|failed`,
+          });
+          this.logger.warn(`Bakong wallet tx=${tx.id} marked REJECTED: ${message}`);
+          return message;
+        }
+      }
+
+      this.logger.warn(
+        `Bakong wallet tx=${tx.id} unexpected response responseCode=${body?.responseCode} message="${message}"`,
+      );
+      return message || null;
+    } catch (e) {
+      if (isAxiosError(e) && e.response?.status === 401) {
+        this.token = "";
+        this.logger.warn("Bakong returned 401 — clearing cached token; next poll will renew.");
+      }
+      this.logger.warn(`Bakong wallet check_transaction_by_md5 error: ${(e as Error).message}`);
+      return null;
+    }
+  }
+
+  private async _markWalletDepositPaid(
+    tx: WalletTransaction,
+    body: BakongApiResponse,
+  ): Promise<void> {
+    await WalletTransaction.sequelize.transaction(async (transaction) => {
+      const locked = await WalletTransaction.findByPk(tx.id, { transaction, lock: true });
+      if (!locked) {
+        throw new NotFoundException("Wallet deposit transaction not found.");
+      }
+      if (locked.status === DepositStatus.APPROVED) {
+        return;
+      }
+      if (locked.status !== DepositStatus.PENDING) {
+        throw new BadRequestException(`Cannot settle a ${locked.status} wallet deposit.`);
+      }
+      const wallet = await Wallet.findByPk(locked.wallet_id, { transaction, lock: true });
+      if (!wallet) {
+        throw new NotFoundException("Wallet not found for deposit settlement.");
+      }
+      await locked.update({ status: DepositStatus.APPROVED }, { transaction });
+      await Wallet.increment("balance", {
+        by: Number(locked.amount),
+        where: { id: locked.wallet_id },
+        transaction,
+      });
+    });
+    const txData = (body.data ?? {}) as {
+      hash?: string;
+      fromAccountId?: string;
+      amount?: number;
+      currency?: string;
+    };
+    this.logger.log(
+      `Bakong wallet tx=${tx.id} APPROVED — from=${txData.fromAccountId ?? "?"} ` +
+        `amount=${txData.amount ?? "?"} ${txData.currency ?? "?"} hash=${txData.hash ?? "?"}`,
     );
   }
 }
