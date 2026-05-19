@@ -72,6 +72,10 @@ export interface BakongCreateIntentResult {
   qr_amount: number;
   /** Currency tag carried in the KHQR (KHR or USD). */
   qr_currency: "USD" | "KHR";
+  /** Merchant name encoded into the KHQR (Tag 59) — surfaced so UIs can render the official KHQR card layout. */
+  merchant_name: string;
+  /** Merchant city encoded into the KHQR (Tag 60). */
+  merchant_city: string;
   /** Bakong short link — NBC hosted redirect (optional if API fails). */
   deeplink?: string | null;
   /** Full NBC payment URL with embedded KHQR (used for per-bank deep links on mobile). */
@@ -85,6 +89,8 @@ export interface BakongCreateWalletDepositIntentResult {
   expires_at: string;
   qr_amount: number;
   qr_currency: "USD" | "KHR";
+  merchant_name: string;
+  merchant_city: string;
   deeplink?: string | null;
   deeplink_full?: string | null;
 }
@@ -607,6 +613,8 @@ export class BakongService {
           expires_at: expiresAt.toISOString(),
           qr_amount: qrAmount,
           qr_currency: this.currency,
+          merchant_name: this.merchantName,
+          merchant_city: this.merchantCity,
           deeplink: shortLink,
           deeplink_full: fullLink,
         };
@@ -677,6 +685,8 @@ export class BakongService {
       expires_at: expiresAt.toISOString(),
       qr_amount: qrAmount,
       qr_currency: this.currency,
+      merchant_name: this.merchantName,
+      merchant_city: this.merchantCity,
       deeplink: shortLink,
       deeplink_full: fullLink,
     };
@@ -993,6 +1003,8 @@ export class BakongService {
           expires_at: expiresAt.toISOString(),
           qr_amount: qrAmount,
           qr_currency: this.currency,
+          merchant_name: this.merchantName,
+          merchant_city: this.merchantCity,
           deeplink: shortLink,
           deeplink_full: fullLink,
         };
@@ -1055,6 +1067,8 @@ export class BakongService {
       expires_at: expiresAt.toISOString(),
       qr_amount: qrAmount,
       qr_currency: this.currency,
+      merchant_name: this.merchantName,
+      merchant_city: this.merchantCity,
       deeplink: shortLink,
       deeplink_full: fullLink,
     };
