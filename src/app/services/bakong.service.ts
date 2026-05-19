@@ -733,7 +733,13 @@ export class BakongService {
       const body = res.data;
       const message = body?.responseMessage ?? "";
 
-      if (body?.responseCode === 0 && body.data) {
+      this.logger.log(
+        `Bakong poll tx=${tx.id} order=${order.id} → responseCode=${body?.responseCode} message="${message}" hasData=${body?.data != null}`,
+      );
+
+      // responseCode=0 means NBC confirmed the transaction regardless of whether `data` is populated.
+      // Some Bakong API versions return responseCode=0 with data:null — we settle on the code alone.
+      if (body?.responseCode === 0) {
         await this._markTransactionPaid(tx, order, body);
         return message || "Payment confirmed.";
       }
@@ -759,9 +765,19 @@ export class BakongService {
       );
       return message || null;
     } catch (e) {
-      if (isAxiosError(e) && e.response?.status === 401) {
-        this.token = "";
-        this.logger.warn("Bakong returned 401 — clearing cached token; next poll will renew.");
+      if (isAxiosError(e)) {
+        const status = e.response?.status;
+        if (status === 401) {
+          this.token = "";
+          this.logger.warn("Bakong returned 401 — clearing cached token; next poll will renew.");
+        } else if (status === 403) {
+          this.logger.error(
+            `Bakong returned 403 Forbidden for check_transaction_by_md5. ` +
+            `Your account (${this.merchantId}) does not have Merchant Open API permission. ` +
+            `Log in at https://api-bakong.nbc.gov.kh and ensure your account has Open API access, ` +
+            `then generate a new token and update BAKONG_TOKEN in .env.`,
+          );
+        }
       }
       this.logger.warn(`Bakong check_transaction_by_md5 error: ${(e as Error).message}`);
       return null;
@@ -1111,7 +1127,11 @@ export class BakongService {
       const body = res.data;
       const message = body?.responseMessage ?? "";
 
-      if (body?.responseCode === 0 && body.data) {
+      this.logger.log(
+        `Bakong wallet poll tx=${tx.id} → responseCode=${body?.responseCode} message="${message}" hasData=${body?.data != null}`,
+      );
+
+      if (body?.responseCode === 0) {
         await this._markWalletDepositPaid(tx, body);
         return message || "Deposit confirmed.";
       }
@@ -1137,9 +1157,17 @@ export class BakongService {
       );
       return message || null;
     } catch (e) {
-      if (isAxiosError(e) && e.response?.status === 401) {
-        this.token = "";
-        this.logger.warn("Bakong returned 401 — clearing cached token; next poll will renew.");
+      if (isAxiosError(e)) {
+        const status = e.response?.status;
+        if (status === 401) {
+          this.token = "";
+          this.logger.warn("Bakong returned 401 — clearing cached token; next poll will renew.");
+        } else if (status === 403) {
+          this.logger.error(
+            `Bakong returned 403 Forbidden for wallet check_transaction_by_md5. ` +
+            `Account (${this.merchantId}) lacks Merchant Open API permission.`,
+          );
+        }
       }
       this.logger.warn(`Bakong wallet check_transaction_by_md5 error: ${(e as Error).message}`);
       return null;

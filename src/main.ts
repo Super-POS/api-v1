@@ -91,6 +91,7 @@ class AppInitializer {
                 'X-Requested-With',
                 'withcredentials',
                 'Cache-Control',
+                'Cache-Control',
                 'Pragma',
             ],
             methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
