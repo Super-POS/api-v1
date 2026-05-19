@@ -5,8 +5,49 @@ import User from '@app/models/user/user.model';
 import { Injectable, NotFoundException } from '@nestjs/common';
 // ================================================================>> Costom Library
 
+/** API shape returned to the POS notification bell. */
+export interface FormattedNotification {
+    id: number;
+    receipt_number: string;
+    order_number: number | null;
+    total_price: number;
+    ordered_at: Date;
+    cashier: { id: number; name: string; avatar: string } | null;
+    read: boolean;
+}
+
 @Injectable()
 export class NotificationService {
+
+    /**
+     * Map a Sequelize row to the client DTO. Returns null when the linked order
+     * was removed (orphaned notification row) so callers can filter it out.
+     * Cashier is optional — user may be null if the account was deleted.
+     */
+    private formatNotification(notification: Notifications): FormattedNotification | null {
+        const order = notification.order;
+        if (!order) {
+            return null;
+        }
+
+        const user = notification.user;
+
+        return {
+            id: notification.id,
+            receipt_number: order.receipt_number,
+            order_number: order.order_number ?? null,
+            total_price: order.total_price,
+            ordered_at: order.ordered_at,
+            cashier: user
+                ? {
+                    id: user.id,
+                    name: user.name,
+                    avatar: user.avatar,
+                }
+                : null,
+            read: notification.read,
+        };
+    }
 
     async getData() {
         try {
@@ -17,10 +58,12 @@ export class NotificationService {
                         {
                             model: Order,
                             attributes: ['id', 'receipt_number', 'order_number', 'total_price', 'ordered_at'],
+                            required: false,
                         },
                         {
                             model: User,
                             attributes: ['id', 'avatar', 'name'],
+                            required: false,
                         },
                     ],
                     order: [['id', 'DESC']],
@@ -29,19 +72,9 @@ export class NotificationService {
             ]);
 
             const resolvedNotifications = notifications as Notifications[];
-            const data = resolvedNotifications.map(notification => ({
-                id: notification.id,
-                receipt_number: notification.order.receipt_number,
-                order_number: notification.order.order_number,
-                total_price: notification.order.total_price,
-                ordered_at: notification.order.ordered_at,
-                cashier: {
-                    id: notification.user.id,
-                    name: notification.user.name,
-                    avatar: notification.user.avatar
-                },
-                read: notification.read
-            }));
+            const data = resolvedNotifications
+                .map((notification) => this.formatNotification(notification))
+                .filter((row): row is FormattedNotification => row !== null);
 
             return { data };
         } catch (err) {
@@ -76,30 +109,20 @@ export class NotificationService {
                 {
                     model: Order,
                     attributes: ['id', 'receipt_number', 'order_number', 'total_price', 'ordered_at'],
+                    required: false,
                 },
                 {
                     model: User,
                     attributes: ['id', 'avatar', 'name'],
+                    required: false,
                 },
             ],
         });
 
-        // Format the result to match the Notification interface
-        const data = notifications.map(notification => ({
-            id: notification.id,
-            receipt_number: notification.order.receipt_number,
-            order_number: notification.order.order_number,
-            total_price: notification.order.total_price,
-            ordered_at: notification.order.ordered_at,
-            cashier: {
-                id: notification.user.id,
-                name: notification.user.name,
-                avatar: notification.user.avatar,
-            },
-            read: notification.read,
-        }));
+        const data = notifications
+            .map((notification) => this.formatNotification(notification))
+            .filter((row): row is FormattedNotification => row !== null);
 
-        // Return the updated data to the frontend
         return { data };
     }
 
