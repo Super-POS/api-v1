@@ -64,13 +64,13 @@ export class ManageService {
         private readonly _telegram: TelegramService,
     ) {}
 
-    /** Website orders (customer_web): full pipeline including completed (still listed for reference; also on Sales). */
+    /** Website + Telegram orders: full pipeline including completed (still listed for reference; also on Sales). */
     async getIncomingWebsiteOrders() {
         const data = await Order.findAll({
             attributes : ORDER_ATTRIBUTES,
             include    : DETAIL_INCLUDES,
             where      : {
-                channel: OrderChannelEnum.WEBSITE,
+                channel: { [Op.in]: WEBSITE_OR_TELEGRAM },
                 status   : {
                     [Op.in]: [
                         OrderStatusEnum.PENDING,
