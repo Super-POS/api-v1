@@ -139,8 +139,8 @@ export class ManageService {
         if (!order) {
             throw new NotFoundException(`Order #${id} not found.`);
         }
-        if (order.channel !== OrderChannelEnum.WEBSITE) {
-            throw new BadRequestException('This action is only for website orders.');
+        if (!WEBSITE_OR_TELEGRAM.includes(order.channel as OrderChannelEnum)) {
+            throw new BadRequestException('This action is only for website or Telegram orders.');
         }
         if (
             order.status !== OrderStatusEnum.PREPARING
@@ -232,7 +232,7 @@ export class ManageService {
                     text =
                         `<b>Ready for pickup</b>\n` +
                         `Receipt: <code>#${full.receipt_number}</code>`;
-                } else if (toStatus === OrderStatusEnum.COMPLETED && full.channel === OrderChannelEnum.WEBSITE) {
+                } else if (toStatus === OrderStatusEnum.COMPLETED && WEBSITE_OR_TELEGRAM.includes(full.channel as OrderChannelEnum)) {
                     text =
                         `<b>Order completed</b>\n` +
                         `Receipt: <code>#${full.receipt_number}</code>\n` +

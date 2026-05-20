@@ -467,7 +467,7 @@ export class OrderService {
                 {
                     model: User,
                     as: "customer",
-                    attributes: ["id", "name", "telegram_first_name", "telegram_last_name", "telegram_username"],
+                    attributes: ["id", "name", "telegram_user_id", "telegram_first_name", "telegram_last_name", "telegram_username"],
                     required: false,
                 },
             ],
@@ -481,6 +481,21 @@ export class OrderService {
             read: false,
         });
         await this._sendPlacedOrderTelegramAndSocket(data, data.channel, paymentInfo);
+
+        const tgId = (data as any).customer?.telegram_user_id;
+        if (tgId) {
+            const khrPerUsd = 4100;
+            const totalUsd  = (Number(data.total_price ?? 0) / khrPerUsd).toFixed(2);
+            const orderNo   = data.order_number != null
+                ? String(Math.floor(Number(data.order_number))).padStart(3, '0')
+                : null;
+            let msg = `✅ <b>Payment received!</b>\n`;
+            msg    += `Receipt: <code>#${data.receipt_number}</code>\n`;
+            if (orderNo) msg += `Order no: <code>${orderNo}</code>\n`;
+            msg    += `Amount: <b>$${totalUsd}</b>\n`;
+            msg    += `\nYour order is in the queue. We'll notify you when it's ready. ☕`;
+            await this.telegramService.sendHTMLToChat(tgId, msg).catch(() => {});
+        }
     }
 
     private formatPrice(price: number): string {
