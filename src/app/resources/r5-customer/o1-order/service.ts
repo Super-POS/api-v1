@@ -25,6 +25,7 @@ import {
 } from '@app/utils/modifier-order.util';
 import Coupon               from '@app/models/coupon/coupon.model';
 import User                 from '@app/models/user/user.model';
+import PaymentTransaction, { PaymentStatus } from '@app/models/payment/payment_transaction.model';
 import { TelegramService }         from '@app/services/telegram.service';
 import { RewardEngineService }      from '@app/services/reward-engine.service';
 import { BadgeAiService }           from '@app/services/badge-ai.service';
@@ -337,8 +338,11 @@ export class CustomerOrderService {
             distinct   : true,
         });
 
+        const orderIds = rows.map((o) => o.id);
+        const paidSet  = await this._getPaidOrderIds(orderIds);
+
         return {
-            data: rows,
+            data: rows.map((o) => ({ ...o.toJSON(), is_paid: paidSet.has(o.id) })),
             pagination: {
                 page,
                 limit,
@@ -360,7 +364,17 @@ export class CustomerOrderService {
             throw new NotFoundException(`Order #${id} not found.`);
         }
 
-        return { data };
+        const paidSet = await this._getPaidOrderIds([id]);
+        return { data: { ...data.toJSON(), is_paid: paidSet.has(id) } };
+    }
+
+    private async _getPaidOrderIds(orderIds: number[]): Promise<Set<number>> {
+        if (orderIds.length === 0) return new Set();
+        const txs = await PaymentTransaction.findAll({
+            attributes: ['order_id'],
+            where: { order_id: orderIds, status: PaymentStatus.SUCCESS },
+        });
+        return new Set(txs.map((t) => t.order_id));
     }
 
     private async _generateReceiptNumber(): Promise<string> {

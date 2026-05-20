@@ -399,9 +399,19 @@ export class BarayService {
       where: { order_id: orderId, status: PaymentStatus.PENDING },
     });
     if (existingPending) {
-      throw new BadRequestException(
-        "This order already has a pending payment. Wait for it to complete or mark it failed/expired first.",
-      );
+      const isExpired =
+        existingPending.expires_at != null &&
+        new Date(existingPending.expires_at) < new Date();
+      if (isExpired) {
+        await existingPending.update({ status: PaymentStatus.EXPIRED });
+        if (order.status === OrderStatusEnum.AWAITING_PAYMENT) {
+          await order.update({ status: OrderStatusEnum.PENDING });
+        }
+      } else {
+        throw new BadRequestException(
+          "This order already has a pending payment. Wait for it to complete or mark it failed/expired first.",
+        );
+      }
     }
 
     const khrPerUsd = await this._exchange.getKhrPerUsd();
