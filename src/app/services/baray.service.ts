@@ -16,7 +16,9 @@ import * as crypto from "crypto";
 import { OrderService } from "src/app/resources/r2-cashier/c1-order/service";
 import { NotificationsGateway } from "src/app/utils/notification-getway/notifications.gateway";
 import { ExchangeSettingService, khrToUsdDisplay } from "src/app/services/exchange-setting.service";
+import { TelegramService } from "src/app/services/telegram.service";
 import Order from "@app/models/order/order.model";
+import User from "@app/models/user/user.model";
 import { OrderStatusEnum } from "@app/enums/order-status.enum";
 import PaymentTransaction, {
   PaymentMethod,
@@ -63,6 +65,7 @@ export class BarayService {
     @Inject(forwardRef(() => OrderService))
     private readonly _orderService: OrderService,
     private readonly _exchange: ExchangeSettingService,
+    private readonly _telegram: TelegramService,
   ) {
     // Full URL to POST (include path, e.g. https://api.baray.io/pay)
     this.payUrl = (process.env.BARAY_PAY_URL || "https://api.baray.io/pay").replace(/\/$/, "");
@@ -622,6 +625,25 @@ export class BarayService {
     } catch {
       // Telegram/FCM optional; payment is already recorded
     }
+
+    // Notify customer on Telegram that their payment was received
+    try {
+      const orderWithCustomer = await Order.findByPk(localOrderId, {
+        attributes: ['id', 'receipt_number'],
+        include: [{ model: User, as: 'customer', attributes: ['telegram_user_id'] }],
+      });
+      const tgId = (orderWithCustomer as any)?.customer?.telegram_user_id;
+      if (tgId) {
+        await this._telegram.sendHTMLToChat(
+          tgId,
+          `<b>Payment received</b>\nReceipt: <code>#${orderWithCustomer.receipt_number}</code>\nYour order is being prepared. Thank you!`,
+        );
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Customer payment notify failed order_id=${localOrderId}: ${msg}`);
+    }
+
     this._notifications.emitBarayPaymentSuccess({
       orderId: localOrderId,
       receiptNumber: String(order.receipt_number ?? ""),
