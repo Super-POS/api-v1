@@ -20,4 +20,6 @@ WORKDIR /myapp
 COPY package*.json tsconfig.json nest-cli.json ./
 RUN npm install --omit=dev
 COPY --from=builder /myapp/dist ./dist
+# Runtime require from dist/app/services (../../../scripts/badge.json)
+COPY --from=builder /myapp/scripts/badge.json ./scripts/badge.json
 CMD ["node", "dist/main.js"]

@@ -15,7 +15,9 @@
         "seeder": "ts-node -r tsconfig-paths/register src/database/seed.ts",
         "start:debug": "nest start --debug --watch",
         "ngrok": "ngrok http ${PORT:-3000}",
-        "ngrok:docker": "ngrok http 9003"
+        "ngrok:docker": "ngrok http 9003",
+        "tunnel": "cloudflared tunnel --url http://127.0.0.1:${PORT:-3000}",
+        "tunnel:docker": "cloudflared tunnel --url http://127.0.0.1:9003"
     },
     "dependencies": {
         "@nestjs/axios": "^3.1.3",

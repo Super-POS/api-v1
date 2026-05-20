@@ -8,7 +8,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
-import { isAxiosError } from "axios";
+import { AxiosRequestConfig, isAxiosError } from "axios";
 import { firstValueFrom } from "rxjs";
 import { Op } from "sequelize";
 
@@ -497,6 +497,77 @@ export class BakongService {
     };
   }
 
+  // =========================================================================>> HTTP helpers
+
+  /** Optional egress proxy when Bakong CDN blocks datacenter IPs (common on GCP). */
+  private _bakongAxiosConfig(extra?: AxiosRequestConfig): AxiosRequestConfig {
+    const raw = process.env.BAKONG_HTTP_PROXY?.trim();
+    if (!raw) {
+      return { ...extra };
+    }
+    try {
+      const url = new URL(raw);
+      const port = url.port ? Number(url.port) : url.protocol === "https:" ? 443 : 80;
+      return {
+        ...extra,
+        proxy: {
+          protocol: url.protocol.replace(":", ""),
+          host: url.hostname,
+          port,
+          auth:
+            url.username && url.password
+              ? { username: decodeURIComponent(url.username), password: decodeURIComponent(url.password) }
+              : undefined,
+        },
+      };
+    } catch {
+      this.logger.warn(`Invalid BAKONG_HTTP_PROXY (${raw}) — ignored.`);
+      return { ...extra };
+    }
+  }
+
+  private _logBakongHttpFailure(context: string, e: unknown): void {
+    if (!isAxiosError(e)) {
+      this.logger.warn(`Bakong ${context} error: ${(e as Error).message}`);
+      return;
+    }
+    const status = e.response?.status;
+    const rawBody = e.response?.data;
+    const bodyText =
+      typeof rawBody === "string"
+        ? rawBody
+        : rawBody != null
+          ? JSON.stringify(rawBody)
+          : "";
+    if (
+      status === 403 &&
+      (bodyText.includes("CloudFront") ||
+        bodyText.includes("Request blocked") ||
+        bodyText.includes("could not be satisfied"))
+    ) {
+      this.logger.error(
+        `Bakong ${context}: CDN/WAF blocked this server's IP (HTTP 403 from CloudFront). ` +
+          `QR generation still works, but payment confirmation requires NBC Open API access from this host. ` +
+          `Reserve a static egress IP, ask NBC/Bakong to whitelist it for Merchant Open API, ` +
+          `or set BAKONG_HTTP_PROXY to a proxy that can reach ${this.baseUrl}.`,
+      );
+      return;
+    }
+    if (status === 401) {
+      this.token = "";
+      this.logger.warn(`Bakong ${context}: 401 — clearing cached token; next poll will renew.`);
+      return;
+    }
+    if (status === 403) {
+      this.logger.error(
+        `Bakong ${context}: 403 Forbidden for account ${this.merchantId}. ` +
+          `Ensure Merchant Open API is enabled at https://api-bakong.nbc.gov.kh and BAKONG_TOKEN matches that merchant.`,
+      );
+      return;
+    }
+    this.logger.warn(`Bakong ${context} error: ${e.message}`);
+  }
+
   // =========================================================================>> Token lifecycle
 
   private _isTokenExpiredOrMissing(): boolean {
@@ -526,13 +597,13 @@ export class BakongService {
         this._http.post<BakongRenewTokenResponse>(
           `${this.baseUrl}/v1/renew_token`,
           { email: this.email },
-          {
+          this._bakongAxiosConfig({
             headers: {
               "Content-Type": "application/json",
               Accept: "application/json",
             },
             timeout: 30_000,
-          },
+          }),
         ),
       );
       const body = res.data;
@@ -720,14 +791,14 @@ export class BakongService {
         this._http.post<BakongApiResponse>(
           `${this.baseUrl}/v1/check_transaction_by_md5`,
           { md5: tx.reference },
-          {
+          this._bakongAxiosConfig({
             headers: {
               "Content-Type": "application/json",
               Accept: "application/json",
               Authorization: `Bearer ${this.token}`,
             },
             timeout: 30_000,
-          },
+          }),
         ),
       );
       const body = res.data;
@@ -765,21 +836,7 @@ export class BakongService {
       );
       return message || null;
     } catch (e) {
-      if (isAxiosError(e)) {
-        const status = e.response?.status;
-        if (status === 401) {
-          this.token = "";
-          this.logger.warn("Bakong returned 401 — clearing cached token; next poll will renew.");
-        } else if (status === 403) {
-          this.logger.error(
-            `Bakong returned 403 Forbidden for check_transaction_by_md5. ` +
-            `Your account (${this.merchantId}) does not have Merchant Open API permission. ` +
-            `Log in at https://api-bakong.nbc.gov.kh and ensure your account has Open API access, ` +
-            `then generate a new token and update BAKONG_TOKEN in .env.`,
-          );
-        }
-      }
-      this.logger.warn(`Bakong check_transaction_by_md5 error: ${(e as Error).message}`);
+      this._logBakongHttpFailure("check_transaction_by_md5", e);
       return null;
     }
   }
@@ -1114,14 +1171,14 @@ export class BakongService {
         this._http.post<BakongApiResponse>(
           `${this.baseUrl}/v1/check_transaction_by_md5`,
           { md5: tx.reference },
-          {
+          this._bakongAxiosConfig({
             headers: {
               "Content-Type": "application/json",
               Accept: "application/json",
               Authorization: `Bearer ${this.token}`,
             },
             timeout: 30_000,
-          },
+          }),
         ),
       );
       const body = res.data;
@@ -1157,19 +1214,7 @@ export class BakongService {
       );
       return message || null;
     } catch (e) {
-      if (isAxiosError(e)) {
-        const status = e.response?.status;
-        if (status === 401) {
-          this.token = "";
-          this.logger.warn("Bakong returned 401 — clearing cached token; next poll will renew.");
-        } else if (status === 403) {
-          this.logger.error(
-            `Bakong returned 403 Forbidden for wallet check_transaction_by_md5. ` +
-            `Account (${this.merchantId}) lacks Merchant Open API permission.`,
-          );
-        }
-      }
-      this.logger.warn(`Bakong wallet check_transaction_by_md5 error: ${(e as Error).message}`);
+      this._logBakongHttpFailure("wallet check_transaction_by_md5", e);
       return null;
     }
   }

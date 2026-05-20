@@ -15,6 +15,7 @@ import * as crypto from "crypto";
 // ===========================================================================>> Custom Library
 import { OrderService } from "src/app/resources/r2-cashier/c1-order/service";
 import { NotificationsGateway } from "src/app/utils/notification-getway/notifications.gateway";
+import { ExchangeSettingService, khrToUsdDisplay } from "src/app/services/exchange-setting.service";
 import Order from "@app/models/order/order.model";
 import { OrderStatusEnum } from "@app/enums/order-status.enum";
 import PaymentTransaction, {
@@ -61,6 +62,7 @@ export class BarayService {
     private readonly _notifications: NotificationsGateway,
     @Inject(forwardRef(() => OrderService))
     private readonly _orderService: OrderService,
+    private readonly _exchange: ExchangeSettingService,
   ) {
     // Full URL to POST (include path, e.g. https://api.baray.io/pay)
     this.payUrl = (process.env.BARAY_PAY_URL || "https://api.baray.io/pay").replace(/\/$/, "");
@@ -402,9 +404,12 @@ export class BarayService {
       );
     }
 
+    const khrPerUsd = await this._exchange.getKhrPerUsd();
+    const amountUsd = khrToUsdDisplay(order.total_price, khrPerUsd);
+
     const externalOrderId = this.makeExternalOrderId(orderId);
     const bodyPayload = {
-      amount: this._formatAmount(Number(order.total_price)),
+      amount: this._formatAmount(amountUsd),
       currency: this.currency,
       order_id: externalOrderId,
     };
