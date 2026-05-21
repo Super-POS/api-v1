@@ -1054,6 +1054,70 @@
           ]
         },
         {
+          "name": "Baray - Create Payment Intent",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": {{orderId}}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/cashier/ordering/baray/payment-intent",
+            "description": "Generates a Baray pay-link for the order. Returns url (redirect/display to customer) and expires_at. Order status → awaiting_payment."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "const json = pm.response.json();",
+                  "if (json?.data?.payment_transaction_id) {",
+                  "  pm.collectionVariables.set('paymentTransactionId', json.data.payment_transaction_id);",
+                  "}",
+                  "if (json?.data?.url) {",
+                  "  console.log('Baray Pay URL:', json.data.url);",
+                  "  console.log('Expires at:', json.data.expires_at);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Baray - Poll Payment State",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/cashier/ordering/baray/order/{{orderId}}/payment-state",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cashier", "ordering", "baray", "order", "{{orderId}}", "payment-state"]
+            },
+            "description": "Poll every 3–5 seconds while showing the Baray pay link. Returns order_status and baray_transaction_status (pending → success)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "if (json?.data?.baray_transaction_status === 'success') {",
+                  "  console.log('Payment confirmed! Order:', json.data.order_id);",
+                  "} else {",
+                  "  console.log('Status:', json?.data?.baray_transaction_status, '— keep polling');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Cash Drawer - View Current",
           "request": {
             "method": "GET",
@@ -1169,6 +1233,100 @@
           }
         },
         {
+          "name": "Wallet - Baray Deposit Intent",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 20.00,\n  \"note\": \"Top-up via Baray bank\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/customer/wallet/deposit/baray/intent",
+            "description": "Generate a Baray pay-link for a wallet top-up. Returns url and expires_at."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.wallet_transaction_id) {",
+                  "  pm.collectionVariables.set('depositId', json.data.wallet_transaction_id);",
+                  "}",
+                  "if (json?.data?.url) {",
+                  "  console.log('Baray Deposit URL:', json.data.url);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Wallet - Deposit Payment State",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/wallet/deposit/{{depositId}}/payment-state",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "wallet", "deposit", "{{depositId}}", "payment-state"]
+            },
+            "description": "Poll payment state for a wallet deposit (works for both Baray and Bakong channels)."
+          }
+        },
+        {
+          "name": "Wallet - Bakong Deposit Intent",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 20.00,\n  \"note\": \"Top-up via KHQR\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/customer/wallet/deposit/bakong/intent",
+            "description": "Generate a KHQR QR code for a wallet top-up. Returns qr, md5, and expires_at."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.wallet_transaction_id) {",
+                  "  pm.collectionVariables.set('depositId', json.data.wallet_transaction_id);",
+                  "}",
+                  "if (json?.data?.md5) {",
+                  "  pm.collectionVariables.set('bakongMd5', json.data.md5);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Wallet - Bakong Abandon Pending Deposits",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/customer/wallet/deposit/bakong/abandon-pending",
+            "description": "Cancel all pending KHQR wallet deposit intents so a new one can be generated."
+          }
+        },
+        {
+          "name": "Wallet - Bakong Abandon Deposit by ID",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/wallet/deposit/bakong/{{depositId}}/abandon",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "wallet", "deposit", "bakong", "{{depositId}}", "abandon"]
+            },
+            "description": "Cancel a specific pending KHQR wallet deposit intent."
+          }
+        },
+        {
           "name": "Rewards - My Profile (balance + rank + badge + history)",
           "request": {
             "method": "GET",
@@ -1265,6 +1423,104 @@
               }
             }
           ]
+        },
+        {
+          "name": "Payments - Baray Intent",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": {{orderId}}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/customer/payments/baray/intent",
+            "description": "Generate a Baray pay-link for the order. Customer opens URL to complete bank payment."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.payment_transaction_id) {",
+                  "  pm.collectionVariables.set('paymentTransactionId', json.data.payment_transaction_id);",
+                  "}",
+                  "if (json?.data?.url) {",
+                  "  console.log('Baray Pay URL:', json.data.url);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Payments - Baray Poll State",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/payments/baray/order/{{orderId}}/payment-state",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "payments", "baray", "order", "{{orderId}}", "payment-state"]
+            },
+            "description": "Poll every 3–5 seconds while showing the Baray pay link. Scoped to the order owner."
+          }
+        },
+        {
+          "name": "Payments - Bakong Intent",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": {{orderId}}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/customer/payments/bakong/intent",
+            "description": "Generate a KHQR QR code for the order. Returns qr, md5, and expires_at."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.payment_transaction_id) {",
+                  "  pm.collectionVariables.set('paymentTransactionId', json.data.payment_transaction_id);",
+                  "}",
+                  "if (json?.data?.md5) {",
+                  "  pm.collectionVariables.set('bakongMd5', json.data.md5);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Payments - Bakong Poll State",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/payments/bakong/order/{{orderId}}/payment-state",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "payments", "bakong", "order", "{{orderId}}", "payment-state"]
+            },
+            "description": "Poll every 3–5 seconds while showing the KHQR. Scoped to the order owner."
+          }
+        },
+        {
+          "name": "Payments - Bakong Abandon Intent",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/payments/bakong/order/{{orderId}}/abandon",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "payments", "bakong", "order", "{{orderId}}", "abandon"]
+            },
+            "description": "Cancel the pending KHQR for this order so a new QR or different payment method can be used."
+          }
         },
         {
           "name": "Payments - By Order",
@@ -1716,6 +1972,30 @@
               "raw": "{\n  \"menu_id\": 1,\n  \"reason\": \"over_cooked\",\n  \"quantity\": 2,\n  \"note\": \"Burnt batch during rush hour\"\n}"
             },
             "url": "{{baseUrl}}/api/admin/wastages/recipes"
+          }
+        }
+      ]
+    },
+    {
+      "name": "10) Webhooks",
+      "item": [
+        {
+          "name": "Webhook - Baray Callback",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/webhooks/baray",
+            "description": "Baray payment gateway webhook. Register this URL in the Baray dashboard. Excluded from JWT auth."
           }
         }
       ]
