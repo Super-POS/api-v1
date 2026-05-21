@@ -62,6 +62,20 @@ export class CreateCouponDto {
     @IsInt({ each: true })
     @Min(1, { each: true })
     assigned_user_ids?: number[];
+
+    /** Menu IDs this coupon applies to. Empty or omitted = all menus. */
+    @IsOptional()
+    @IsArray()
+    @IsInt({ each: true })
+    @Min(1, { each: true })
+    menu_ids?: number[];
+
+    /** Category (MenuType) IDs this coupon applies to. Empty or omitted = all categories. */
+    @IsOptional()
+    @IsArray()
+    @IsInt({ each: true })
+    @Min(1, { each: true })
+    category_ids?: number[];
 }
 
 export class UpdateCouponDto {
@@ -104,4 +118,18 @@ export class UpdateCouponDto {
     @IsInt({ each: true })
     @Min(1, { each: true })
     assigned_user_ids?: number[];
+
+    /** Replaces menu restrictions. Empty array = applies to all menus. */
+    @IsOptional()
+    @IsArray()
+    @IsInt({ each: true })
+    @Min(1, { each: true })
+    menu_ids?: number[];
+
+    /** Replaces category restrictions. Empty array = applies to all categories. */
+    @IsOptional()
+    @IsArray()
+    @IsInt({ each: true })
+    @Min(1, { each: true })
+    category_ids?: number[];
 }

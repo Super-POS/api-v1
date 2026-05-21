@@ -1,5 +1,7 @@
 import { Column, DataType, HasMany, Model, Table } from 'sequelize-typescript';
 import CouponAssignedUser from './coupon_assigned_user.model';
+import CouponMenu from './coupon_menu.model';
+import CouponCategory from './coupon_category.model';
 
 @Table({ tableName: 'coupon', createdAt: 'created_at', updatedAt: 'updated_at' })
 export default class Coupon extends Model<Coupon> {
@@ -33,6 +35,14 @@ export default class Coupon extends Model<Coupon> {
     /** Specific users allowed to redeem. Empty = any user. */
     @HasMany(() => CouponAssignedUser, { foreignKey: 'coupon_id', as: 'assignments' })
     assignments: CouponAssignedUser[];
+
+    /** Specific menus this coupon applies to. Empty = all menus. */
+    @HasMany(() => CouponMenu, { foreignKey: 'coupon_id', as: 'menu_restrictions' })
+    menu_restrictions: CouponMenu[];
+
+    /** Specific categories this coupon applies to. Empty = all categories. */
+    @HasMany(() => CouponCategory, { foreignKey: 'coupon_id', as: 'category_restrictions' })
+    category_restrictions: CouponCategory[];
 
     created_at: Date;
     updated_at: Date;

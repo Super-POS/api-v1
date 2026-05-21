@@ -38,6 +38,24 @@ export class CouponOrderSchemaPatchService implements OnModuleInit {
                     )
                 `);
                 await this.sequelize.query(`
+                    CREATE TABLE IF NOT EXISTS coupon_menu (
+                        id SERIAL PRIMARY KEY,
+                        coupon_id INTEGER NOT NULL,
+                        menu_id INTEGER NOT NULL,
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                        UNIQUE (coupon_id, menu_id)
+                    )
+                `);
+                await this.sequelize.query(`
+                    CREATE TABLE IF NOT EXISTS coupon_category (
+                        id SERIAL PRIMARY KEY,
+                        coupon_id INTEGER NOT NULL,
+                        category_id INTEGER NOT NULL,
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                        UNIQUE (coupon_id, category_id)
+                    )
+                `);
+                await this.sequelize.query(`
                     CREATE TABLE IF NOT EXISTS coupon_usage (
                         id SERIAL PRIMARY KEY,
                         coupon_id INTEGER NOT NULL,
@@ -102,6 +120,30 @@ export class CouponOrderSchemaPatchService implements OnModuleInit {
                         if (!msg.includes('Duplicate column')) {
                             this.logger.warn(`coupon column patch: ${msg}`);
                         }
+                    }
+                }
+                for (const sql of [
+                    `CREATE TABLE IF NOT EXISTS coupon_menu (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        coupon_id INT NOT NULL,
+                        menu_id INT NOT NULL,
+                        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (id),
+                        UNIQUE KEY uq_coupon_menu (coupon_id, menu_id)
+                    )`,
+                    `CREATE TABLE IF NOT EXISTS coupon_category (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        coupon_id INT NOT NULL,
+                        category_id INT NOT NULL,
+                        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (id),
+                        UNIQUE KEY uq_coupon_category (coupon_id, category_id)
+                    )`,
+                ]) {
+                    try {
+                        await this.sequelize.query(sql);
+                    } catch (e) {
+                        this.logger.warn(`coupon restriction table patch: ${(e as Error).message}`);
                     }
                 }
                 try {

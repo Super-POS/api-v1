@@ -896,7 +896,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"code\": \"SUMMER20\",\n  \"discount_percent\": 20,\n  \"is_active\": true,\n  \"note\": \"Summer campaign\",\n  \"usage_limit\": 100,\n  \"expires_at\": \"2026-12-31T23:59:59.000Z\",\n  \"assigned_user_ids\": []\n}",
+              "raw": "{\n  \"code\": \"SUMMER20\",\n  \"discount_percent\": 20,\n  \"is_active\": true,\n  \"note\": \"Summer campaign — applies to all Coffee items\",\n  \"usage_limit\": 100,\n  \"expires_at\": \"2026-12-31T23:59:59.000Z\",\n  \"assigned_user_ids\": [],\n  \"menu_ids\": [],\n  \"category_ids\": [1]\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": "{{baseUrl}}/api/admin/coupons"
@@ -923,7 +923,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "[{{customerId}}]raw",
-              "raw": "{\n  \"auto_generate_code\": true,\n  \"discount_percent\": 10,\n  \"is_active\": true,\n  \"note\": \"Personal welcome coupon\",\n  \"usage_limit\": 1,\n  \"expires_at\": \"2026-12-31T23:59:59.000Z\",\n  \"assigned_user_ids\": [{{customerId}}, 2, 3]\n}",
+              "raw": "{\n  \"auto_generate_code\": true,\n  \"discount_percent\": 10,\n  \"is_active\": true,\n  \"note\": \"Personal welcome coupon — specific menu items only\",\n  \"usage_limit\": 1,\n  \"expires_at\": \"2026-12-31T23:59:59.000Z\",\n  \"assigned_user_ids\": [{{customerId}}, 2, 3],\n  \"menu_ids\": [1, 2],\n  \"category_ids\": []\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": "{{baseUrl}}/api/admin/coupons",
@@ -951,7 +951,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"is_active\": true,\n  \"discount_percent\": 15,\n  \"usage_limit\": 50,\n  \"expires_at\": \"2026-09-30T23:59:59.000Z\",\n  \"assigned_user_ids\": [{{customerId}}],\n  \"note\": \"Updated note\"\n}",
+              "raw": "{\n  \"is_active\": true,\n  \"discount_percent\": 15,\n  \"usage_limit\": 50,\n  \"expires_at\": \"2026-09-30T23:59:59.000Z\",\n  \"assigned_user_ids\": [{{customerId}}],\n  \"menu_ids\": [],\n  \"category_ids\": [1, 2],\n  \"note\": \"Updated note\"\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": "{{baseUrl}}/api/admin/coupons/{{couponId}}",

@@ -25,6 +25,8 @@ import {
 } from '@app/utils/modifier-order.util';
 import Coupon               from '@app/models/coupon/coupon.model';
 import CouponAssignedUser   from '@app/models/coupon/coupon_assigned_user.model';
+import CouponMenu           from '@app/models/coupon/coupon_menu.model';
+import CouponCategory       from '@app/models/coupon/coupon_category.model';
 import CouponUsage          from '@app/models/coupon/coupon_usage.model';
 import User                 from '@app/models/user/user.model';
 import PaymentTransaction, { PaymentStatus } from '@app/models/payment/payment_transaction.model';
@@ -191,6 +193,7 @@ export class CustomerOrderService {
 
             let totalPrice  = 0;
             const cartItems = normalizeCartLines(body.cart);
+            const cartLineDetails: { menuId: number; typeId: number; lineTotal: number }[] = [];
 
             for (const item of cartItems) {
                 const menu = await Menu.findByPk(item.menuId);
@@ -220,7 +223,9 @@ export class CustomerOrderService {
 
                 await createDetailModifiers(detail.id, snapshots, transaction);
 
-                totalPrice += item.qty * unitPrice;
+                const lineTotal = item.qty * unitPrice;
+                totalPrice += lineTotal;
+                cartLineDetails.push({ menuId: menu.id, typeId: menu.type_id, lineTotal });
 
                 await deductStockForMenuRecipeLines(
                     menu,
@@ -278,10 +283,27 @@ export class CustomerOrderService {
                 if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
                     throw new BadRequestException('Coupon is misconfigured.');
                 }
-                discountAmount = Math.round((subtotalBeforeDiscount * pct) / 100);
-                if (discountAmount > subtotalBeforeDiscount) {
-                    discountAmount = subtotalBeforeDiscount;
+
+                const [menuRestrictions, categoryRestrictions] = await Promise.all([
+                    CouponMenu.findAll({ where: { coupon_id: coupon.id }, attributes: ['menu_id'], transaction }),
+                    CouponCategory.findAll({ where: { coupon_id: coupon.id }, attributes: ['category_id'], transaction }),
+                ]);
+                const allowedMenuIds = menuRestrictions.map((r) => r.menu_id);
+                const allowedCategoryIds = categoryRestrictions.map((r) => r.category_id);
+                const hasRestrictions = allowedMenuIds.length > 0 || allowedCategoryIds.length > 0;
+
+                let eligibleSubtotal = subtotalBeforeDiscount;
+                if (hasRestrictions) {
+                    eligibleSubtotal = cartLineDetails
+                        .filter((l) => allowedMenuIds.includes(l.menuId) || allowedCategoryIds.includes(l.typeId))
+                        .reduce((sum, l) => sum + l.lineTotal, 0);
+                    if (eligibleSubtotal === 0) {
+                        throw new BadRequestException('This coupon cannot be applied to the items in your cart.');
+                    }
                 }
+
+                discountAmount = Math.round((eligibleSubtotal * pct) / 100);
+                if (discountAmount > subtotalBeforeDiscount) discountAmount = subtotalBeforeDiscount;
                 couponId = coupon.id;
                 couponCodeSnapshot = coupon.code;
                 discountPercentApplied = pct;
