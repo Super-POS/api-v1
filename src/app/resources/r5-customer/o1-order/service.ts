@@ -3,7 +3,7 @@ import { BadRequestException, HttpException, Injectable, Logger, NotFoundExcepti
 import { InjectConnection } from '@nestjs/sequelize';
 
 // =========================================================================>> Third Party Library
-import { Transaction } from 'sequelize';
+import { Op, Transaction } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
 
 // =========================================================================>> Custom Library
@@ -24,6 +24,8 @@ import {
     toPlainMenuWithSortedModifiers,
 } from '@app/utils/modifier-order.util';
 import Coupon               from '@app/models/coupon/coupon.model';
+import CouponAssignedUser   from '@app/models/coupon/coupon_assigned_user.model';
+import CouponUsage          from '@app/models/coupon/coupon_usage.model';
 import User                 from '@app/models/user/user.model';
 import PaymentTransaction, { PaymentStatus } from '@app/models/payment/payment_transaction.model';
 import { TelegramService }         from '@app/services/telegram.service';
@@ -80,11 +82,43 @@ export class CustomerOrderService {
         private readonly _badgeAi  : BadgeAiService,
     ) {}
 
-    /** Active coupons for customer checkout (same rules as cashier). */
-    async listActiveCoupons(): Promise<{ data: { id: number; code: string; discount_percent: number }[] }> {
+    /** Active coupons for customer checkout. Filters by expiry, usage limit, user assignment, and already-used. */
+    async listActiveCoupons(customerId: number): Promise<{ data: { id: number; code: string; discount_percent: number; expires_at: Date | null }[] }> {
+        const now = new Date();
+
+        // Coupons this customer already used
+        const usedCouponIds = (await CouponUsage.findAll({
+            where: { user_id: customerId },
+            attributes: ['coupon_id'],
+        })).map((u) => u.coupon_id);
+
+        // Coupon IDs assigned to any user at all
+        const allAssignedIds = (await CouponAssignedUser.findAll({
+            attributes: ['coupon_id'],
+            group: ['coupon_id'],
+        })).map((a) => a.coupon_id);
+
+        // Coupon IDs assigned specifically to this customer
+        const assignedToMeIds = (await CouponAssignedUser.findAll({
+            where: { user_id: customerId },
+            attributes: ['coupon_id'],
+        })).map((a) => a.coupon_id);
+
+        // Coupons restricted to other users (assigned but not to this customer)
+        const restrictedToOthers = allAssignedIds.filter((id) => !assignedToMeIds.includes(id));
+
+        const excludeIds = [...new Set([...usedCouponIds, ...restrictedToOthers])];
+
         const rows = await Coupon.findAll({
-            where: { is_active: true },
-            attributes: ['id', 'code', 'discount_percent'],
+            where: {
+                is_active: true,
+                [Op.and]: [
+                    { [Op.or]: [{ expires_at: null }, { expires_at: { [Op.gt]: now } }] },
+                    { [Op.or]: [{ usage_limit: null }, Coupon.sequelize!.literal('usage_count < usage_limit')] },
+                    ...(excludeIds.length > 0 ? [{ id: { [Op.notIn]: excludeIds } }] : []),
+                ],
+            },
+            attributes: ['id', 'code', 'discount_percent', 'expires_at'],
             order: [['code', 'ASC']],
         });
         return {
@@ -92,6 +126,7 @@ export class CustomerOrderService {
                 id: c.id,
                 code: c.code,
                 discount_percent: Number(c.discount_percent),
+                expires_at: c.expires_at,
             })),
         };
     }
@@ -218,6 +253,27 @@ export class CustomerOrderService {
                 if (!coupon) {
                     throw new BadRequestException('Invalid or inactive coupon code.');
                 }
+                if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) {
+                    throw new BadRequestException('This coupon has expired.');
+                }
+                if (coupon.usage_limit != null && coupon.usage_count >= coupon.usage_limit) {
+                    throw new BadRequestException('This coupon has reached its usage limit.');
+                }
+                const assignments = await CouponAssignedUser.findAll({
+                    where: { coupon_id: coupon.id },
+                    attributes: ['user_id'],
+                    transaction,
+                });
+                if (assignments.length > 0 && !assignments.some((a) => a.user_id === customerId)) {
+                    throw new BadRequestException('This coupon is not available for your account.');
+                }
+                const alreadyUsed = await CouponUsage.findOne({
+                    where: { coupon_id: coupon.id, user_id: customerId },
+                    transaction,
+                });
+                if (alreadyUsed) {
+                    throw new BadRequestException('You have already used this coupon.');
+                }
                 const pct = Number(coupon.discount_percent);
                 if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
                     throw new BadRequestException('Coupon is misconfigured.');
@@ -229,6 +285,8 @@ export class CustomerOrderService {
                 couponId = coupon.id;
                 couponCodeSnapshot = coupon.code;
                 discountPercentApplied = pct;
+                await Coupon.increment('usage_count', { by: 1, where: { id: coupon.id }, transaction });
+                await CouponUsage.create({ coupon_id: coupon.id, user_id: customerId }, { transaction });
             }
 
             const finalTotal = Math.max(0, subtotalBeforeDiscount - discountAmount);

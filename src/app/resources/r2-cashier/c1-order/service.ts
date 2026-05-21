@@ -2,7 +2,7 @@
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
 
 // =========================================================================>> Third Party Library
-import { Sequelize, Transaction } from 'sequelize';
+import { Op, Sequelize, Transaction } from 'sequelize';
 
 // =========================================================================>> Custom Library
 import { OrderStatusEnum }  from '@app/enums/order-status.enum';
@@ -27,6 +27,7 @@ import {
 import MenuType from '@app/models/menu/menu-type.model';
 import MenuSize from '@app/models/menu/menu-size.model';
 import Coupon from '@app/models/coupon/coupon.model';
+import CouponAssignedUser from '@app/models/coupon/coupon_assigned_user.model';
 import { allocateNextOrderNumber } from '@app/utils/order/allocate-order-number.util';
 import { CreateOrderDto } from './dto';
 
@@ -74,11 +75,19 @@ export class OrderService {
         return { data: dataFormat };
     }
 
-    /** Active coupons for cashier checkout (code + percent). */
-    async listActiveCoupons(): Promise<{ data: { id: number; code: string; discount_percent: number }[] }> {
+    /** Active coupons for cashier checkout. Excludes expired and exhausted coupons. */
+    async listActiveCoupons(): Promise<{ data: { id: number; code: string; discount_percent: number; expires_at: Date | null; usage_limit: number | null; usage_count: number; user_restricted: boolean }[] }> {
+        const now = new Date();
         const rows = await Coupon.findAll({
-            where: { is_active: true },
-            attributes: ['id', 'code', 'discount_percent'],
+            where: {
+                is_active: true,
+                [Op.and]: [
+                    { [Op.or]: [{ expires_at: null }, { expires_at: { [Op.gt]: now } }] },
+                    { [Op.or]: [{ usage_limit: null }, Coupon.sequelize!.literal('usage_count < usage_limit')] },
+                ],
+            },
+            attributes: ['id', 'code', 'discount_percent', 'expires_at', 'usage_limit', 'usage_count'],
+            include: [{ model: CouponAssignedUser, as: 'assignments', attributes: ['user_id'], required: false }],
             order: [['code', 'ASC']],
         });
         return {
@@ -86,6 +95,10 @@ export class OrderService {
                 id: c.id,
                 code: c.code,
                 discount_percent: Number(c.discount_percent),
+                expires_at: c.expires_at,
+                usage_limit: c.usage_limit,
+                usage_count: c.usage_count,
+                user_restricted: (c.assignments?.length ?? 0) > 0,
             })),
         };
     }
@@ -202,6 +215,23 @@ export class OrderService {
                 if (!coupon) {
                     throw new BadRequestException('Invalid or inactive coupon code.');
                 }
+                if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) {
+                    throw new BadRequestException('This coupon has expired.');
+                }
+                if (coupon.usage_limit != null && coupon.usage_count >= coupon.usage_limit) {
+                    throw new BadRequestException('This coupon has reached its usage limit.');
+                }
+                const assignments = await CouponAssignedUser.findAll({
+                    where: { coupon_id: coupon.id },
+                    attributes: ['user_id'],
+                    transaction,
+                });
+                if (assignments.length > 0) {
+                    const allowed = assignments.some((a) => a.user_id === body.customer_id);
+                    if (!allowed) {
+                        throw new BadRequestException('This coupon is assigned to specific customers only.');
+                    }
+                }
                 const pct = Number(coupon.discount_percent);
                 if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
                     throw new BadRequestException('Coupon is misconfigured.');
@@ -213,6 +243,7 @@ export class OrderService {
                 couponId = coupon.id;
                 couponCodeSnapshot = coupon.code;
                 discountPercentApplied = pct;
+                await Coupon.increment('usage_count', { by: 1, where: { id: coupon.id }, transaction });
             }
 
             const finalTotal = Math.max(0, subtotalBeforeDiscount - discountAmount);

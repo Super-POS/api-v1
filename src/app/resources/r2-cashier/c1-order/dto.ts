@@ -1,7 +1,7 @@
 // =========================================================================>> Custom Library
 import { OrderChannelEnum } from '@app/enums/order-channel.enum';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsEnum, IsJSON, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsEnum, IsInt, IsJSON, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 export class CreateOrderDto {
     @IsNotEmpty()
@@ -25,4 +25,11 @@ export class CreateOrderDto {
     @IsString()
     @MaxLength(64)
     coupon_code?: string;
+
+    /** Required when applying a coupon that is restricted to a specific user. */
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    customer_id?: number;
 }

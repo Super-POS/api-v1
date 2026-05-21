@@ -37,8 +37,8 @@ export class CustomerOrderController {
 
     /** Active coupon codes for checkout (website / Telegram). */
     @Get('coupons')
-    async listCoupons(@UserDecorator() _user: User) {
-        return await this._service.listActiveCoupons();
+    async listCoupons(@UserDecorator() user: User) {
+        return await this._service.listActiveCoupons(user.id);
     }
 
     // =============================================>> Track a specific order

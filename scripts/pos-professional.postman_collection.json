@@ -880,6 +880,90 @@
               ]
             }
           }
+        },
+        {
+          "name": "Coupons - List",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/coupons",
+            "description": "Returns all coupons including assigned_user info, usage_count, usage_limit, and expires_at."
+          }
+        },
+        {
+          "name": "Coupons - Create (manual code)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"SUMMER20\",\n  \"discount_percent\": 20,\n  \"is_active\": true,\n  \"note\": \"Summer campaign\",\n  \"usage_limit\": 100,\n  \"expires_at\": \"2026-12-31T23:59:59.000Z\",\n  \"assigned_user_ids\": []\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/coupons"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.id) {",
+                  "  pm.collectionVariables.set('couponId', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Coupons - Create (auto-generate code, user-assigned)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "[{{customerId}}]raw",
+              "raw": "{\n  \"auto_generate_code\": true,\n  \"discount_percent\": 10,\n  \"is_active\": true,\n  \"note\": \"Personal welcome coupon\",\n  \"usage_limit\": 1,\n  \"expires_at\": \"2026-12-31T23:59:59.000Z\",\n  \"assigned_user_ids\": [{{customerId}}, 2, 3]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/coupons",
+            "description": "Creates a coupon restricted to specific customers. assigned_user_ids accepts multiple user IDs. Omit or pass [] to make it available to everyone."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.id) {",
+                  "  pm.collectionVariables.set('couponId', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Coupons - Update",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": true,\n  \"discount_percent\": 15,\n  \"usage_limit\": 50,\n  \"expires_at\": \"2026-09-30T23:59:59.000Z\",\n  \"assigned_user_ids\": [{{customerId}}],\n  \"note\": \"Updated note\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/coupons/{{couponId}}",
+            "description": "Partially updates a coupon. assigned_user_ids replaces the full list — pass [] to open it to everyone, omit the field to leave assignments unchanged."
+          }
+        },
+        {
+          "name": "Coupons - Delete",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/coupons/{{couponId}}"
+          }
         }
       ]
     },
@@ -894,6 +978,14 @@
           }
         },
         {
+          "name": "Ordering - Active Coupons",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/cashier/ordering/coupons",
+            "description": "Returns coupons that are active, not expired, and below their usage limit. Also shows assigned_user_id so cashier knows if a coupon is user-restricted."
+          }
+        },
+        {
           "name": "Ordering - Create Order",
           "request": {
             "method": "POST",
@@ -903,9 +995,11 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cart\": \"[{\\\"menu_id\\\":1,\\\"quantity\\\":2}]\",\n  \"channel\": \"walk_in\"\n}"
+              "raw": "{\n  \"cart\": \"[{\\\"menu_id\\\":1,\\\"quantity\\\":2}]\",\n  \"channel\": \"walk_in\",\n  \"coupon_code\": \"SUMMER20\",\n  \"customer_id\": null\n}",
+              "options": { "raw": { "language": "json" } }
             },
-            "url": "{{baseUrl}}/api/cashier/ordering/order"
+            "url": "{{baseUrl}}/api/cashier/ordering/order",
+            "description": "coupon_code is optional. customer_id is required only when the coupon has an assigned_user_id."
           }
         },
         {
@@ -1168,9 +1262,11 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cart\": \"[{\\\"menu_id\\\":1,\\\"quantity\\\":1}]\",\n  \"channel\": \"WEBSITE\"\n}"
+              "raw": "{\n  \"cart\": \"[{\\\"menu_id\\\":1,\\\"quantity\\\":1}]\",\n  \"channel\": \"WEBSITE\",\n  \"coupon_code\": \"SUMMER20\"\n}",
+              "options": { "raw": { "language": "json" } }
             },
-            "url": "{{baseUrl}}/api/customer/orders"
+            "url": "{{baseUrl}}/api/customer/orders",
+            "description": "coupon_code is optional. The API validates expiry, usage limit, and user assignment automatically."
           }
         },
         {
@@ -1185,6 +1281,14 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/customer/orders/{{orderId}}"
+          }
+        },
+        {
+          "name": "Orders - Active Coupons",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customer/orders/coupons",
+            "description": "Returns coupons the authenticated customer is allowed to use: active, not expired, below usage limit, and either public or assigned to this customer."
           }
         },
         {
@@ -2094,6 +2198,10 @@
     {
       "key": "bakongMd5",
       "value": ""
+    },
+    {
+      "key": "couponId",
+      "value": "1"
     }
   ]
 }

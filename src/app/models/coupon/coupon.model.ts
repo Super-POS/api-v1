@@ -1,4 +1,5 @@
-import { Column, DataType, Model, Table } from 'sequelize-typescript';
+import { Column, DataType, HasMany, Model, Table } from 'sequelize-typescript';
+import CouponAssignedUser from './coupon_assigned_user.model';
 
 @Table({ tableName: 'coupon', createdAt: 'created_at', updatedAt: 'updated_at' })
 export default class Coupon extends Model<Coupon> {
@@ -16,6 +17,22 @@ export default class Coupon extends Model<Coupon> {
 
     @Column({ allowNull: true, type: DataType.TEXT })
     note: string | null;
+
+    /** Max number of times this coupon can be used globally. NULL = unlimited. */
+    @Column({ allowNull: true, type: DataType.INTEGER })
+    usage_limit: number | null;
+
+    /** Running count of how many times this coupon has been redeemed. */
+    @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })
+    usage_count: number;
+
+    /** Date after which the coupon is no longer valid. NULL = never expires. */
+    @Column({ allowNull: true, type: DataType.DATE })
+    expires_at: Date | null;
+
+    /** Specific users allowed to redeem. Empty = any user. */
+    @HasMany(() => CouponAssignedUser, { foreignKey: 'coupon_id', as: 'assignments' })
+    assignments: CouponAssignedUser[];
 
     created_at: Date;
     updated_at: Date;

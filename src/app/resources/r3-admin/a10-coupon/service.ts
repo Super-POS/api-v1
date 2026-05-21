@@ -3,6 +3,8 @@ import { randomBytes } from 'crypto';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Op } from 'sequelize';
 import Coupon from '@app/models/coupon/coupon.model';
+import CouponAssignedUser from '@app/models/coupon/coupon_assigned_user.model';
+import User from '@app/models/user/user.model';
 import { CreateCouponDto, UpdateCouponDto } from './dto';
 
 function normalizeCouponCode(code: string): string {
@@ -20,10 +22,20 @@ function randomCouponCodeCandidate(length: number): string {
     return out;
 }
 
+const ASSIGNMENTS_INCLUDE = {
+    model: CouponAssignedUser,
+    as: 'assignments',
+    required: false,
+    include: [{ model: User, as: 'user', attributes: ['id', 'name', 'phone'] }],
+};
+
 @Injectable()
 export class AdminCouponService {
     async list(): Promise<{ data: Coupon[] }> {
-        const data = await Coupon.findAll({ order: [['id', 'DESC']] });
+        const data = await Coupon.findAll({
+            order: [['id', 'DESC']],
+            include: [ASSIGNMENTS_INCLUDE],
+        });
         return { data };
     }
 
@@ -59,9 +71,19 @@ export class AdminCouponService {
             discount_percent: body.discount_percent,
             is_active: body.is_active !== false,
             note,
+            usage_limit: body.usage_limit ?? null,
+            expires_at: body.expires_at ? new Date(body.expires_at) : null,
         });
-        const message =
-            body.auto_generate_code === true ? `Coupon created with code ${row.code}.` : 'Coupon created.';
+
+        if (body.assigned_user_ids?.length) {
+            await CouponAssignedUser.bulkCreate(
+                body.assigned_user_ids.map((userId) => ({ coupon_id: row.id, user_id: userId })),
+                { ignoreDuplicates: true },
+            );
+        }
+
+        await row.reload({ include: [ASSIGNMENTS_INCLUDE] });
+        const message = body.auto_generate_code === true ? `Coupon created with code ${row.code}.` : 'Coupon created.';
         return { data: row, message };
     }
 
@@ -79,9 +101,7 @@ export class AdminCouponService {
         }
         if (body.code != null && body.code.trim() !== '') {
             const code = normalizeCouponCode(body.code);
-            const clash = await Coupon.findOne({
-                where: { code, id: { [Op.ne]: id } },
-            });
+            const clash = await Coupon.findOne({ where: { code, id: { [Op.ne]: id } } });
             if (clash) {
                 throw new BadRequestException('Another coupon already uses this code.');
             }
@@ -90,8 +110,25 @@ export class AdminCouponService {
         if (body.note !== undefined) {
             patch.note = body.note != null && String(body.note).trim() !== '' ? String(body.note).trim() : null;
         }
+        if (body.usage_limit !== undefined) {
+            patch.usage_limit = body.usage_limit ?? null;
+        }
+        if (body.expires_at !== undefined) {
+            patch.expires_at = body.expires_at ? new Date(body.expires_at) : null;
+        }
         await row.update(patch);
-        await row.reload();
+
+        if (body.assigned_user_ids !== undefined) {
+            await CouponAssignedUser.destroy({ where: { coupon_id: id } });
+            if (body.assigned_user_ids.length > 0) {
+                await CouponAssignedUser.bulkCreate(
+                    body.assigned_user_ids.map((userId) => ({ coupon_id: id, user_id: userId })),
+                    { ignoreDuplicates: true },
+                );
+            }
+        }
+
+        await row.reload({ include: [ASSIGNMENTS_INCLUDE] });
         return { data: row, message: 'Coupon updated.' };
     }
 

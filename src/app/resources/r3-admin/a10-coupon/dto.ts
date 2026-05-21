@@ -1,6 +1,9 @@
 import { Type } from 'class-transformer';
 import {
+    IsArray,
     IsBoolean,
+    IsDateString,
+    IsInt,
     IsNotEmpty,
     IsNumber,
     IsOptional,
@@ -42,6 +45,23 @@ export class CreateCouponDto {
     @IsString()
     @MaxLength(500)
     note?: string | null;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    usage_limit?: number | null;
+
+    @IsOptional()
+    @IsDateString()
+    expires_at?: string | null;
+
+    /** User IDs that may redeem this coupon. Empty array or omitted = any user. */
+    @IsOptional()
+    @IsArray()
+    @IsInt({ each: true })
+    @Min(1, { each: true })
+    assigned_user_ids?: number[];
 }
 
 export class UpdateCouponDto {
@@ -67,4 +87,21 @@ export class UpdateCouponDto {
     @IsString()
     @MaxLength(500)
     note?: string | null;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    usage_limit?: number | null;
+
+    @IsOptional()
+    @IsDateString()
+    expires_at?: string | null;
+
+    /** Replaces the full assignment list. Empty array = remove all assignments (open to everyone). */
+    @IsOptional()
+    @IsArray()
+    @IsInt({ each: true })
+    @Min(1, { each: true })
+    assigned_user_ids?: number[];
 }
