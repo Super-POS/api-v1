@@ -44,6 +44,7 @@
         "date-fns": "^4.1.0",
         "date-fns-tz": "^3.2.0",
         "express-handlebars": "^7.1.2",
+        "googleapis": "^172.0.0",
         "jsonwebtoken": "^9.0.1",
         "mysql2": "^3.6.5",
         "node-telegram-bot-api": "^0.64.0",

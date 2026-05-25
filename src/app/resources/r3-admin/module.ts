@@ -18,8 +18,10 @@ import { FinancialReportModule } from './a8-report/module';
 import { ModifierAdminModule } from './a3-menu/p6-modifier/module';
 import { AdminCashDrawerModule } from './a9-cash-drawer/module';
 import { AdminCouponModule } from './a10-coupon/module';
-import { AdminExchangeSettingModule } from './a12-exchange-setting/module';
-import { WastageModule }              from './a3-menu/p7-wastage/module';
+import { AdminExchangeSettingModule }    from './a12-exchange-setting/module';
+import { WastageModule }                from './a3-menu/p7-wastage/module';
+import { AdminMeetingRoomModule }       from './a11-meeting-room/room.module';
+import { AdminMeetingRoomBookingModule } from './a12-meeting-room-booking/booking.module';
 
 // ======================================= >> Code Starts Here << ========================== //
 @Module({
@@ -40,6 +42,8 @@ import { WastageModule }              from './a3-menu/p7-wastage/module';
         AdminCouponModule,
         AdminExchangeSettingModule,
         WastageModule,
+        AdminMeetingRoomModule,
+        AdminMeetingRoomBookingModule,
     ]
 })
 

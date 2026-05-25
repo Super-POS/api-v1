@@ -964,6 +964,149 @@
             "method": "DELETE",
             "url": "{{baseUrl}}/api/admin/coupons/{{couponId}}"
           }
+        },
+        {
+          "name": "Meeting Rooms - List",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/meeting-rooms",
+            "description": "Returns all meeting rooms with their type, capacity, status, and price."
+          }
+        },
+        {
+          "name": "Meeting Rooms - Create",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Boardroom A\",\n  \"description\": \"Main boardroom with projector and whiteboard\",\n  \"capacity\": 20,\n  \"price_per_hour\": 50.00,\n  \"type\": \"conference\",\n  \"status\": \"available\",\n  \"notes\": \"Includes AV equipment and high-speed Wi-Fi\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/meeting-rooms",
+            "description": "type: standard | vip | conference | executive. status: available | maintenance | inactive."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.id) {",
+                  "  pm.collectionVariables.set('roomId', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Meeting Rooms - Get One",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/meeting-rooms/{{roomId}}"
+          }
+        },
+        {
+          "name": "Meeting Rooms - Update",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"maintenance\",\n  \"price_per_hour\": 60.00,\n  \"notes\": \"Under renovation until end of month\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/meeting-rooms/{{roomId}}"
+          }
+        },
+        {
+          "name": "Meeting Rooms - Delete",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/meeting-rooms/{{roomId}}",
+            "description": "Blocked if the room has pending or confirmed bookings."
+          }
+        },
+        {
+          "name": "Meeting Rooms - Availability (per room)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/meeting-rooms/{{roomId}}/availability?check_in=2025-06-01&check_out=2025-06-01",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "meeting-rooms", "{{roomId}}", "availability"],
+              "query": [
+                { "key": "check_in",  "value": "2025-06-01", "description": "YYYY-MM-DD" },
+                { "key": "check_out", "value": "2025-06-01", "description": "YYYY-MM-DD" }
+              ]
+            },
+            "description": "Returns available: true/false plus any conflicting bookings for this room."
+          }
+        },
+        {
+          "name": "Meeting Room Bookings - List All",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/meeting-room-bookings?status=pending",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "meeting-room-bookings"],
+              "query": [
+                { "key": "status", "value": "pending", "description": "pending | confirmed | cancelled | completed (omit for all)" }
+              ]
+            },
+            "description": "Accessible by ADMIN and CASHIER roles. Filter by status query param."
+          }
+        },
+        {
+          "name": "Meeting Room Bookings - Get One",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/meeting-room-bookings/{{bookingId}}"
+          }
+        },
+        {
+          "name": "Meeting Room Bookings - Confirm",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmed\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/meeting-room-bookings/{{bookingId}}/status",
+            "description": "Allowed transitions: pending → confirmed | cancelled; confirmed → completed | cancelled. Confirming creates a Google Calendar event automatically."
+          }
+        },
+        {
+          "name": "Meeting Room Bookings - Cancel",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"cancelled\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/meeting-room-bookings/{{bookingId}}/status",
+            "description": "Cancelling a confirmed booking also removes the Google Calendar event."
+          }
+        },
+        {
+          "name": "Meeting Room Bookings - Complete",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/admin/meeting-room-bookings/{{bookingId}}/status"
+          }
         }
       ]
     },
@@ -1646,6 +1789,57 @@
             "method": "GET",
             "url": "{{baseUrl}}/api/customer/payments/{{paymentId}}/check-expiry"
           }
+        },
+        {
+          "name": "Meeting Room Bookings - Submit",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"room_id\": {{roomId}},\n  \"guest_name\": \"Sokha Chan\",\n  \"guest_phone\": \"012345678\",\n  \"guest_email\": \"sokha@example.com\",\n  \"guest_origin\": \"Phnom Penh\",\n  \"check_in_date\": \"2025-06-15\",\n  \"check_out_date\": \"2025-06-15\",\n  \"meeting_start_time\": \"09:00\",\n  \"meeting_end_time\": \"12:00\",\n  \"num_guests\": 10,\n  \"num_rooms\": 1,\n  \"purpose\": \"Quarterly Strategy Meeting\",\n  \"payment_method\": \"baray\",\n  \"notes\": \"Please prepare projector and whiteboard markers\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/customer/meeting-room-bookings",
+            "description": "Creates a booking with status=pending. Admin/cashier must confirm it. Conflict check prevents double-booking."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.id) {",
+                  "  pm.collectionVariables.set('bookingId', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Meeting Room Bookings - My List",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customer/meeting-room-bookings",
+            "description": "Returns all bookings belonging to the authenticated customer."
+          }
+        },
+        {
+          "name": "Meeting Room Bookings - Get One",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customer/meeting-room-bookings/{{bookingId}}"
+          }
+        },
+        {
+          "name": "Meeting Room Bookings - Cancel (customer)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/customer/meeting-room-bookings/{{bookingId}}/cancel",
+            "description": "Customer can cancel their own pending or confirmed booking. Completed bookings cannot be cancelled."
+          }
         }
       ]
     },
@@ -1706,6 +1900,32 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/share/report/generate-cashier-report?startDate=2026-01-01&endDate=2026-12-31&report_type=PDF"
+          }
+        },
+        {
+          "name": "Meeting Rooms - Public List (available only)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/api/share/meeting-rooms",
+            "description": "No auth required. Returns all rooms whose status is 'available'."
+          }
+        },
+        {
+          "name": "Meeting Rooms - Availability Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/share/meeting-rooms/availability?check_in=2025-06-15&check_out=2025-06-15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "share", "meeting-rooms", "availability"],
+              "query": [
+                { "key": "check_in",  "value": "2025-06-15", "description": "YYYY-MM-DD" },
+                { "key": "check_out", "value": "2025-06-15", "description": "YYYY-MM-DD" }
+              ]
+            },
+            "description": "No auth required. Returns every available room annotated with is_available: true/false for the requested date range."
           }
         }
       ]
@@ -2201,6 +2421,14 @@
     },
     {
       "key": "couponId",
+      "value": "1"
+    },
+    {
+      "key": "roomId",
+      "value": "1"
+    },
+    {
+      "key": "bookingId",
       "value": "1"
     }
   ]

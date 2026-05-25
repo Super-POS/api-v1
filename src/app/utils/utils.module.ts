@@ -7,7 +7,8 @@ import { NotificationGetwayModule } from './notification-getway/notifications.ga
 import { NotificationModule } from './notification/notification.module';
 import { ReportModule } from './report/module';
 import { PublicMenuModule } from './public-menu/public-menu.module';
-import { PublicExchangeModule } from './public-exchange/public-exchange.module';
+import { PublicExchangeModule }    from './public-exchange/public-exchange.module';
+import { PublicMeetingRoomModule } from './public-meeting-room/module';
 
 
 @Module({
@@ -17,7 +18,8 @@ import { PublicExchangeModule } from './public-exchange/public-exchange.module';
         InvoiceModule,
         NotificationModule,
         NotificationGetwayModule,
-        ReportModule
+        ReportModule,
+        PublicMeetingRoomModule,
     ]
 })
 

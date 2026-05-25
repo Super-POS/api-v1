@@ -6,7 +6,8 @@ import { CustomerOrderModule }   from './o1-order/module';
 import { CustomerWalletModule }  from './o2-wallet/module';
 import { CustomerRewardModule }  from './o3-reward/module';
 import { CustomerProfileModule } from './o4-profile/module';
-import { CustomerPaymentModule } from './o5-payment/module';
+import { CustomerPaymentModule }             from './o5-payment/module';
+import { CustomerMeetingRoomBookingModule }  from './o6-meeting-room-booking/module';
 
 export const customerRoutes: Routes = [
     {
@@ -28,5 +29,9 @@ export const customerRoutes: Routes = [
     {
         path  : 'payments',
         module: CustomerPaymentModule,
+    },
+    {
+        path  : 'meeting-room-bookings',
+        module: CustomerMeetingRoomBookingModule,
     },
 ];

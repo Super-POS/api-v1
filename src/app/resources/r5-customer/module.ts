@@ -8,10 +8,11 @@ import { CustomerOrderModule }   from './o1-order/module';
 import { CustomerWalletModule }  from './o2-wallet/module';
 import { CustomerRewardModule }  from './o3-reward/module';
 import { CustomerProfileModule } from './o4-profile/module';
-import { CustomerPaymentModule } from './o5-payment/module';
+import { CustomerPaymentModule }            from './o5-payment/module';
+import { CustomerMeetingRoomBookingModule } from './o6-meeting-room-booking/module';
 
 @Module({
-    imports: [CustomerOrderModule, CustomerWalletModule, CustomerRewardModule, CustomerProfileModule, CustomerPaymentModule],
+    imports: [CustomerOrderModule, CustomerWalletModule, CustomerRewardModule, CustomerProfileModule, CustomerPaymentModule, CustomerMeetingRoomBookingModule],
 })
 export class CustomerModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {
