@@ -1,5 +1,6 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { PublicMeetingRoomService } from './service';
+import { CreatePublicBookingDto } from './dto';
 
 @Controller()
 export class PublicMeetingRoomController {
@@ -20,5 +21,11 @@ export class PublicMeetingRoomController {
         @Query('check_out') checkOut: string,
     ) {
         return this._service.checkAvailability(checkIn, checkOut);
+    }
+
+    /** POST /api/share/meeting-rooms/bookings — submit booking without login */
+    @Post('bookings')
+    createPublicBooking(@Body() body: CreatePublicBookingDto) {
+        return this._service.createPublicBooking(body);
     }
 }

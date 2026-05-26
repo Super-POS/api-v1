@@ -82,8 +82,9 @@ export class AppModule implements NestModule {
                 { path: 'api/account/auth/(.*)', method: RequestMethod.POST },
                 { path: 'api/share/menus', method: RequestMethod.GET },
                 { path: 'api/share/exchange-rate', method: RequestMethod.GET },
-                { path: 'api/share/meeting-rooms', method: RequestMethod.GET },
-                { path: 'api/share/meeting-rooms/(.*)', method: RequestMethod.GET },
+                // Public meeting rooms (allow GET + HEAD + any future safe reads)
+                { path: 'api/share/meeting-rooms', method: RequestMethod.ALL },
+                { path: 'api/share/meeting-rooms/(.*)', method: RequestMethod.ALL },
                 { path: 'api/testing/(.*)', method: RequestMethod.ALL },
                 { path: 'api/webhooks/(.*)', method: RequestMethod.ALL },
             ).forRoutes({ path: '*', method: RequestMethod.ALL });

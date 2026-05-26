@@ -3,6 +3,7 @@ import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from 'sequelize
 import { BookingStatusEnum } from '@app/enums/booking-status.enum';
 import MeetingRoom           from './meeting-room.model';
 import User                  from '@app/models/user/user.model';
+import { PaymentStatus } from '@app/models/payment/payment_transaction.model';
 
 @Table({ tableName: 'meeting_room_bookings', createdAt: 'created_at', updatedAt: 'updated_at' })
 class MeetingRoomBooking extends Model<MeetingRoomBooking> {
@@ -31,6 +32,19 @@ class MeetingRoomBooking extends Model<MeetingRoomBooking> {
     // ========================================================================================= Payment
     @Column({ allowNull: true,  type: DataType.DECIMAL(10, 2) })                          total_amount?: number;
     @Column({ allowNull: false, type: DataType.STRING(30), defaultValue: 'baray' })       payment_method: string;
+    @Column({
+        allowNull: false,
+        type: DataType.ENUM(...Object.values(PaymentStatus)),
+        defaultValue: PaymentStatus.PENDING,
+    })
+    payment_status: PaymentStatus;
+
+    /** Baray pay link id (Baray `_id` / `id`) for pending and settled payments. */
+    @Column({ allowNull: true, type: DataType.STRING(120) })                              baray_payment_id?: string;
+    /** Full checkout URL for Baray (open externally). */
+    @Column({ allowNull: true, type: DataType.TEXT })                                     baray_payment_url?: string;
+    /** When the Baray pay link is no longer valid. */
+    @Column({ allowNull: true, type: DataType.DATE })                                     baray_expires_at?: Date;
 
     // ========================================================================================= Status & Notes
     @Column({

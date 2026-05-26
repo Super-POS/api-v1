@@ -8,10 +8,11 @@ import { NotificationGetwayModule } from "src/app/utils/notification-getway/noti
 import { BarayService } from "src/app/services/baray.service";
 import { ExchangeSettingService } from "src/app/services/exchange-setting.service";
 import { TelegramService } from "src/app/services/telegram.service";
+import { GoogleCalendarService } from "@app/services/google-calendar.service";
 
 @Module({
   imports: [HttpModule, NotificationGetwayModule, forwardRef(() => OrderModule)],
-  providers: [BarayService, ExchangeSettingService, TelegramService],
+  providers: [BarayService, ExchangeSettingService, TelegramService, GoogleCalendarService],
   exports: [BarayService, HttpModule],
 })
 export class BarayModule {}

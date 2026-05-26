@@ -5,6 +5,7 @@ import { RoomStatusEnum }      from '@app/enums/room-status.enum';
 import MeetingRoom             from '@app/models/booking/meeting-room.model';
 import MeetingRoomBooking      from '@app/models/booking/meeting-room-booking.model';
 import User                    from '@app/models/user/user.model';
+import { assertHourlyMeetingTimes } from '@app/utils/meeting-room-time';
 import { CreateBookingDto }    from './dto';
 
 @Injectable()
@@ -41,6 +42,7 @@ export class CustomerBookingService {
         if (body.check_in_date === body.check_out_date && body.meeting_start_time >= body.meeting_end_time) {
             throw new BadRequestException('meeting_start_time must be before meeting_end_time for same-day bookings.');
         }
+        assertHourlyMeetingTimes(body.meeting_start_time, body.meeting_end_time);
 
         const conflict = await MeetingRoomBooking.findOne({
             where: {

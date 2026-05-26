@@ -5,6 +5,7 @@ import MeetingRoom                 from '@app/models/booking/meeting-room.model'
 import MeetingRoomBooking          from '@app/models/booking/meeting-room-booking.model';
 import User                        from '@app/models/user/user.model';
 import { GoogleCalendarService }   from '@app/services/google-calendar.service';
+import { PaymentStatus }           from '@app/models/payment/payment_transaction.model';
 
 const ALLOWED_TRANSITIONS: Record<BookingStatusEnum, BookingStatusEnum[]> = {
     [BookingStatusEnum.PENDING]   : [BookingStatusEnum.CONFIRMED, BookingStatusEnum.CANCELLED],
@@ -53,6 +54,14 @@ export class AdminBookingService {
             );
         }
 
+        if (newStatus === BookingStatusEnum.COMPLETED) {
+            if (String(booking.payment_status).toLowerCase() !== PaymentStatus.SUCCESS) {
+                throw new BadRequestException(
+                    'Booking must be paid before it can be marked completed.',
+                );
+            }
+        }
+
         // Check for conflicts when confirming
         if (newStatus === BookingStatusEnum.CONFIRMED) {
             const conflict = await MeetingRoomBooking.findOne({
@@ -98,5 +107,41 @@ export class AdminBookingService {
 
         await booking.reload({ include: [{ model: MeetingRoom }, { model: User, as: 'customer', attributes: ['id', 'name', 'phone', 'email'] }] });
         return { data: booking, message: `Booking ${newStatus}.` };
+    }
+
+    /** Record in-person / cash payment so the booking can be completed later. */
+    async markPaid(id: number): Promise<{ data: MeetingRoomBooking; message: string }> {
+        const booking = await MeetingRoomBooking.findByPk(id, {
+            include: [
+                { model: MeetingRoom },
+                { model: User, as: 'customer', attributes: ['id', 'name', 'phone', 'email'] },
+            ],
+        });
+        if (!booking) throw new NotFoundException('Booking not found.');
+
+        const status = booking.status;
+        if (status === BookingStatusEnum.CANCELLED || status === BookingStatusEnum.COMPLETED) {
+            throw new BadRequestException('Cannot record payment for a closed booking.');
+        }
+        if (String(booking.payment_status).toLowerCase() === PaymentStatus.SUCCESS) {
+            throw new BadRequestException('This booking is already paid.');
+        }
+
+        const method = (booking.payment_method ?? 'cash').toLowerCase() === 'baray'
+            ? 'cash'
+            : (booking.payment_method ?? 'cash');
+
+        await booking.update({
+            payment_status: PaymentStatus.SUCCESS,
+            payment_method: method,
+        });
+
+        await booking.reload({
+            include: [
+                { model: MeetingRoom },
+                { model: User, as: 'customer', attributes: ['id', 'name', 'phone', 'email'] },
+            ],
+        });
+        return { data: booking, message: 'Payment recorded.' };
     }
 }

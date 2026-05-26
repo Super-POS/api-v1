@@ -35,4 +35,10 @@ export class AdminBookingController {
     ) {
         return this._service.updateStatus(id, body.status);
     }
+
+    /** PATCH /api/admin/meeting-room-bookings/:id/mark-paid — cashier cash / in-person payment */
+    @Patch(':id/mark-paid')
+    markPaid(@Param('id', ParseIntPipe) id: number) {
+        return this._service.markPaid(id);
+    }
 }

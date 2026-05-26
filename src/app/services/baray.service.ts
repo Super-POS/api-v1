@@ -29,6 +29,10 @@ import WalletTransaction, {
   DepositStatus,
   WalletTransactionType,
 } from "@app/models/wallet/wallet_transaction.model";
+import MeetingRoomBooking from "@app/models/booking/meeting-room-booking.model";
+import MeetingRoom from "@app/models/booking/meeting-room.model";
+import { BookingStatusEnum } from "@app/enums/booking-status.enum";
+import { GoogleCalendarService } from "@app/services/google-calendar.service";
 
 export interface BarayCreateIntentResult {
   _id: string;
@@ -58,6 +62,7 @@ export class BarayService {
   private readonly currency: string;
   private readonly orderIdPrefix: string;
   private readonly walletDepositPrefix: string;
+  private readonly meetingRoomBookingPrefix: string;
 
   constructor(
     private readonly _http: HttpService,
@@ -66,6 +71,7 @@ export class BarayService {
     private readonly _orderService: OrderService,
     private readonly _exchange: ExchangeSettingService,
     private readonly _telegram: TelegramService,
+    private readonly _calendar: GoogleCalendarService,
   ) {
     // Full URL to POST (include path, e.g. https://api.baray.io/pay)
     this.payUrl = (process.env.BARAY_PAY_URL || "https://api.baray.io/pay").replace(/\/$/, "");
@@ -76,6 +82,7 @@ export class BarayService {
     this.currency = process.env.BARAY_CURRENCY || "USD";
     this.orderIdPrefix = process.env.BARAY_ORDER_ID_PREFIX || "pos-order-";
     this.walletDepositPrefix = process.env.BARAY_WALLET_DEPOSIT_ID_PREFIX || "pos-wallet-deposit-";
+    this.meetingRoomBookingPrefix = process.env.BARAY_BOOKING_ID_PREFIX || "pos-booking-";
   }
 
   private _ensureConfigured(): void {
@@ -155,6 +162,29 @@ export class BarayService {
       const o = JSON.parse(t) as { order_id?: string };
       if (o?.order_id) {
         return this.parseWalletDepositIdFromBarayValue(o.order_id);
+      }
+    } catch {
+      // not JSON
+    }
+    return null;
+  }
+
+  makeExternalMeetingRoomBookingId(bookingId: number): string {
+    return `${this.meetingRoomBookingPrefix}${bookingId}`;
+  }
+
+  parseMeetingRoomBookingIdFromBarayValue(decrypted: string): number | null {
+    const t = (decrypted || "").trim();
+    const m = t.match(
+      new RegExp(`^${this.meetingRoomBookingPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\d+)$`),
+    );
+    if (m) {
+      return Number(m[1]);
+    }
+    try {
+      const o = JSON.parse(t) as { order_id?: string };
+      if (o?.order_id) {
+        return this.parseMeetingRoomBookingIdFromBarayValue(o.order_id);
       }
     } catch {
       // not JSON
@@ -338,6 +368,176 @@ export class BarayService {
       status: (raw.status as string) || "pending",
       expires_at: (raw.expires_at as string) || expires.toISOString(),
       wallet_transaction_id: tx.id,
+    };
+  }
+
+  /**
+   * Public meeting room booking: create a Baray payment link for a booking id.
+   * We store the Baray _id + pay URL on `meeting_room_bookings` (no PaymentTransaction table).
+   */
+  async createIntentForMeetingRoomBooking(bookingId: number): Promise<{
+    data: { _id: string; url: string; status: string; expires_at: string; booking_id: number };
+  }> {
+    this._ensureConfigured();
+    const booking = await MeetingRoomBooking.findByPk(bookingId, { include: [{ model: MeetingRoom }] });
+    if (!booking) throw new NotFoundException("Booking not found.");
+    if (booking.status === BookingStatusEnum.CANCELLED || booking.status === BookingStatusEnum.COMPLETED) {
+      throw new BadRequestException("Payment is not available for this booking state.");
+    }
+    // Already paid (webhook settled)
+    if (String(booking.payment_status).toLowerCase() === "success") {
+      throw new BadRequestException("This booking is already paid.");
+    }
+
+    // Reuse still-valid pending link if present
+    if (
+      booking.baray_payment_id &&
+      booking.baray_payment_url &&
+      booking.baray_expires_at &&
+      new Date(booking.baray_expires_at).getTime() > Date.now() &&
+      String(booking.payment_status).toLowerCase() === "pending"
+    ) {
+      return {
+        data: {
+          _id: booking.baray_payment_id,
+          url: booking.baray_payment_url,
+          status: "pending",
+          expires_at: booking.baray_expires_at.toISOString(),
+          booking_id: booking.id,
+        },
+      };
+    }
+
+    // Amount: require room price_per_hour; compute hours from start/end (same-day only for now)
+    const room = (booking as any).room as MeetingRoom | undefined;
+    const pph = room?.price_per_hour != null ? Number(room.price_per_hour) : NaN;
+    if (!Number.isFinite(pph) || pph <= 0) {
+      throw new BadRequestException("Room price_per_hour is not configured.");
+    }
+    const start = booking.meeting_start_time;
+    const end = booking.meeting_end_time;
+    const parse = (t: string) => {
+      const [hh, mm] = t.split(":").map(Number);
+      return hh * 60 + mm;
+    };
+    const minutes = parse(end) - parse(start);
+    if (!Number.isFinite(minutes) || minutes <= 0) {
+      throw new BadRequestException("Invalid meeting time range.");
+    }
+    const hours = minutes / 60;
+    const totalUsd = pph * hours * Number(booking.num_rooms ?? 1);
+
+    const externalOrderId = this.makeExternalMeetingRoomBookingId(booking.id);
+    const bodyPayload = {
+      amount: this._formatAmount(totalUsd),
+      currency: this.currency,
+      order_id: externalOrderId,
+    };
+    const encrypted = this.encrypt(bodyPayload);
+
+    type BarayPayPayload = { _id?: string; id?: string; url?: string; status?: string; expires_at?: string; data?: unknown };
+    let barayResBody: unknown;
+    let raw: BarayPayPayload;
+    try {
+      const res = await firstValueFrom(
+        this._http.post<BarayPayPayload | { data?: BarayPayPayload }>(
+          this.payUrl,
+          { data: encrypted },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": this.apiKey,
+            },
+            timeout: 60_000,
+          },
+        ),
+      );
+      barayResBody = res.data;
+      const top = res.data as { _id?: string; data?: BarayPayPayload } & BarayPayPayload;
+      raw = (top?.data && typeof top.data === "object" ? top.data : top) as BarayPayPayload;
+    } catch (e) {
+      if (isAxiosError(e)) {
+        const status = e.response?.status;
+        const body = e.response?.data;
+        const text =
+          body === undefined
+            ? e.message
+            : typeof body === "string"
+              ? body
+              : JSON.stringify(body);
+        throw new BadRequestException(`Baray: HTTP ${status ?? "?"} — ${text}`);
+      }
+      const msg = (e as Error)?.message || "Baray request failed";
+      throw new BadRequestException(`Baray: ${msg}`);
+    }
+
+    const _id = (raw._id || raw.id) as string;
+    let url = typeof raw.url === "string" ? raw.url : "";
+    if (_id && !url) {
+      url = `${this.payCheckoutBase}/${_id}`;
+    }
+    if (!_id || !url) {
+      throw new BadRequestException(
+        `Baray did not return a payment id. Response: ${
+          typeof barayResBody === "string" ? barayResBody : JSON.stringify(barayResBody)
+        }`.slice(0, 2_000),
+      );
+    }
+
+    const expires = raw.expires_at
+      ? new Date(raw.expires_at)
+      : new Date(Date.now() + 15 * 60 * 1000);
+
+    await booking.update({
+      total_amount: totalUsd,
+      baray_payment_id: _id,
+      baray_payment_url: url,
+      baray_expires_at: expires,
+      payment_status: PaymentStatus.PENDING,
+    });
+
+    return {
+      data: {
+        _id,
+        url,
+        status: (raw.status as string) || "pending",
+        expires_at: (raw.expires_at as string) || expires.toISOString(),
+        booking_id: booking.id,
+      },
+    };
+  }
+
+  async createIntentForCustomerMeetingRoomBooking(customerId: number, bookingId: number) {
+    const booking = await MeetingRoomBooking.findByPk(bookingId, { attributes: ["id", "customer_id"] });
+    if (!booking || Number(booking.customer_id ?? 0) !== Number(customerId)) {
+      throw new NotFoundException("Booking not found.");
+    }
+    return this.createIntentForMeetingRoomBooking(bookingId);
+  }
+
+  async getCustomerMeetingRoomBookingPaymentState(customerId: number, bookingId: number) {
+    const booking = await MeetingRoomBooking.findByPk(bookingId, { attributes: ["id", "customer_id"] });
+    if (!booking || Number(booking.customer_id ?? 0) !== Number(customerId)) {
+      throw new NotFoundException("Booking not found.");
+    }
+    return this.getMeetingRoomBookingPaymentState(bookingId);
+  }
+
+  async getMeetingRoomBookingPaymentState(bookingId: number): Promise<{
+    data: {
+      booking_id: number;
+      booking_status: string;
+      baray_transaction_status: string | null;
+    };
+  }> {
+    const booking = await MeetingRoomBooking.findByPk(bookingId, { attributes: ["id", "status", "payment_status"] });
+    if (!booking) throw new NotFoundException("Booking not found.");
+    return {
+      data: {
+        booking_id: booking.id,
+        booking_status: String(booking.status),
+        baray_transaction_status: booking.payment_status != null ? String(booking.payment_status) : null,
+      },
     };
   }
 
@@ -568,6 +768,12 @@ export class BarayService {
       return;
     }
 
+    const bookingId = this.parseMeetingRoomBookingIdFromBarayValue(plain);
+    if (bookingId != null && Number.isFinite(bookingId)) {
+      await this._settleMeetingRoomBookingWebhook(bookingId);
+      return;
+    }
+
     const localOrderId = this.parseLocalOrderIdFromBarayValue(plain);
     if (localOrderId == null || !Number.isFinite(localOrderId)) {
       this.logger.warn("Could not resolve local order from Baray webhook payload.");
@@ -685,5 +891,44 @@ export class BarayService {
         transaction,
       });
     });
+  }
+
+  private async _settleMeetingRoomBookingWebhook(bookingId: number): Promise<void> {
+    const booking = await MeetingRoomBooking.findByPk(bookingId, { include: [{ model: MeetingRoom }] });
+    if (!booking) {
+      throw new NotFoundException("Meeting room booking not found for webhook.");
+    }
+    if (String(booking.payment_status).toLowerCase() === PaymentStatus.SUCCESS) {
+      return;
+    }
+    // Payment received; staff still confirms the reservation (admin/cashier).
+    await booking.update({
+      payment_status: PaymentStatus.SUCCESS,
+    });
+
+    // Create Google Calendar event (best-effort; failures should not rollback payment).
+    try {
+      const room = (booking as any).room as MeetingRoom | undefined;
+      const eventId = await this._calendar.createEvent({
+        summary: `Meeting Room: ${room?.name ?? 'Room'} — ${booking.guest_name}`,
+        description: [
+          `Guest: ${booking.guest_name}`,
+          `Phone: ${booking.guest_phone}`,
+          `Email: ${booking.guest_email}`,
+          booking.guest_origin ? `From: ${booking.guest_origin}` : '',
+          `Guests: ${booking.num_guests}  |  Rooms: ${booking.num_rooms}`,
+          booking.purpose ? `Purpose: ${booking.purpose}` : '',
+          booking.notes ? `Notes: ${booking.notes}` : '',
+        ].filter(Boolean).join('\n'),
+        startDateTime: `${booking.check_in_date}T${booking.meeting_start_time}:00`,
+        endDateTime: `${booking.check_out_date}T${booking.meeting_end_time}:00`,
+        attendeeEmails: [booking.guest_email],
+      });
+      if (eventId) {
+        await booking.update({ google_calendar_event_id: eventId });
+      }
+    } catch {
+      // ignore
+    }
   }
 }

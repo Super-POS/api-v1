@@ -13,6 +13,7 @@
         "migrate": "ts-node -r tsconfig-paths/register src/database/migrate.ts",
         "sync": "ts-node -r tsconfig-paths/register src/database/sync.ts",
         "seeder": "ts-node -r tsconfig-paths/register src/database/seed.ts",
+        "seed:meeting-rooms": "ts-node -r tsconfig-paths/register src/database/seeds/pos/meeting-room.seed-cli.ts",
         "start:debug": "nest start --debug --watch",
         "ngrok": "ngrok http ${PORT:-3000}",
         "ngrok:docker": "ngrok http 9003",
