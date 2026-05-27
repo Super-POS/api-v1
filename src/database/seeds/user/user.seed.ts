@@ -8,13 +8,12 @@ export class UserSeeder {
 
     public static seed = async () => {
         try {
-            
             await UserSeeder.seedRoles();
             await UserSeeder.seedUsers();
             await UserSeeder.seedUserRoles();
-
         } catch (error) {
-            // console.error('\x1b[31m\nError seeding data user:', error);
+            console.error('\x1b[31m\nError seeding user data:', error);
+            throw error;
         }
     }
 
@@ -57,9 +56,10 @@ export class UserSeeder {
 // Mock-data
 const data = {
     roles: [
-        { name: 'Administrator', slug: 'admin' },    // id: 1
-        { name: 'Cashier', slug: 'cashier' },       // id: 2
-        { name: 'Customer', slug: 'customer' },    // id: 3
+        { name: 'Administrator', slug: 'admin' },       // id: 1
+        { name: 'Cashier',       slug: 'cashier' },     // id: 2
+        { name: 'Customer',      slug: 'customer' },    // id: 3
+        { name: 'Super User',    slug: 'super-user' },  // id: 4
     ],
     users: [
         // ── Staff ────────────────────────────────────────────────────────────
@@ -152,19 +152,33 @@ const data = {
             created_at: new Date(),
             updated_at: new Date(),
         },
+        // ── Super User (ERP Owner) ────────────────────────────────────────────
+        // id: 9
+        {
+            name      : 'ERP Owner',
+            phone     : '0999999999',
+            email     : 'superuser@pos.com',
+            password  : '123456',
+            avatar    : 'static/pos/user/avatar.png',
+            creator_id: 1,
+            created_at: new Date(),
+            updated_at: new Date(),
+        },
     ],
     user_roles: [
         // ── Staff roles ──────────────────────────────────────────────────────
-        { user_id: 1, role_id: RoleEnum.ADMIN,    added_id: 1, created_at: new Date(), is_default: true  },
-        { user_id: 1, role_id: RoleEnum.CASHIER,  added_id: 1, created_at: new Date(), is_default: false },
-        { user_id: 2, role_id: RoleEnum.CASHIER,  added_id: 1, created_at: new Date(), is_default: true  },
-        { user_id: 3, role_id: RoleEnum.CASHIER,  added_id: 1, created_at: new Date(), is_default: true  },
+        { user_id: 1, role_id: RoleEnum.ADMIN,      added_id: 1, created_at: new Date(), is_default: true  },
+        { user_id: 1, role_id: RoleEnum.CASHIER,    added_id: 1, created_at: new Date(), is_default: false },
+        { user_id: 2, role_id: RoleEnum.CASHIER,    added_id: 1, created_at: new Date(), is_default: true  },
+        { user_id: 3, role_id: RoleEnum.CASHIER,    added_id: 1, created_at: new Date(), is_default: true  },
         // ── Customer roles ───────────────────────────────────────────────────
-        { user_id: 4, role_id: RoleEnum.CUSTOMER, added_id: 1, created_at: new Date(), is_default: true  },
-        { user_id: 5, role_id: RoleEnum.CUSTOMER, added_id: 1, created_at: new Date(), is_default: true  },
-        { user_id: 6, role_id: RoleEnum.CUSTOMER, added_id: 1, created_at: new Date(), is_default: true  },
-        { user_id: 7, role_id: RoleEnum.CUSTOMER, added_id: 1, created_at: new Date(), is_default: true  },
-        { user_id: 8, role_id: RoleEnum.CUSTOMER, added_id: 1, created_at: new Date(), is_default: true  },
+        { user_id: 4, role_id: RoleEnum.CUSTOMER,   added_id: 1, created_at: new Date(), is_default: true  },
+        { user_id: 5, role_id: RoleEnum.CUSTOMER,   added_id: 1, created_at: new Date(), is_default: true  },
+        { user_id: 6, role_id: RoleEnum.CUSTOMER,   added_id: 1, created_at: new Date(), is_default: true  },
+        { user_id: 7, role_id: RoleEnum.CUSTOMER,   added_id: 1, created_at: new Date(), is_default: true  },
+        { user_id: 8, role_id: RoleEnum.CUSTOMER,   added_id: 1, created_at: new Date(), is_default: true  },
+        // ── Super User role ──────────────────────────────────────────────────
+        { user_id: 9, role_id: RoleEnum.SUPER_USER, added_id: 1, created_at: new Date(), is_default: true  },
     ],
 };
 

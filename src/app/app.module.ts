@@ -10,10 +10,11 @@ import { appRoutes } from './app.routes';
 import { ExceptionErrorsFilter } from './core/exceptions/errors.filter';
 import { TimeoutInterceptor } from './core/interceptors/timeout.interceptor';
 import { JwtMiddleware } from './core/middlewares/jwt.middleware';
-import { AccountModule }  from './resources/r1-account/module';
-import { CashierModule }  from './resources/r2-cashier/module';
-import { AdminModule }    from './resources/r3-admin/module';
-import { CustomerModule } from './resources/r5-customer/module';
+import { AccountModule }    from './resources/r1-account/module';
+import { CashierModule }    from './resources/r2-cashier/module';
+import { AdminModule }      from './resources/r3-admin/module';
+import { CustomerModule }   from './resources/r5-customer/module';
+import { SuperUserModule }  from './resources/r6-super-user/module';
 import { UtilsModule }    from './utils/utils.module';
 import { WebhooksModule } from './payments/webhooks.module';
 
@@ -45,6 +46,9 @@ import { TelegramModule } from './resources/r4-testing/third-party/telegram/modu
 
         //===================== ROLE Customer
         CustomerModule,
+
+        //===================== ROLE Super User (ERP)
+        SuperUserModule,
 
         //===================== Share Utils
         UtilsModule,

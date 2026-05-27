@@ -45,7 +45,35 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   }): void {
     this.server.emit("bakong-payment-success", payload);
   }
-  
+
+  /** Tell the customer display device to show a KHQR code. */
+  emitCustomerDisplayShowKhqr(payload: {
+    orderId: number;
+    qr: string;
+    amount: number;
+    currency: "USD" | "KHR";
+    expires_at: string;
+    merchant_name: string;
+    merchant_city: string;
+  }): void {
+    this.server.emit("customer-display:show-khqr", payload);
+  }
+
+  /** Tell the customer display device to show a Baray payment URL as a QR. */
+  emitCustomerDisplayShowBaray(payload: {
+    orderId: number;
+    url: string;
+    amount_usd: number;
+    expires_at: string;
+  }): void {
+    this.server.emit("customer-display:show-baray", payload);
+  }
+
+  /** Tell the customer display to clear (payment done or cancelled). */
+  emitCustomerDisplayClear(payload: { orderId: number }): void {
+    this.server.emit("customer-display:clear", payload);
+  }
+
   sendNotificationToUser(userId: string, notification: any): void {
     const user = this.registeredUsers.find(user => user.userId === userId);
     if (user) {

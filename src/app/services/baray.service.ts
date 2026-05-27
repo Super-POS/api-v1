@@ -695,6 +695,13 @@ export class BarayService {
 
     await order.update({ status: OrderStatusEnum.AWAITING_PAYMENT });
 
+    this._notifications.emitCustomerDisplayShowBaray({
+      orderId,
+      url,
+      amount_usd: amountUsd,
+      expires_at: (raw.expires_at as string) || expires.toISOString(),
+    });
+
     return {
       _id,
       url,
@@ -855,6 +862,7 @@ export class BarayService {
       receiptNumber: String(order.receipt_number ?? ""),
       cashierId: Number(order.cashier_id ?? 0),
     });
+    this._notifications.emitCustomerDisplayClear({ orderId: localOrderId });
   }
 
   private async _settleWalletDepositWebhook(walletTransactionId: number): Promise<void> {

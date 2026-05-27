@@ -152,6 +152,35 @@
           }
         },
         {
+          "name": "Auth - Login as Super User",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"0999999999\",\n  \"password\": \"123456\",\n  \"platform\": \"Web\"\n}"
+            },
+            "url": "{{baseUrl}}/api/account/auth/login",
+            "description": "Login with the seeded Super User account (phone: 0999999999). Use the returned token in Bearer auth to access all /api/erp/* endpoints."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "if (json?.token) {",
+                  "  pm.collectionVariables.set('accessToken', json.token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Profile - Update",
           "request": {
             "method": "PUT",
@@ -2301,6 +2330,638 @@
       ]
     },
     {
+      "name": "11) ERP — Super User",
+      "description": "All endpoints require a JWT with SUPER_USER role (role_id: 4). Login via Auth - Login as Super User first.\n\nBase path: /api/erp/\n\nModules:\n  payroll/     → Employees, Attendance, Leave, Payroll periods\n  purchasing/  → Suppliers, Purchase Orders, Goods Received\n  pl/          → Expense Categories, Operating Expenses, P&L Report\n  recipe-costing/ → Auto product cost calculation\n  analytics/   → Business intelligence dashboard",
+      "item": [
+        {
+          "name": "── PAYROLL ──────────────────────────────────",
+          "item": []
+        },
+        {
+          "name": "Payroll - List Employees",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/erp/payroll/employees",
+            "description": "Returns all employees with linked user profile (name, phone, email)."
+          }
+        },
+        {
+          "name": "Payroll - Get Employee",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/erp/payroll/employees/{{employeeId}}"
+          }
+        },
+        {
+          "name": "Payroll - Create Employee",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 2,\n  \"position\": \"Barista\",\n  \"department\": \"Operations\",\n  \"base_salary\": 350.00,\n  \"hourly_rate\": 2.00,\n  \"hire_date\": \"2026-01-01\",\n  \"contract_type\": \"full_time\",\n  \"bank_account\": \"000123456789\",\n  \"bank_name\": \"ABA Bank\",\n  \"notes\": \"Senior barista\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/erp/payroll/employees",
+            "description": "Links an existing system user as an ERP employee. contract_type: full_time | part_time | contract | internship."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.id) { pm.collectionVariables.set('employeeId', json.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Payroll - Update Employee",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"position\": \"Senior Barista\",\n  \"base_salary\": 400.00,\n  \"hourly_rate\": 2.50,\n  \"status\": \"active\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/erp/payroll/employees/{{employeeId}}"
+          }
+        },
+        {
+          "name": "Payroll - Delete Employee",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/erp/payroll/employees/{{employeeId}}"
+          }
+        },
+        {
+          "name": "Payroll - Get Attendance",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/erp/payroll/attendance?employee_id={{employeeId}}&start_date=2026-05-01&end_date=2026-05-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "erp", "payroll", "attendance"],
+              "query": [
+                { "key": "employee_id", "value": "{{employeeId}}", "description": "Optional — filter by employee" },
+                { "key": "start_date",  "value": "2026-05-01",     "description": "YYYY-MM-DD" },
+                { "key": "end_date",    "value": "2026-05-31",     "description": "YYYY-MM-DD" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Payroll - Mark Attendance",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": {{employeeId}},\n  \"date\": \"2026-05-27\",\n  \"clock_in\": \"08:00\",\n  \"clock_out\": \"17:30\",\n  \"overtime_hours\": 1.5,\n  \"status\": \"present\",\n  \"notes\": \"Normal working day\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/erp/payroll/attendance",
+            "description": "Creates or updates today's attendance record. hours_worked is auto-calculated from clock_in/clock_out.\nstatus: present | absent | late | half_day | holiday | on_leave."
+          }
+        },
+        {
+          "name": "Payroll - List Leaves",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/erp/payroll/leaves?status=pending",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "erp", "payroll", "leaves"],
+              "query": [
+                { "key": "status",      "value": "pending",         "description": "pending | approved | rejected | cancelled" },
+                { "key": "employee_id", "value": "",                "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Payroll - Request Leave",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employee_id\": {{employeeId}},\n  \"type\": \"annual\",\n  \"start_date\": \"2026-06-10\",\n  \"end_date\": \"2026-06-12\",\n  \"days\": 3,\n  \"reason\": \"Family vacation\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/erp/payroll/leaves",
+            "description": "Leave types: annual | sick | unpaid | maternity | paternity | other."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.id) { pm.collectionVariables.set('leaveId', json.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Payroll - Approve Leave",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/erp/payroll/leaves/{{leaveId}}/status"
+          }
+        },
+        {
+          "name": "Payroll - Reject Leave",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"rejected\",\n  \"rejection_reason\": \"Peak season — staffing too low\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/erp/payroll/leaves/{{leaveId}}/status"
+          }
+        },
+        {
+          "name": "Payroll - List Payroll Periods",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/erp/payroll/payrolls",
+            "description": "Returns all payroll periods with their line-item totals."
+          }
+        },
+        {
+          "name": "Payroll - Get Payroll Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/erp/payroll/payrolls/{{payrollId}}",
+            "description": "Full breakdown per employee: base_salary, overtime_pay, leave_deduction, net_salary."
+          }
+        },
+        {
+          "name": "Payroll - Generate Payroll",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"period_start\": \"2026-05-01\",\n  \"period_end\": \"2026-05-31\",\n  \"notes\": \"May 2026 payroll\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/erp/payroll/payrolls/generate",
+            "description": "Auto-calculates salary for ALL active employees.\n\nFormula per employee:\n  overtime_pay   = overtime_hours × hourly_rate × 1.5\n  leave_deduction= (unpaid_leave_days / working_days) × base_salary\n  net_salary     = base_salary + overtime_pay − leave_deduction"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.id) { pm.collectionVariables.set('payrollId', json.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Payroll - Finalize Payroll",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/erp/payroll/payrolls/{{payrollId}}/finalize",
+            "description": "Locks the payroll (draft → finalized). Once finalized it is included in P&L reports."
+          }
+        },
+        {
+          "name": "Payroll - Mark Payroll Paid",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/erp/payroll/payrolls/{{payrollId}}/mark-paid",
+            "description": "Marks finalized payroll as paid (finalized → paid)."
+          }
+        },
+        {
+          "name": "── PURCHASING ──────────────────────────────",
+          "item": []
+        },
+        {
+          "name": "Purchasing - List Suppliers",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/erp/purchasing/suppliers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "erp", "purchasing", "suppliers"],
+              "query": [
+                { "key": "active", "value": "true", "disabled": true, "description": "true = active only" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Purchasing - Get Supplier",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/erp/purchasing/suppliers/{{supplierId}}",
+            "description": "Returns supplier with last 10 purchase orders."
+          }
+        },
+        {
+          "name": "Purchasing - Create Supplier",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Fresh Dairy Co.\",\n  \"contact_person\": \"Mr. Sovan\",\n  \"phone\": \"0123456789\",\n  \"email\": \"sovan@freshdairy.com\",\n  \"address\": \"Phnom Penh, Cambodia\",\n  \"payment_terms\": \"Net 15 days\",\n  \"notes\": \"Primary milk supplier\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/erp/purchasing/suppliers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.id) { pm.collectionVariables.set('supplierId', json.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Purchasing - Update Supplier",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"0987654321\",\n  \"payment_terms\": \"Cash on delivery\",\n  \"is_active\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/erp/purchasing/suppliers/{{supplierId}}"
+          }
+        },
+        {
+          "name": "Purchasing - List Purchase Orders",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/erp/purchasing/purchase-orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "erp", "purchasing", "purchase-orders"],
+              "query": [
+                { "key": "supplier_id", "value": "",        "disabled": true },
+                { "key": "status",      "value": "ordered", "disabled": true, "description": "draft | ordered | partial | received | cancelled" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Purchasing - Get Purchase Order",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/erp/purchasing/purchase-orders/{{purchaseOrderId}}"
+          }
+        },
+        {
+          "name": "Purchasing - Create Purchase Order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplier_id\": {{supplierId}},\n  \"order_date\": \"2026-05-27\",\n  \"expected_date\": \"2026-05-30\",\n  \"notes\": \"Monthly milk restock\",\n  \"items\": [\n    {\n      \"ingredient_id\": 2,\n      \"item_name\": \"Fresh Milk\",\n      \"quantity\": 50,\n      \"unit\": \"litre\",\n      \"unit_cost\": 1.20\n    },\n    {\n      \"ingredient_id\": 1,\n      \"item_name\": \"Coffee Beans\",\n      \"quantity\": 10,\n      \"unit\": \"kg\",\n      \"unit_cost\": 8.50\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/erp/purchasing/purchase-orders",
+            "description": "Purchase Total = Σ(Item Cost × Quantity). Auto-generates PO number (PO-{timestamp})."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.id) { pm.collectionVariables.set('purchaseOrderId', json.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Purchasing - Update PO Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ordered\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/erp/purchasing/purchase-orders/{{purchaseOrderId}}/status",
+            "description": "Status flow: draft → ordered → partial → received. Or draft/ordered → cancelled."
+          }
+        },
+        {
+          "name": "Purchasing - Receive Goods",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"received_date\": \"2026-05-30\",\n  \"notes\": \"All items received in good condition\",\n  \"items\": [\n    {\n      \"item_id\": 1,\n      \"received_quantity\": 50\n    },\n    {\n      \"item_id\": 2,\n      \"received_quantity\": 10\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/erp/purchasing/purchase-orders/{{purchaseOrderId}}/receive",
+            "description": "Records goods received and auto-updates ingredient stock quantities and unit_cost. PO status → partial or received."
+          }
+        },
+        {
+          "name": "── P&L (Profit & Loss) ─────────────────────",
+          "item": []
+        },
+        {
+          "name": "P&L - List Expense Categories",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/erp/pl/expense-categories"
+          }
+        },
+        {
+          "name": "P&L - Create Expense Category",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rent\",\n  \"type\": \"fixed\",\n  \"description\": \"Monthly shop rental\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/erp/pl/expense-categories",
+            "description": "type: fixed | variable"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.id) { pm.collectionVariables.set('expenseCategoryId', json.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "P&L - Update Expense Category",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Monthly shop rental — updated\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/erp/pl/expense-categories/{{expenseCategoryId}}"
+          }
+        },
+        {
+          "name": "P&L - Delete Expense Category",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/erp/pl/expense-categories/{{expenseCategoryId}}"
+          }
+        },
+        {
+          "name": "P&L - List Expenses",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/erp/pl/expenses?start_date=2026-05-01&end_date=2026-05-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "erp", "pl", "expenses"],
+              "query": [
+                { "key": "start_date",   "value": "2026-05-01" },
+                { "key": "end_date",     "value": "2026-05-31" },
+                { "key": "category_id",  "value": "",          "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "P&L - Create Expense",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": {{expenseCategoryId}},\n  \"amount\": 800.00,\n  \"currency\": \"USD\",\n  \"description\": \"May 2026 shop rent\",\n  \"date\": \"2026-05-01\",\n  \"reference\": \"RENT-2026-05\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/erp/pl/expenses"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.id) { pm.collectionVariables.set('expenseId', json.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "P&L - Delete Expense",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/erp/pl/expenses/{{expenseId}}"
+          }
+        },
+        {
+          "name": "P&L - Full P&L Report",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/erp/pl/report?start_date=2026-05-01&end_date=2026-05-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "erp", "pl", "report"],
+              "query": [
+                { "key": "start_date", "value": "2026-05-01", "description": "YYYY-MM-DD" },
+                { "key": "end_date",   "value": "2026-05-31", "description": "YYYY-MM-DD" }
+              ]
+            },
+            "description": "Full Profit & Loss statement.\n\nFormulas applied:\n  Revenue        = Σ(order amounts)\n  COGS           = Σ(ingredient cost × qty used)\n  Gross Profit   = Revenue − COGS\n  Gross Margin % = (Gross Profit / Revenue) × 100\n  OpEx           = Σ(operating expenses in period)\n  Payroll Cost   = Σ(net_salary from finalized payrolls)\n  Net Profit     = Revenue − (COGS + OpEx + Payroll Cost)\n  Net Margin %   = (Net Profit / Revenue) × 100"
+          }
+        },
+        {
+          "name": "── RECIPE COSTING ──────────────────────────",
+          "item": []
+        },
+        {
+          "name": "Recipe Costing - All Menus with Cost",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/erp/recipe-costing",
+            "description": "Returns every menu with auto-calculated product cost and margin %.\n\nFormula: Product Cost = Σ(Ingredient Amount × Ingredient Unit Cost)\n\nFor menus with has_sizes=true, cost is calculated per size variant (S/M/L)."
+          }
+        },
+        {
+          "name": "Recipe Costing - Summary Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/erp/recipe-costing/summary",
+            "description": "Aggregate stats: total items costed, avg cost, avg margin %, highest/lowest margin items."
+          }
+        },
+        {
+          "name": "Recipe Costing - Menu Cost Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/erp/recipe-costing/{{menuId}}",
+            "description": "Full ingredient-level cost breakdown for one menu.\nReturns per ingredient: name, unit, quantity used, unit_cost, line_cost and totals."
+          }
+        },
+        {
+          "name": "── ANALYTICS ───────────────────────────────",
+          "item": []
+        },
+        {
+          "name": "Analytics - Full Dashboard",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/erp/analytics/dashboard?start_date=2026-05-01&end_date=2026-05-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "erp", "analytics", "dashboard"],
+              "query": [
+                { "key": "start_date", "value": "2026-05-01" },
+                { "key": "end_date",   "value": "2026-05-31" }
+              ]
+            },
+            "description": "Single-request ERP dashboard: financials + best sellers + sales trend + peak hours + waste analysis."
+          }
+        },
+        {
+          "name": "Analytics - Best Selling Items",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/erp/analytics/best-sellers?start_date=2026-05-01&end_date=2026-05-31&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "erp", "analytics", "best-sellers"],
+              "query": [
+                { "key": "start_date", "value": "2026-05-01" },
+                { "key": "end_date",   "value": "2026-05-31" },
+                { "key": "limit",      "value": "10",          "description": "Top N items (default 10)" }
+              ]
+            },
+            "description": "Ranked by total quantity sold. Returns menu name, total_qty, total_revenue."
+          }
+        },
+        {
+          "name": "Analytics - Sales Trend (Daily)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/erp/analytics/sales-trend?start_date=2026-05-01&end_date=2026-05-31&granularity=daily",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "erp", "analytics", "sales-trend"],
+              "query": [
+                { "key": "start_date",  "value": "2026-05-01" },
+                { "key": "end_date",    "value": "2026-05-31" },
+                { "key": "granularity", "value": "daily", "description": "daily | weekly | monthly" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Analytics - Sales Trend (Monthly)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/erp/analytics/sales-trend?start_date=2026-01-01&end_date=2026-12-31&granularity=monthly",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "erp", "analytics", "sales-trend"],
+              "query": [
+                { "key": "start_date",  "value": "2026-01-01" },
+                { "key": "end_date",    "value": "2026-12-31" },
+                { "key": "granularity", "value": "monthly" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Analytics - Peak Hours",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/erp/analytics/peak-hours?start_date=2026-05-01&end_date=2026-05-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "erp", "analytics", "peak-hours"],
+              "query": [
+                { "key": "start_date", "value": "2026-05-01" },
+                { "key": "end_date",   "value": "2026-05-31" }
+              ]
+            },
+            "description": "Orders grouped by hour of day. Reveals busiest and slowest hours for staffing decisions."
+          }
+        },
+        {
+          "name": "Analytics - Profit by Product",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/erp/analytics/profit-by-product?start_date=2026-05-01&end_date=2026-05-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "erp", "analytics", "profit-by-product"],
+              "query": [
+                { "key": "start_date", "value": "2026-05-01" },
+                { "key": "end_date",   "value": "2026-05-31" }
+              ]
+            },
+            "description": "Per-menu: revenue, COGS, gross_profit, margin_pct.\nFormula: Profit Margin = (Net Profit / Revenue) × 100"
+          }
+        },
+        {
+          "name": "Analytics - Waste Analysis",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/erp/analytics/waste-analysis?start_date=2026-05-01&end_date=2026-05-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "erp", "analytics", "waste-analysis"],
+              "query": [
+                { "key": "start_date", "value": "2026-05-01" },
+                { "key": "end_date",   "value": "2026-05-31" }
+              ]
+            },
+            "description": "Ingredient waste records with waste percentage.\nFormula: Waste % = (Waste / Total Inventory) × 100"
+          }
+        }
+      ]
+    },
+    {
       "name": "10) Webhooks",
       "item": [
         {
@@ -2429,6 +3090,34 @@
     },
     {
       "key": "bookingId",
+      "value": "1"
+    },
+    {
+      "key": "employeeId",
+      "value": "1"
+    },
+    {
+      "key": "leaveId",
+      "value": "1"
+    },
+    {
+      "key": "payrollId",
+      "value": "1"
+    },
+    {
+      "key": "supplierId",
+      "value": "1"
+    },
+    {
+      "key": "purchaseOrderId",
+      "value": "1"
+    },
+    {
+      "key": "expenseCategoryId",
+      "value": "1"
+    },
+    {
+      "key": "expenseId",
       "value": "1"
     }
   ]

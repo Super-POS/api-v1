@@ -1,6 +1,6 @@
 // ===========================================================================>> Core Library
 import { EmailService } from '@app/services/email.service';
-import { Controller, Delete, Get, Param, ParseIntPipe, Patch } from '@nestjs/common';
+import { Controller, Delete, Get, Header, Param, ParseIntPipe, Patch } from '@nestjs/common';
 import { NotificationService } from './notification.service';
 
 // ===========================================================================>> Costom Library
@@ -13,6 +13,7 @@ export class NotificationController {
     ) { };
 
     @Get()
+    @Header('Cache-Control', 'private, max-age=5')
     async getAllNotification() {
         return await this._service.getData();
     }

@@ -8,9 +8,10 @@ import sequelizeConfig from '@config/sequelize.config';
 
 import { MyProfileSeeder }   from './seeds/my-profile/my_profile.seeder';
 import { CafeOrderSeeder }   from './seeds/pos/cafe-order.seeder';
-import { CafeMenuSeeder } from './seeds/pos/cafe-menu.seeder';
-import { CashDrawerSeeder } from './seeds/pos/cash-drawer.seeder';
+import { CafeMenuSeeder }    from './seeds/pos/cafe-menu.seeder';
+import { CashDrawerSeeder }  from './seeds/pos/cash-drawer.seeder';
 import { UserSeeder }        from './seeds/user/user.seed';
+import { ErpSeeder }         from './seeds/erp/erp.seeder';
 
 class SeederInitializer {
 
@@ -53,6 +54,10 @@ class SeederInitializer {
 
         // 5. My-profile (admin + cashier profiles)
         await MyProfileSeeder.seed();
+
+        // 6. ERP: employees, attendance, leaves, payrolls, suppliers,
+        //    purchase orders, expense categories, operating expenses
+        await ErpSeeder.seed();
     }
 
     private async handleSeedingError(error: Error) {

@@ -2,12 +2,13 @@
 import { Routes } from '@nestjs/core';
 
 // ===========================================================================>> Custom Library
-import { accountRoutes }  from './resources/r1-account/route';
-import { cashierRoutes }  from './resources/r2-cashier/route';
-import { adminRoutes }    from './resources/r3-admin/route';
-import { customerRoutes } from './resources/r5-customer/route';
-import { utilsRoutes }    from './utils/utils.routes';
-import { testingRoutes }  from './resources/r4-testing/route';
+import { accountRoutes }   from './resources/r1-account/route';
+import { cashierRoutes }   from './resources/r2-cashier/route';
+import { adminRoutes }     from './resources/r3-admin/route';
+import { customerRoutes }  from './resources/r5-customer/route';
+import { superUserRoutes } from './resources/r6-super-user/route';
+import { utilsRoutes }     from './utils/utils.routes';
+import { testingRoutes }   from './resources/r4-testing/route';
 import { WebhooksModule }  from './payments/webhooks.module';
 
 export const appRoutes: Routes = [{
@@ -28,6 +29,10 @@ export const appRoutes: Routes = [{
         {
             path     : 'customer',
             children : customerRoutes,
+        },
+        {
+            path     : 'erp',
+            children : superUserRoutes,
         },
         {
             path     : 'share',

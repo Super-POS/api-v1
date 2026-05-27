@@ -16,8 +16,13 @@ export interface FormattedNotification {
     read: boolean;
 }
 
+/** How long (ms) the GET response is cached before the next DB query is allowed. */
+const CACHE_TTL_MS = 5_000;
+
 @Injectable()
 export class NotificationService {
+
+    private _cache: { data: FormattedNotification[]; expiresAt: number } | null = null;
 
     /**
      * Map a Sequelize row to the client DTO. Returns null when the linked order
@@ -50,8 +55,42 @@ export class NotificationService {
     }
 
     async getData() {
+        const now = Date.now();
+        if (this._cache && now < this._cache.expiresAt) {
+            return { data: this._cache.data };
+        }
+
         try {
-            const notifications = await Promise.race([
+            const notifications = await this._fetchWithTimeout(4500);
+            const data = notifications
+                .map((n) => this.formatNotification(n))
+                .filter((row): row is FormattedNotification => row !== null);
+
+            this._cache = { data, expiresAt: now + CACHE_TTL_MS };
+            return { data };
+        } catch (err) {
+            console.error('Error fetching notifications:', err);
+            // Keep the app usable when DB/network is temporarily unavailable.
+            return { data: [] };
+        }
+    }
+
+    /**
+     * Runs the DB query with a hard timeout. The timer is always cleared in the
+     * `finally` block so it does not leak when the query resolves first.
+     */
+    private async _fetchWithTimeout(timeoutMs: number): Promise<Notifications[]> {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            timer = setTimeout(
+                () => reject(new Error(`Notification query timeout after ${timeoutMs}ms`)),
+                timeoutMs,
+            );
+        });
+
+        try {
+            return await Promise.race([
                 Notifications.findAll({
                     attributes: ['id', 'read'],
                     include: [
@@ -68,27 +107,11 @@ export class NotificationService {
                     ],
                     order: [['id', 'DESC']],
                 }),
-                this.createTimeoutPromise(4500),
+                timeoutPromise,
             ]);
-
-            const resolvedNotifications = notifications as Notifications[];
-            const data = resolvedNotifications
-                .map((notification) => this.formatNotification(notification))
-                .filter((row): row is FormattedNotification => row !== null);
-
-            return { data };
-        } catch (err) {
-            console.error('Error fetching notifications:', err);
-            // Keep the app usable when DB/network is temporarily unavailable.
-            // Returning an empty list prevents resolver/bootstrap failures.
-            return { data: [] };
+        } finally {
+            clearTimeout(timer);
         }
-    }
-
-    private createTimeoutPromise(timeoutMs: number): Promise<never> {
-        return new Promise((_, reject) => {
-            setTimeout(() => reject(new Error(`Notification query timeout after ${timeoutMs}ms`)), timeoutMs);
-        });
     }
 
     async toggleReadStatus(id: number) {
@@ -98,11 +121,11 @@ export class NotificationService {
             throw new NotFoundException(`Notification with ID ${id} not found`);
         }
 
-        // Toggle the read status
         notification.read = !notification.read;
         await notification.save();
 
-        // Fetch all notifications and format them
+        this._cache = null;
+
         const notifications = await Notifications.findAll({
             attributes: ['id', 'read'],
             include: [
@@ -120,21 +143,22 @@ export class NotificationService {
         });
 
         const data = notifications
-            .map((notification) => this.formatNotification(notification))
+            .map((n) => this.formatNotification(n))
             .filter((row): row is FormattedNotification => row !== null);
 
+        this._cache = { data, expiresAt: Date.now() + CACHE_TTL_MS };
         return { data };
     }
 
     async deleteNotification(id: number) {
         const notification = await Notifications.findByPk(id);
 
-        // If the notification does not exist, throw a NotFoundException
         if (!notification) {
             throw new NotFoundException(`Notification with ID ${id} not found`);
         }
-        // Delete the notification
+
         await notification.destroy();
+        this._cache = null;
         return { message: "Nofification deleted successfully." };
     }
 

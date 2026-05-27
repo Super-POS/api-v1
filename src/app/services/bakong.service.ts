@@ -677,6 +677,15 @@ export class BakongService {
       ) {
         const qrAmount = await this._amountInQrCurrency(Number(order.total_price));
         const { shortLink, fullLink } = await this._generateKhqrDeepLink(cachedQr);
+        this._notifications.emitCustomerDisplayShowKhqr({
+          orderId,
+          qr: cachedQr,
+          amount: qrAmount,
+          currency: this.currency,
+          expires_at: expiresAt.toISOString(),
+          merchant_name: this.merchantName,
+          merchant_city: this.merchantCity,
+        });
         return {
           qr: cachedQr,
           md5: String(existingPending.reference),
@@ -748,6 +757,16 @@ export class BakongService {
     );
 
     const { shortLink, fullLink } = await this._generateKhqrDeepLink(qr);
+
+    this._notifications.emitCustomerDisplayShowKhqr({
+      orderId,
+      qr,
+      amount: qrAmount,
+      currency: this.currency,
+      expires_at: expiresAt.toISOString(),
+      merchant_name: this.merchantName,
+      merchant_city: this.merchantCity,
+    });
 
     return {
       qr,
@@ -862,6 +881,7 @@ export class BakongService {
       receiptNumber: String(order.receipt_number ?? ""),
       cashierId: Number(order.cashier_id ?? 0),
     });
+    this._notifications.emitCustomerDisplayClear({ orderId: order.id });
     const txData = (body.data ?? {}) as {
       hash?: string;
       fromAccountId?: string;
