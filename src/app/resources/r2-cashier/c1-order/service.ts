@@ -367,8 +367,11 @@ export class OrderService {
             await transaction.commit();
             committed = true;
 
+            // Fire-and-forget: notification failures must never affect the saved order or the client response
             if (!body.deferred_telegram) {
-                await this._sendPlacedOrderTelegramAndSocket(data, body.channel);
+                this._sendPlacedOrderTelegramAndSocket(data, body.channel).catch((e) =>
+                    console.error('Post-commit notification error (order was saved):', e),
+                );
             }
             return {
                 data,
