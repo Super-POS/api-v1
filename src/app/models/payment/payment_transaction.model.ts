@@ -6,10 +6,11 @@ import Order from '@app/models/order/order.model';
 import User  from '@app/models/user/user.model';
 
 export enum PaymentMethod {
-    CASH   = 'cash',
-    WALLET = 'wallet',
-    CARD   = 'card',
-    QR     = 'qr',
+    CASH      = 'cash',
+    WALLET    = 'wallet',
+    CARD      = 'card',
+    QR        = 'qr',
+    QR_TABLE  = 'qr_table',
 }
 
 export enum PaymentStatus {

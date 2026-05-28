@@ -1384,6 +1384,38 @@
           ]
         },
         {
+          "name": "QR Table - Pay (Manual Bank QR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": {{orderId}},\n  \"bank_name\": \"ABA\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/api/cashier/ordering/qr-table/pay",
+            "description": "Cashier manually confirms the customer scanned a bank QR on the table (ABA, ACLEDA, Wing, Pi Pay, etc.). No gateway required — creates a SUCCESS payment transaction immediately. Use this as a fallback when Bakong/Baray is unavailable."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 or 201', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "const json = pm.response.json();",
+                  "if (json?.data?.id) {",
+                  "  pm.collectionVariables.set('paymentTransactionId', json.data.id);",
+                  "  console.log('QR Table payment recorded. Transaction ID:', json.data.id, '| Bank:', json.data.note);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Cash Drawer - View Current",
           "request": {
             "method": "GET",

@@ -130,6 +130,7 @@ export class OrderService {
         // Initializing DB Connection
         const sequelize = new Sequelize(sequelizeConfig);
         let transaction: Transaction;
+        let committed = false;
 
         try {
             // Open DB Connection
@@ -364,6 +365,7 @@ export class OrderService {
 
             // Commit transaction after successful operations
             await transaction.commit();
+            committed = true;
 
             if (!body.deferred_telegram) {
                 await this._sendPlacedOrderTelegramAndSocket(data, body.channel);
@@ -376,8 +378,8 @@ export class OrderService {
             };
 
         } catch (error) {
-            if (transaction) {
-                await transaction.rollback(); // Rollback transaction on error
+            if (transaction && !committed) {
+                await transaction.rollback();
             }
             if (error instanceof HttpException) {
                 throw error;
@@ -436,15 +438,17 @@ export class OrderService {
             ],
             order: [["id", "DESC"]],
         });
-        const dataNotifications = notifications.map((n) => ({
-            id: n.id,
-            receipt_number: n.order.receipt_number,
-            order_number: n.order.order_number,
-            total_price: n.order.total_price,
-            ordered_at: n.order.ordered_at,
-            cashier: { id: n.user.id, name: n.user.name, avatar: n.user.avatar },
-            read: n.read,
-        }));
+        const dataNotifications = notifications
+            .filter((n) => n.order != null && n.user != null)
+            .map((n) => ({
+                id: n.id,
+                receipt_number: n.order.receipt_number,
+                order_number: n.order.order_number,
+                total_price: n.order.total_price,
+                ordered_at: n.order.ordered_at,
+                cashier: { id: n.user.id, name: n.user.name, avatar: n.user.avatar },
+                read: n.read,
+            }));
         this.notificationsGateway.sendOrderNotification({ data: dataNotifications });
     }
 

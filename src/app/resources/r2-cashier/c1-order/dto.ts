@@ -1,7 +1,7 @@
 // =========================================================================>> Custom Library
 import { OrderChannelEnum } from '@app/enums/order-channel.enum';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsEnum, IsInt, IsJSON, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsBoolean, IsEnum, IsInt, IsJSON, IsNotEmpty, IsOptional, IsPositive, IsString, MaxLength, Min } from 'class-validator';
 
 export class CreateOrderDto {
     @IsNotEmpty()
@@ -32,4 +32,17 @@ export class CreateOrderDto {
     @IsInt()
     @Min(1)
     customer_id?: number;
+}
+
+export class QrTablePayDto {
+    @Type(() => Number)
+    @IsInt()
+    @IsPositive()
+    order_id: number;
+
+    /** Bank name the customer scanned (e.g. ABA, ACLEDA, Wing, Pi Pay). */
+    @IsString()
+    @IsNotEmpty()
+    @MaxLength(50)
+    bank_name: string;
 }
