@@ -125,7 +125,7 @@ export class UpdateMenuDto {
 
   @ValidateIf((o) => !!o.has_sizes)
   @IsArray()
-  @ArrayMinSize(3)
+  @ArrayMinSize(1)
   @ArrayMaxSize(3)
   @ValidateNested({ each: true })
   @Type(() => MenuSizeDto)
