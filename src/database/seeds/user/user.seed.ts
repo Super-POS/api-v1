@@ -1,8 +1,20 @@
 import { RoleEnum } from "@app/enums/role.enum";
+import { ensureSuperUserStaffRoles, SUPER_USER_ACCOUNT_EMAIL } from "./super-user-roles.patch";
 
 import Role from "src/app/models/user/role.model";
 import UserRoles from "src/app/models/user/user_roles.model";
 import User from "src/app/models/user/user.model";
+
+/**
+ * Test accounts (password for all: 123456)
+ *
+ * | Email                      | Roles                          | Default    |
+ * |----------------------------|--------------------------------|------------|
+ * | chansuvannet999@gmail.com  | Admin, Cashier                 | Admin      |
+ * | hengtongsour@gmail.com     | Cashier                        | Cashier    |
+ * | engsokchheng@gmail.com     | Cashier                        | Cashier    |
+ * | superuser@pos.com          | Super User, Admin, Cashier     | Super User |
+ */
 
 export class UserSeeder {
 
@@ -11,6 +23,7 @@ export class UserSeeder {
             await UserSeeder.seedRoles();
             await UserSeeder.seedUsers();
             await UserSeeder.seedUserRoles();
+            await ensureSuperUserStaffRoles();
         } catch (error) {
             console.error('\x1b[31m\nError seeding user data:', error);
             throw error;
@@ -157,7 +170,7 @@ const data = {
         {
             name      : 'ERP Owner',
             phone     : '0999999999',
-            email     : 'superuser@pos.com',
+            email     : SUPER_USER_ACCOUNT_EMAIL,
             password  : '123456',
             avatar    : 'static/pos/user/avatar.png',
             creator_id: 1,
@@ -177,8 +190,10 @@ const data = {
         { user_id: 6, role_id: RoleEnum.CUSTOMER,   added_id: 1, created_at: new Date(), is_default: true  },
         { user_id: 7, role_id: RoleEnum.CUSTOMER,   added_id: 1, created_at: new Date(), is_default: true  },
         { user_id: 8, role_id: RoleEnum.CUSTOMER,   added_id: 1, created_at: new Date(), is_default: true  },
-        // ── Super User role ──────────────────────────────────────────────────
+        // ── Super User (ERP Owner) — can switch Admin / Cashier / Super User ─
         { user_id: 9, role_id: RoleEnum.SUPER_USER, added_id: 1, created_at: new Date(), is_default: true  },
+        { user_id: 9, role_id: RoleEnum.ADMIN,      added_id: 1, created_at: new Date(), is_default: false },
+        { user_id: 9, role_id: RoleEnum.CASHIER,    added_id: 1, created_at: new Date(), is_default: false },
     ],
 };
 

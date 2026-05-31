@@ -192,4 +192,78 @@ export class RecipeCostingService {
     private _round(v: number, d = 4) {
         return parseFloat(v.toFixed(d));
     }
+
+    /** Map internal menu cost shape to ERP frontend contract. */
+    toFrontendListItem(m: any) {
+        if (m.has_sizes) {
+            return {
+                menu_id     : m.id,
+                menu_name   : m.name,
+                menu_code   : m.code,
+                has_sizes   : true,
+                product_cost: 0,
+                margin_pct  : 0,
+                sizes       : (m.sizes ?? []).map((s: any) => ({
+                    size         : s.size,
+                    price        : s.price,
+                    product_cost : s.cost,
+                    margin_pct   : s.margin_pct,
+                })),
+            };
+        }
+        return {
+            menu_id     : m.id,
+            menu_name   : m.name,
+            menu_code   : m.code,
+            has_sizes   : false,
+            price       : m.price,
+            product_cost: m.cost,
+            margin_pct  : m.margin_pct,
+        };
+    }
+
+    toFrontendDetail(d: any) {
+        const base = this.toFrontendListItem(d);
+        if (d.has_sizes) {
+            return {
+                ...base,
+                sizes: (d.sizes ?? []).map((s: any) => ({
+                    size         : s.size,
+                    price        : s.price,
+                    product_cost : s.cost,
+                    margin_pct   : s.margin_pct,
+                    ingredients  : (s.ingredients ?? []).map((i: any) => this._mapIngredient(i)),
+                })),
+            };
+        }
+        return {
+            ...base,
+            ingredients: (d.ingredients ?? []).map((i: any) => this._mapIngredient(i)),
+        };
+    }
+
+    toFrontendSummary(s: any) {
+        return {
+            total_items    : s.total_items,
+            avg_cost       : s.avg_cost,
+            avg_margin_pct : s.avg_margin_pct,
+            highest_margin : s.highest_margin
+                ? { menu_name: s.highest_margin.name, margin_pct: s.highest_margin.margin_pct }
+                : undefined,
+            lowest_margin  : s.lowest_margin
+                ? { menu_name: s.lowest_margin.name, margin_pct: s.lowest_margin.margin_pct }
+                : undefined,
+        };
+    }
+
+    private _mapIngredient(i: IngredientCostLine) {
+        return {
+            ingredient_id : i.ingredient_id,
+            name          : i.ingredient_name,
+            unit          : i.unit,
+            quantity_used : i.quantity,
+            unit_cost     : i.unit_cost,
+            line_cost     : i.line_cost,
+        };
+    }
 }

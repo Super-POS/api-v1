@@ -17,7 +17,8 @@ export class PurchasingService {
     async getSuppliers(active_only = false) {
         const where: any = {};
         if (active_only) where.is_active = true;
-        return ErpSupplier.findAll({ where, order: [['name', 'ASC']] });
+        const rows = await ErpSupplier.findAll({ where, order: [['name', 'ASC']] });
+        return { data: rows };
     }
 
     async getSupplier(id: number) {
@@ -29,18 +30,19 @@ export class PurchasingService {
             }],
         });
         if (!s) throw new NotFoundException('Supplier not found.');
-        return s;
+        return { data: s };
     }
 
     async createSupplier(dto: CreateSupplierDto) {
-        return ErpSupplier.create({ ...dto } as any);
+        const row = await ErpSupplier.create({ ...dto } as any);
+        return { data: row, message: 'Supplier created.' };
     }
 
     async updateSupplier(id: number, dto: UpdateSupplierDto) {
         const s = await ErpSupplier.findByPk(id);
         if (!s) throw new NotFoundException('Supplier not found.');
         await s.update(dto as any);
-        return s;
+        return { data: s, message: 'Supplier updated.' };
     }
 
     // ─── Purchase Orders ──────────────────────────────────────────────────────
@@ -49,11 +51,12 @@ export class PurchasingService {
         const where: any = {};
         if (supplier_id) where.supplier_id = supplier_id;
         if (status)      where.status = status;
-        return ErpPurchaseOrder.findAll({
+        const rows = await ErpPurchaseOrder.findAll({
             where,
             include: [ErpSupplier, ErpPurchaseOrderItem],
             order  : [['created_at', 'DESC']],
         });
+        return { data: rows };
     }
 
     async getPurchaseOrder(id: number) {
@@ -64,7 +67,7 @@ export class PurchasingService {
             ],
         });
         if (!po) throw new NotFoundException('Purchase order not found.');
-        return po;
+        return { data: po };
     }
 
     /**
@@ -108,7 +111,8 @@ export class PurchasingService {
 
             await po.update({ total_amount: totalAmount }, { transaction });
             await transaction.commit();
-            return this.getPurchaseOrder(po.id);
+            const result = await this.getPurchaseOrder(po.id);
+            return { ...result, message: 'Purchase order created.' };
         } catch (e) {
             await transaction.rollback();
             throw e;
@@ -119,7 +123,7 @@ export class PurchasingService {
         const po = await ErpPurchaseOrder.findByPk(id);
         if (!po) throw new NotFoundException('Purchase order not found.');
         await po.update({ status: dto.status });
-        return po;
+        return { message: 'Purchase order status updated.' };
     }
 
     /**
@@ -172,7 +176,7 @@ export class PurchasingService {
 
             await po.update({ status: newStatus, received_date: dto.received_date }, { transaction });
             await transaction.commit();
-            return this.getPurchaseOrder(po_id);
+            return { message: 'Goods received.' };
         } catch (e) {
             await transaction.rollback();
             throw e;

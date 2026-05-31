@@ -37,7 +37,6 @@ class CashDrawerLog extends Model<CashDrawerLog> {
 
     // Delta for each KHR denomination
     @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          khr_100: number;
-    @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          khr_200: number;
     @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          khr_500: number;
     @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          khr_1000: number;
     @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          khr_2000: number;
@@ -48,7 +47,6 @@ class CashDrawerLog extends Model<CashDrawerLog> {
     @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          khr_30000: number;
     @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          khr_50000: number;
     @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          khr_100000: number;
-    @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          khr_200000: number;
 
     // Exchange rate used for this transaction (KHR per 1 USD)
     @Column({ allowNull: true, type: DataType.DECIMAL(10, 2) })                                     exchange_rate?: number;

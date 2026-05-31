@@ -10,6 +10,7 @@ import { HttpModule } from '@nestjs/axios';
 import { FileService } from '@app/services/file.service';
 import { JsReportService } from '@app/services/js-report.service';
 import { CashDrawerLogEnumPatchService } from './cash-drawer-log-enum.patch';
+import { CashDrawerKhrDenomSchemaPatchService } from './cash-drawer-khr-denom-schema.patch';
 import { CouponOrderSchemaPatchService } from './coupon-order-schema.patch';
 import { IngredientSchemaPatchService } from './ingredient-schema.patch';
 import { OrderNumberSchemaPatchService } from './order-number-schema.patch';
@@ -19,6 +20,7 @@ import { WastageSchemaPatchService } from './wastage-schema.patch';
 import { BadgeSchemaPatchService } from './badge-schema.patch';
 import { MeetingRoomSchemaPatchService } from './meeting-room-schema.patch';
 import { MeetingRoomBookingPaymentSchemaPatchService } from './meeting-room-booking-payment-schema.patch';
+import { UserRoleSeedPatchService } from './user-role-seed.patch';
 import { QrTablePaymentEnumPatchService } from './qr-table-payment-enum.patch';
 
 /** @noded We use Global that allow all module can access and use all models */
@@ -42,6 +44,7 @@ import { QrTablePaymentEnumPatchService } from './qr-table-payment-enum.patch';
         IngredientSchemaPatchService,
         CouponOrderSchemaPatchService,
         CashDrawerLogEnumPatchService,
+        CashDrawerKhrDenomSchemaPatchService,
         OrderNumberSchemaPatchService,
         ExchangeSettingSchemaPatchService,
         ExchangeSettingService,
@@ -49,6 +52,7 @@ import { QrTablePaymentEnumPatchService } from './qr-table-payment-enum.patch';
         BadgeSchemaPatchService,
         MeetingRoomSchemaPatchService,
         MeetingRoomBookingPaymentSchemaPatchService,
+        UserRoleSeedPatchService,
         QrTablePaymentEnumPatchService,
     ],
     exports: [

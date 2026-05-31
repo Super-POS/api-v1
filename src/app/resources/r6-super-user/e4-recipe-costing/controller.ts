@@ -7,19 +7,22 @@ export class RecipeCostingController {
 
     /** All menus with auto-calculated cost and margin */
     @Get()
-    getMenusWithCost() {
-        return this._service.getMenusWithCost();
+    async getMenusWithCost() {
+        const menus = await this._service.getMenusWithCost();
+        return { data: menus.map(m => this._service.toFrontendListItem(m)) };
     }
 
     /** Summary stats: avg cost, avg margin, best/worst margin items */
     @Get('summary')
-    getCostSummary() {
-        return this._service.getCostSummary();
+    async getCostSummary() {
+        const summary = await this._service.getCostSummary();
+        return { data: this._service.toFrontendSummary(summary) };
     }
 
     /** Full ingredient-level cost breakdown for one menu */
     @Get(':id')
-    getMenuCostDetail(@Param('id', ParseIntPipe) id: number) {
-        return this._service.getMenuCostDetail(id);
+    async getMenuCostDetail(@Param('id', ParseIntPipe) id: number) {
+        const detail = await this._service.getMenuCostDetail(id);
+        return { data: this._service.toFrontendDetail(detail) };
     }
 }

@@ -18,7 +18,6 @@ export const USD_DENOMS: { field: keyof CashDrawer; face: number }[] = [
 ];
 
 export const KHR_DENOMS: { field: keyof CashDrawer; face: number }[] = [
-    { field: 'khr_200000', face: 200000 },
     { field: 'khr_100000', face: 100000 },
     { field: 'khr_50000',  face: 50000  },
     { field: 'khr_30000',  face: 30000  },
@@ -29,7 +28,6 @@ export const KHR_DENOMS: { field: keyof CashDrawer; face: number }[] = [
     { field: 'khr_2000',   face: 2000   },
     { field: 'khr_1000',   face: 1000   },
     { field: 'khr_500',    face: 500    },
-    { field: 'khr_200',    face: 200    },
     { field: 'khr_100',    face: 100    },
 ];
 

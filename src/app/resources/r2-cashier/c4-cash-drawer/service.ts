@@ -24,7 +24,6 @@ function buildDenomList(rate: number): DenomDef[] {
         { field: 'usd_20',  faceKhr: 20  * rate },
     ];
     const khr1: DenomDef[] = [
-        { field: 'khr_200000', faceKhr: 200000 },
         { field: 'khr_100000', faceKhr: 100000 },
         { field: 'khr_50000',  faceKhr: 50000  },
         { field: 'khr_30000',  faceKhr: 30000  },
@@ -41,7 +40,6 @@ function buildDenomList(rate: number): DenomDef[] {
         { field: 'khr_2000',   faceKhr: 2000 },
         { field: 'khr_1000',   faceKhr: 1000 },
         { field: 'khr_500',    faceKhr: 500  },
-        { field: 'khr_200',    faceKhr: 200  },
         { field: 'khr_100',    faceKhr: 100  },
     ];
 
@@ -255,7 +253,6 @@ export class CashierCashDrawerService {
 
         let remainingKhr = amountKhr;
         const khrDenoms: { key: keyof ReceivedDenominationsDto; value: number }[] = [
-            { key: 'khr_200000', value: 200000 },
             { key: 'khr_100000', value: 100000 },
             { key: 'khr_50000', value: 50000 },
             { key: 'khr_30000', value: 30000 },
@@ -266,7 +263,6 @@ export class CashierCashDrawerService {
             { key: 'khr_2000', value: 2000 },
             { key: 'khr_1000', value: 1000 },
             { key: 'khr_500', value: 500 },
-            { key: 'khr_200', value: 200 },
             { key: 'khr_100', value: 100 },
         ];
         for (const denom of khrDenoms) {
@@ -296,7 +292,6 @@ export class CashierCashDrawerService {
 
         const khrTotal =
             (recv.khr_100    ?? 0) * 100    +
-            (recv.khr_200    ?? 0) * 200    +
             (recv.khr_500    ?? 0) * 500    +
             (recv.khr_1000   ?? 0) * 1000   +
             (recv.khr_2000   ?? 0) * 2000   +
@@ -306,8 +301,7 @@ export class CashierCashDrawerService {
             (recv.khr_20000  ?? 0) * 20000  +
             (recv.khr_30000  ?? 0) * 30000  +
             (recv.khr_50000  ?? 0) * 50000  +
-            (recv.khr_100000 ?? 0) * 100000 +
-            (recv.khr_200000 ?? 0) * 200000;
+            (recv.khr_100000 ?? 0) * 100000;
 
         return Math.round(usdTotal) + khrTotal;
     }

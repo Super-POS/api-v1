@@ -19,7 +19,6 @@ export class DenominationInputDto {
 
     // KHR
     @IsInt() @Min(0) @IsOptional() khr_100?:    number;
-    @IsInt() @Min(0) @IsOptional() khr_200?:    number;
     @IsInt() @Min(0) @IsOptional() khr_500?:    number;
     @IsInt() @Min(0) @IsOptional() khr_1000?:   number;
     @IsInt() @Min(0) @IsOptional() khr_2000?:   number;
@@ -30,7 +29,6 @@ export class DenominationInputDto {
     @IsInt() @Min(0) @IsOptional() khr_30000?:  number;
     @IsInt() @Min(0) @IsOptional() khr_50000?:  number;
     @IsInt() @Min(0) @IsOptional() khr_100000?: number;
-    @IsInt() @Min(0) @IsOptional() khr_200000?: number;
 }
 
 export class DepositCashDto {

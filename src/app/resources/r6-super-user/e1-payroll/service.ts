@@ -11,13 +11,19 @@ import { AttendanceQueryDto, CreateEmployeeDto, CreateLeaveDto, GeneratePayrollD
 @Injectable()
 export class PayrollService {
 
+    private _serializePayroll(p: ErpPayroll) {
+        const json = typeof (p as any).toJSON === 'function' ? (p as any).toJSON() : p;
+        return { ...json, total_net_salary: Number(json.total_amount ?? 0) };
+    }
+
     // ─── Employees ────────────────────────────────────────────────────────────
 
     async getEmployees() {
-        return ErpEmployee.findAll({
+        const rows = await ErpEmployee.findAll({
             include: [{ model: User, attributes: ['id', 'name', 'phone', 'email', 'avatar'] }],
             order: [['created_at', 'DESC']],
         });
+        return { data: rows };
     }
 
     async getEmployee(id: number) {
@@ -25,7 +31,7 @@ export class PayrollService {
             include: [{ model: User, attributes: ['id', 'name', 'phone', 'email', 'avatar'] }],
         });
         if (!emp) throw new NotFoundException('Employee not found.');
-        return emp;
+        return { data: emp };
     }
 
     async createEmployee(dto: CreateEmployeeDto) {
@@ -35,14 +41,16 @@ export class PayrollService {
         const existing = await ErpEmployee.findOne({ where: { user_id: dto.user_id } });
         if (existing) throw new BadRequestException('This user is already an employee.');
 
-        return ErpEmployee.create({ ...dto } as any);
+        const emp = await ErpEmployee.create({ ...dto } as any);
+        return { data: emp, message: 'Employee created.' };
     }
 
     async updateEmployee(id: number, dto: UpdateEmployeeDto) {
         const emp = await ErpEmployee.findByPk(id);
         if (!emp) throw new NotFoundException('Employee not found.');
         await emp.update(dto as any);
-        return emp.reload({ include: [User] });
+        const updated = await emp.reload({ include: [User] });
+        return { data: updated, message: 'Employee updated.' };
     }
 
     async deleteEmployee(id: number) {
@@ -62,7 +70,7 @@ export class PayrollService {
         } else if (query.start_date) {
             where.date = { [Op.gte]: query.start_date };
         }
-        return ErpAttendance.findAll({
+        const rows = await ErpAttendance.findAll({
             where,
             include: [{
                 model: ErpEmployee,
@@ -70,6 +78,7 @@ export class PayrollService {
             }],
             order: [['date', 'DESC']],
         });
+        return { data: rows };
     }
 
     async markAttendance(dto: MarkAttendanceDto) {
@@ -96,10 +105,10 @@ export class PayrollService {
                 status         : dto.status,
                 notes          : dto.notes,
             });
-            return existing;
+            return { data: existing, message: 'Attendance updated.' };
         }
 
-        return ErpAttendance.create({
+        const row = await ErpAttendance.create({
             employee_id    : dto.employee_id,
             date           : dto.date,
             clock_in       : dto.clock_in,
@@ -109,6 +118,7 @@ export class PayrollService {
             status         : dto.status,
             notes          : dto.notes,
         } as any);
+        return { data: row, message: 'Attendance recorded.' };
     }
 
     // ─── Leaves ───────────────────────────────────────────────────────────────
@@ -117,7 +127,7 @@ export class PayrollService {
         const where: any = {};
         if (employee_id) where.employee_id = employee_id;
         if (status) where.status = status;
-        return ErpLeave.findAll({
+        const rows = await ErpLeave.findAll({
             where,
             include: [{
                 model: ErpEmployee,
@@ -125,6 +135,7 @@ export class PayrollService {
             }],
             order: [['created_at', 'DESC']],
         });
+        return { data: rows };
     }
 
     async createLeave(dto: CreateLeaveDto) {
@@ -143,7 +154,8 @@ export class PayrollService {
         });
         if (overlap) throw new BadRequestException('Leave dates overlap with an existing leave request.');
 
-        return ErpLeave.create({ ...dto, status: LeaveStatus.PENDING } as any);
+        const row = await ErpLeave.create({ ...dto, status: LeaveStatus.PENDING } as any);
+        return { data: row, message: 'Leave request submitted.' };
     }
 
     async updateLeaveStatus(id: number, dto: UpdateLeaveStatusDto, approver_id: number) {
@@ -153,16 +165,17 @@ export class PayrollService {
             throw new BadRequestException('Only pending leaves can be updated.');
         }
         await leave.update({ ...dto, approved_by: approver_id } as any);
-        return leave;
+        return { data: leave, message: 'Leave status updated.' };
     }
 
     // ─── Payroll ──────────────────────────────────────────────────────────────
 
     async getPayrolls() {
-        return ErpPayroll.findAll({
+        const rows = await ErpPayroll.findAll({
             include: [ErpPayrollItem],
             order: [['period_start', 'DESC']],
         });
+        return { data: rows.map(r => this._serializePayroll(r)) };
     }
 
     async getPayroll(id: number) {
@@ -176,7 +189,7 @@ export class PayrollService {
             }],
         });
         if (!payroll) throw new NotFoundException('Payroll not found.');
-        return payroll;
+        return { data: this._serializePayroll(payroll) };
     }
 
     /**
@@ -262,7 +275,8 @@ export class PayrollService {
             await payroll.update({ total_amount: grandTotal }, { transaction });
             await transaction.commit();
 
-            return this.getPayroll(payroll.id);
+            const result = await this.getPayroll(payroll.id);
+            return { ...result, message: 'Payroll generated.' };
         } catch (e) {
             await transaction.rollback();
             throw e;
@@ -276,7 +290,7 @@ export class PayrollService {
             throw new BadRequestException('Only draft payrolls can be finalized.');
         }
         await payroll.update({ status: PayrollStatus.FINALIZED });
-        return payroll;
+        return { message: 'Payroll finalized.' };
     }
 
     async markPayrollPaid(id: number) {
@@ -286,6 +300,6 @@ export class PayrollService {
             throw new BadRequestException('Only finalized payrolls can be marked as paid.');
         }
         await payroll.update({ status: PayrollStatus.PAID });
-        return payroll;
+        return { message: 'Payroll marked as paid.' };
     }
 }

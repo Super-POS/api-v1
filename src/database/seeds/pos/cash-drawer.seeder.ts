@@ -11,7 +11,6 @@ const OPENING_FLOAT = {
 
     // KHR notes weighted toward small denominations so cashiers can make exact change.
     khr_100: 40,
-    khr_200: 40,
     khr_500: 50,
     khr_1000: 60,
     khr_2000: 40,
@@ -22,7 +21,6 @@ const OPENING_FLOAT = {
     khr_30000: 8,
     khr_50000: 10,
     khr_100000: 4,
-    khr_200000: 2,
 };
 
 export class CashDrawerSeeder {

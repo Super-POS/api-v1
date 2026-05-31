@@ -30,12 +30,13 @@ export class FinancialReportController {
         @Query('yesterday')      yesterday?     : string,
         @Query('thisWeek')       thisWeek?      : string,
         @Query('thisMonth')      thisMonth?     : string,
+        @Query('thisYear')       thisYear?      : string,
         @Query('threeMonthAgo')  threeMonthAgo? : string,
         @Query('sixMonthAgo')    sixMonthAgo?   : string,
         @Query('granularity')    granularity?   : 'daily' | 'weekly' | 'monthly',
     ) {
         return await this._service.getFinancialReport({
-            from, to, today, yesterday, thisWeek, thisMonth, threeMonthAgo, sixMonthAgo, granularity,
+            from, to, today, yesterday, thisWeek, thisMonth, thisYear, threeMonthAgo, sixMonthAgo, granularity,
         });
     }
 

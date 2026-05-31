@@ -23,6 +23,7 @@ export interface ReportFilters {
     yesterday?   : string;
     thisWeek?    : string;
     thisMonth?   : string;
+    thisYear?    : string;
     threeMonthAgo?: string;
     sixMonthAgo? : string;
     granularity? : 'daily' | 'weekly' | 'monthly';
@@ -287,6 +288,9 @@ export class FinancialReportService {
         }
         if (filters.thisMonth) {
             return { startDate: new Date(now.getFullYear(), now.getMonth(), 1), endDate };
+        }
+        if (filters.thisYear) {
+            return { startDate: new Date(now.getFullYear(), 0, 1), endDate };
         }
         if (filters.threeMonthAgo) {
             const s = new Date(now.getFullYear(), now.getMonth() - 3, 1);

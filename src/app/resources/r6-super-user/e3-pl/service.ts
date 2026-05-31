@@ -18,18 +18,20 @@ export class PLService {
     // ─── Expense Categories ───────────────────────────────────────────────────
 
     async getCategories() {
-        return ErpExpenseCategory.findAll({ order: [['name', 'ASC']] });
+        const rows = await ErpExpenseCategory.findAll({ order: [['name', 'ASC']] });
+        return { data: rows };
     }
 
     async createCategory(dto: CreateExpenseCategoryDto) {
-        return ErpExpenseCategory.create({ ...dto } as any);
+        const row = await ErpExpenseCategory.create({ ...dto } as any);
+        return { data: row, message: 'Category created.' };
     }
 
     async updateCategory(id: number, dto: UpdateExpenseCategoryDto) {
         const cat = await ErpExpenseCategory.findByPk(id);
         if (!cat) throw new NotFoundException('Category not found.');
         await cat.update(dto as any);
-        return cat;
+        return { data: cat, message: 'Category updated.' };
     }
 
     async deleteCategory(id: number) {
@@ -49,17 +51,19 @@ export class PLService {
         } else if (start_date) {
             where.date = { [Op.gte]: start_date };
         }
-        return ErpOperatingExpense.findAll({
+        const rows = await ErpOperatingExpense.findAll({
             where,
             include: [ErpExpenseCategory],
             order  : [['date', 'DESC']],
         });
+        return { data: rows };
     }
 
     async createExpense(dto: CreateExpenseDto, creator_id: number) {
         const cat = await ErpExpenseCategory.findByPk(dto.category_id);
         if (!cat) throw new BadRequestException('Expense category not found.');
-        return ErpOperatingExpense.create({ ...dto, created_by: creator_id } as any);
+        const row = await ErpOperatingExpense.create({ ...dto, created_by: creator_id } as any);
+        return { data: row, message: 'Expense created.' };
     }
 
     async deleteExpense(id: number) {
@@ -73,15 +77,6 @@ export class PLService {
 
     /**
      * Full Profit & Loss statement for a given date range.
-     *
-     * Revenue         = Σ(order amounts)
-     * COGS            = Σ(ingredient cost × qty used per sold menu)
-     * Gross Profit    = Revenue − COGS
-     * OpEx            = Σ(operating_expenses in period)
-     * Payroll Cost    = Σ(net_salary for finalized/paid payrolls overlapping period)
-     * Net Profit      = Revenue − (COGS + OpEx + Payroll Cost)
-     * Gross Margin %  = (Gross Profit / Revenue) × 100
-     * Net Margin %    = (Net Profit   / Revenue) × 100
      */
     async getPLReport(query: PLReportQueryDto) {
         if (query.start_date > query.end_date) {
@@ -90,24 +85,16 @@ export class PLService {
 
         const startDate = new Date(query.start_date);
         const endDate   = new Date(query.end_date);
-        // Include the full end day
         endDate.setHours(23, 59, 59, 999);
 
         const coreMetrics = await this.profitService.calculate(startDate, endDate);
 
-        // Operating expenses in period
         const expenses = await ErpOperatingExpense.findAll({
             where  : { date: { [Op.between]: [query.start_date, query.end_date] } },
             include: [ErpExpenseCategory],
         });
-        const opExByCategory = expenses.reduce<Record<string, number>>((acc, e) => {
-            const key  = e.category?.name ?? 'Uncategorized';
-            acc[key]   = (acc[key] ?? 0) + Number(e.amount);
-            return acc;
-        }, {});
         const totalOpEx = expenses.reduce((s, e) => s + Number(e.amount), 0);
 
-        // Payroll cost — finalized/paid payrolls overlapping the period
         const payrolls = await ErpPayroll.findAll({
             where: {
                 status      : { [Op.in]: [PayrollStatus.FINALIZED, PayrollStatus.PAID] },
@@ -125,19 +112,18 @@ export class PLService {
             : 0;
 
         return {
-            period: { start: query.start_date, end: query.end_date },
-            revenue       : this._round(coreMetrics.revenue),
-            cogs          : this._round(coreMetrics.cogs),
-            gross_profit  : this._round(coreMetrics.gross_profit),
-            gross_margin_pct: this._round(coreMetrics.gross_margin_pct),
-            operating_expenses: {
-                breakdown    : opExByCategory,
-                total        : this._round(totalOpEx),
+            data: {
+                start_date        : query.start_date,
+                end_date          : query.end_date,
+                revenue           : this._round(coreMetrics.revenue),
+                cogs              : this._round(coreMetrics.cogs),
+                gross_profit      : this._round(coreMetrics.gross_profit),
+                gross_margin_pct  : this._round(coreMetrics.gross_margin_pct),
+                operating_expenses: this._round(totalOpEx),
+                payroll_cost      : this._round(payrollCost),
+                net_profit        : this._round(netProfit),
+                net_margin_pct    : this._round(netMarginPct),
             },
-            payroll_cost      : this._round(payrollCost),
-            total_opex        : this._round(totalOpExIncludingPayroll),
-            net_profit        : this._round(netProfit),
-            net_margin_pct    : this._round(netMarginPct),
         };
     }
 

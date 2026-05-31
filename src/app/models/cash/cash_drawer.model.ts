@@ -16,7 +16,6 @@ class CashDrawer extends Model<CashDrawer> {
 
     // ============================================================================================= KHR Denominations (count of notes)
     @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          khr_100: number;
-    @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          khr_200: number;
     @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          khr_500: number;
     @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          khr_1000: number;
     @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          khr_2000: number;
@@ -27,7 +26,6 @@ class CashDrawer extends Model<CashDrawer> {
     @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          khr_30000: number;
     @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          khr_50000: number;
     @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          khr_100000: number;
-    @Column({ allowNull: false, type: DataType.INTEGER, defaultValue: 0 })                          khr_200000: number;
 
     created_at: Date;
     updated_at: Date;
