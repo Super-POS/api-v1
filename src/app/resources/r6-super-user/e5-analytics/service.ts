@@ -25,7 +25,7 @@ export class AnalyticsService {
     /**
      * Full analytics dashboard — all key metrics in one call.
      */
-    async getDashboardSummary(start_date: string, end_date: string) {
+    async getDashboardSummary(start_date?: string, end_date?: string) {
         const [startDate, endDate] = this._dateRange(start_date, end_date);
 
         const [metrics, bestSellers, salesTrend, peakHours, wasteAnalysis, periodCosts] = await Promise.all([
@@ -34,7 +34,7 @@ export class AnalyticsService {
             this._fetchSalesTrend(start_date, end_date, 'daily'),
             this._fetchPeakHours(start_date, end_date),
             this._fetchWasteAnalysis(start_date, end_date),
-            this._getPeriodCosts(start_date, end_date),
+            this._getPeriodCosts(startDate, endDate),
         ]);
 
         const operatingExpenses = periodCosts.totalOpEx;
@@ -255,24 +255,26 @@ export class AnalyticsService {
 
     // ─── Private helpers ──────────────────────────────────────────────────────
 
-    private _dateRange(start: string, end: string): [Date, Date] {
-        const s = new Date(start);
-        const e = new Date(end);
+    private _dateRange(start?: string, end?: string): [Date, Date] {
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const s = start ? new Date(start) : todayStart;
+        const e = end   ? new Date(end)   : new Date(now.getFullYear(), now.getMonth(), now.getDate());
         e.setHours(23, 59, 59, 999);
         return [s, e];
     }
 
-    private async _getPeriodCosts(start_date: string, end_date: string) {
+    private async _getPeriodCosts(startDate: Date, endDate: Date) {
         const expenses = await ErpOperatingExpense.findAll({
-            where: { date: { [Op.between]: [start_date, end_date] } },
+            where: { date: { [Op.between]: [startDate, endDate] } },
         });
         const totalOpEx = expenses.reduce((s, e) => s + Number(e.amount), 0);
 
         const payrolls = await ErpPayroll.findAll({
             where: {
                 status      : { [Op.in]: [PayrollStatus.FINALIZED, PayrollStatus.PAID] },
-                period_start: { [Op.lte]: end_date },
-                period_end  : { [Op.gte]: start_date },
+                period_start: { [Op.lte]: endDate },
+                period_end  : { [Op.gte]: startDate },
             },
         });
         const payrollCost = payrolls.reduce((s, p) => s + Number(p.total_amount), 0);

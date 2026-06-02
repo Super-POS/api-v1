@@ -7,6 +7,7 @@ interface UserPayload {
     roles: {
         id: number;
         name: string;
+        slug: string;
         is_default: boolean;
     }[]
 }

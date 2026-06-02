@@ -22,6 +22,7 @@ export class JwtMiddleware implements NestMiddleware {
             // Extract roles from the payload and check for a default role
             const userRoles = payload.user.roles.map(role => ({
                 id: role.id as RoleEnum,
+                slug: role.slug,
                 is_default: role.is_default
             }));
 

@@ -8,8 +8,8 @@ export class AnalyticsController {
     /** Full ERP analytics dashboard in one request */
     @Get('dashboard')
     getDashboard(
-        @Query('start_date') start_date: string,
-        @Query('end_date')   end_date:   string,
+        @Query('start_date') start_date?: string,
+        @Query('end_date')   end_date?:   string,
     ) {
         return this._service.getDashboardSummary(start_date, end_date);
     }
