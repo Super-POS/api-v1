@@ -270,6 +270,19 @@ export class ErpSchemaPatchService implements OnModuleInit {
                     );
                 `,
             },
+            {
+                label: 'erp_recipe_cost_history table',
+                sql: `
+                    CREATE TABLE IF NOT EXISTS erp_recipe_cost_history (
+                        id          SERIAL PRIMARY KEY,
+                        menu_id     INTEGER       NOT NULL REFERENCES menus(id) ON DELETE CASCADE,
+                        size        VARCHAR(20),
+                        cost        DECIMAL(12,4) NOT NULL,
+                        recorded_at TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_recipe_cost_history_menu_id ON erp_recipe_cost_history (menu_id, recorded_at);
+                `,
+            },
         ];
 
         for (const { sql, label } of queries) {

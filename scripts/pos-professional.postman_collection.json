@@ -2855,7 +2855,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/erp/recipe-costing",
-            "description": "Returns every menu with auto-calculated product cost and margin %.\n\nFormula: Product Cost = Σ(Ingredient Amount × Ingredient Unit Cost)\n\nFor menus with has_sizes=true, cost is calculated per size variant (S/M/L)."
+            "description": "Returns every menu with auto-calculated cost metrics and recipe completeness status.\n\nPer menu (no-size): cost, price, profit, food_cost_pct, margin_pct, can_produce, status.\nPer size (has_sizes): same fields per S/M/L variant.\n\nStatus values:\n  complete        — recipe configured and all ingredient costs set\n  missing_recipe  — no recipe lines configured\n  missing_cost    — recipe exists but ≥1 ingredient has unit_cost = 0\n  inactive        — menu is_available = false\n\nFormulas:\n  Cost          = Σ(ingredient_quantity × unit_cost)\n  Profit        = price − cost\n  Food Cost %   = (cost / price) × 100\n  Margin %      = ((price − cost) / price) × 100\n  Can Produce   = min(floor(stock / qty_per_serving)) across all ingredients"
           }
         },
         {
@@ -2863,7 +2863,7 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/erp/recipe-costing/summary",
-            "description": "Aggregate stats: total items costed, avg cost, avg margin %, highest/lowest margin items."
+            "description": "Configuration health dashboard cards.\n\nReturns:\n  total_products           — total menu count\n  recipes_complete         — menus with status = complete\n  missing_recipes          — menus with no recipe configured\n  missing_ingredient_costs — menus with recipe but missing unit costs\n  inactive                 — menus not currently available\n  avg_food_cost_pct        — average food cost % across priced items\n  avg_margin_pct           — average gross margin % across priced items\n  highest_margin           — { menu_name, margin_pct }\n  lowest_margin            — { menu_name, margin_pct }"
           }
         },
         {
@@ -2871,7 +2871,31 @@
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/erp/recipe-costing/{{menuId}}",
-            "description": "Full ingredient-level cost breakdown for one menu.\nReturns per ingredient: name, unit, quantity used, unit_cost, line_cost and totals."
+            "description": "Full ingredient-level cost breakdown for one menu.\n\nPer ingredient: name, unit, quantity_used, unit_cost, line_cost, stock_on_hand, can_produce_from_this.\nPer size (has_sizes): same per S/M/L variant with its own ingredient list.\n\nAlso returns: cost, price, profit, food_cost_pct, margin_pct, can_produce, status."
+          }
+        },
+        {
+          "name": "Recipe Costing - Cost History",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/erp/recipe-costing/{{menuId}}/history",
+            "description": "Cost trend over time for one menu.\n\nReturns list of { size, cost, recorded_at } snapshots ordered chronologically.\nUse POST /snapshot to record a new data point."
+          }
+        },
+        {
+          "name": "Recipe Costing - Clone Recipe",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/erp/recipe-costing/{{menuId}}/clone/{{targetMenuId}}",
+            "description": "Copies the recipe from source menu into target menu.\n\nFor sized menus: copies per-size recipes matching by size enum (S/M/L).\nFor no-size menus: copies the flat recipes array.\n\nBoth menus must use the same size mode (has_sizes must match).\nUseful for cloning: Hot Latte → Iced Latte without rebuilding the recipe manually."
+          }
+        },
+        {
+          "name": "Recipe Costing - Record Snapshot",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/erp/recipe-costing/snapshot",
+            "description": "Records current cost for every menu into erp_recipe_cost_history.\n\nCall this manually after updating ingredient costs, or wire it to a cron job (e.g. first of each month).\nReturns: { message: 'Snapshot recorded for N items.' }"
           }
         },
         {
@@ -3055,6 +3079,10 @@
     {
       "key": "menuId",
       "value": "1"
+    },
+    {
+      "key": "targetMenuId",
+      "value": "2"
     },
     {
       "key": "menuCategoryId",
