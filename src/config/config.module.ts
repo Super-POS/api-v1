@@ -24,6 +24,8 @@ import { UserRoleSeedPatchService } from './user-role-seed.patch';
 import { QrTablePaymentEnumPatchService } from './qr-table-payment-enum.patch';
 import { ErpSchemaPatchService } from './erp-schema.patch';
 import { UserQrSchemaPatchService } from './user-qr-schema.patch';
+import { CoffeeRankTierSchemaPatchService } from './coffee-rank-tier-schema.patch';
+import { CoffeeRankTierService } from '@app/services/coffee-rank-tier.service';
 
 /** @noded We use Global that allow all module can access and use all models */
 @Global()
@@ -58,11 +60,14 @@ import { UserQrSchemaPatchService } from './user-qr-schema.patch';
         QrTablePaymentEnumPatchService,
         ErpSchemaPatchService,
         UserQrSchemaPatchService,
+        CoffeeRankTierSchemaPatchService,
+        CoffeeRankTierService,
     ],
     exports: [
         FileService,
         JsReportService,
         ExchangeSettingService,
+        CoffeeRankTierService,
         HttpModule.register({
             timeout: 5000,
             maxRedirects: 5,

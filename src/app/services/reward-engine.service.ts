@@ -4,7 +4,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 // ===========================================================================>> Custom Library
 import RewardPoint                        from '@app/models/reward/reward_point.model';
 import RewardTransaction, { RewardTransactionType } from '@app/models/reward/reward_transaction.model';
-import { COFFEE_RANKS }                   from '@app/services/badge-ai.service';
+import { CoffeeRankTierService }          from '@app/services/coffee-rank-tier.service';
 
 // 1 point earned per this many currency units spent
 const POINTS_PER_UNIT = 1;
@@ -25,24 +25,18 @@ export interface EarnResult {
     rewardPointId: number;
 }
 
-function tierFromTotal(total: number): { tier: number; label: string } {
-    let current = COFFEE_RANKS[0];
-    for (const r of COFFEE_RANKS) {
-        if (total >= r.min) current = r;
-        else break;
-    }
-    return { tier: current.tier, label: current.label };
-}
-
 @Injectable()
 export class RewardEngineService {
+
+    constructor(private readonly _rankTierService: CoffeeRankTierService) {}
 
     // ===================================================>> Earn points after a successful purchase
     async earn(customer_id: number, amount: number, reference?: string): Promise<EarnResult> {
         const points = Math.floor(amount / POINTS_PER_UNIT);
         if (points <= 0) {
             const rp = await RewardPoint.findOne({ where: { customer_id } });
-            return { transaction: null, rankedUp: false, prevTier: rp?.rank_tier ?? 1, newTier: rp?.rank_tier ?? 1, newRankLabel: COFFEE_RANKS[0].label, badgeAnswers: null, rewardPointId: rp?.id ?? 0 };
+            const { tier, label } = await this._rankTierService.tierFromTotal(rp?.rank_tier ?? 0);
+            return { transaction: null, rankedUp: false, prevTier: rp?.rank_tier ?? 1, newTier: tier, newRankLabel: label, badgeAnswers: null, rewardPointId: rp?.id ?? 0 };
         }
 
         const [rewardPoint] = await RewardPoint.findOrCreate({
@@ -74,7 +68,7 @@ export class RewardEngineService {
             raw       : true,
         }) as any;
         const totalEarned = Number(totalResult?.total ?? points);
-        const { tier: newTier, label: newRankLabel } = tierFromTotal(totalEarned);
+        const { tier: newTier, label: newRankLabel } = await this._rankTierService.tierFromTotal(totalEarned);
 
         const rankedUp = newTier > prevTier;
         if (rankedUp) {

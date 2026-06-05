@@ -20,6 +20,7 @@ import { AdminExchangeSettingModule }       from './a12-exchange-setting/module'
 import { WastageModule }                    from './a3-menu/p7-wastage/module';
 import { AdminMeetingRoomModule }           from './a11-meeting-room/room.module';
 import { AdminMeetingRoomBookingModule }    from './a12-meeting-room-booking/booking.module';
+import { AdminCoffeeRankModule }           from './a13-coffee-rank/module';
 
 export const adminRoutes: Routes = [
     {
@@ -106,5 +107,10 @@ export const adminRoutes: Routes = [
     {
         path  : 'meeting-room-bookings',
         module: AdminMeetingRoomBookingModule,
+    },
+
+    {
+        path  : 'rank-tiers',
+        module: AdminCoffeeRankModule,
     },
 ];

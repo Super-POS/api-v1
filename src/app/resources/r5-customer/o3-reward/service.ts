@@ -8,7 +8,8 @@ import { Op } from 'sequelize';
 import RewardPoint                        from '@app/models/reward/reward_point.model';
 import RewardTransaction, { RewardTransactionType } from '@app/models/reward/reward_transaction.model';
 import { RewardEngineService }            from '@app/services/reward-engine.service';
-import { BadgeAiService, BADGE_QUESTIONS, resolveRank } from '@app/services/badge-ai.service';
+import { BadgeAiService, BADGE_QUESTIONS } from '@app/services/badge-ai.service';
+import { CoffeeRankTierService }           from '@app/services/coffee-rank-tier.service';
 import { AssignBadgeDto, RedeemRewardDto } from './dto';
 import User from '@app/models/user/user.model';
 
@@ -16,8 +17,9 @@ import User from '@app/models/user/user.model';
 export class CustomerRewardService {
 
     constructor(
-        private readonly _engine : RewardEngineService,
-        private readonly _badgeAi: BadgeAiService,
+        private readonly _engine    : RewardEngineService,
+        private readonly _badgeAi   : BadgeAiService,
+        private readonly _rankTierService: CoffeeRankTierService,
     ) {}
 
     // ==========================================>> Customer reward profile (balance + history)
@@ -36,7 +38,7 @@ export class CustomerRewardService {
         });
 
         const totalEarned = await this._totalEarned(customer_id);
-        const rank = resolveRank(totalEarned);
+        const rank = await this._rankTierService.resolveRank(totalEarned);
 
         return {
             data: {
@@ -76,7 +78,7 @@ export class CustomerRewardService {
     // ==========================================>> Current rank
     async getRank(customer_id: number): Promise<any> {
         const totalEarned = await this._totalEarned(customer_id);
-        const rank = resolveRank(totalEarned);
+        const rank = await this._rankTierService.resolveRank(totalEarned);
         return { data: { total_earned: totalEarned, rank } };
     }
 
@@ -89,7 +91,7 @@ export class CustomerRewardService {
     async assignBadge(customer_id: number, body: AssignBadgeDto): Promise<any> {
         const rewardPoint = await RewardPoint.findOne({ where: { customer_id } });
         const totalEarned = await this._totalEarned(customer_id);
-        const rank = resolveRank(totalEarned);
+        const rank = await this._rankTierService.resolveRank(totalEarned);
 
         const customer = await User.findByPk(customer_id, { attributes: ['id', 'name'] });
         const customerName = customer?.name ?? 'Customer';

@@ -103,7 +103,10 @@ export const BADGE_QUESTIONS: { id: number; question: string; options: string[] 
 // ---------------------------------------------------------------------------
 // Helper: resolve current rank tier from total points ever earned
 // ---------------------------------------------------------------------------
-export function resolveRank(totalEarned: number): {
+export function resolveRank(
+    totalEarned: number,
+    ranks: { min: number; label: string; tier: number }[] = COFFEE_RANKS,
+): {
     level          : number;
     name           : string;
     min_points     : number;
@@ -111,12 +114,12 @@ export function resolveRank(totalEarned: number): {
     next_rank_name : string | null;
     points_to_next : number | null;
 } {
-    let current = COFFEE_RANKS[0];
-    for (const r of COFFEE_RANKS) {
+    let current = ranks[0];
+    for (const r of ranks) {
         if (totalEarned >= r.min) current = r;
         else break;
     }
-    const nextRank = COFFEE_RANKS.find(r => r.min > current.min) ?? null;
+    const nextRank = ranks.find(r => r.min > current.min) ?? null;
     return {
         level          : current.tier,
         name           : current.label,
