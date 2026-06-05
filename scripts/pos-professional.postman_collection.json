@@ -1418,6 +1418,48 @@
             },
             "url": "{{baseUrl}}/api/admin/meeting-room-bookings/{{bookingId}}/status"
           }
+        },
+        {
+          "name": "Rank Tiers - List All",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/rank-tiers",
+            "description": "Returns all 15 coffee rank tiers ordered by tier number."
+          }
+        },
+        {
+          "name": "Rank Tiers - Update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Green Bean (Starter)\",\n  \"min_points\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/rank-tiers/{{rankTierId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "rank-tiers", "{{rankTierId}}"],
+              "variable": [
+                {
+                  "key": "rankTierId",
+                  "value": "1",
+                  "description": "ID of the rank tier row (use List All to find IDs)"
+                }
+              ]
+            },
+            "description": "Edit the label or min_points threshold for a rank tier. Both fields are optional — send only the ones you want to change."
+          }
         }
       ]
     },

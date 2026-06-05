@@ -22,6 +22,7 @@ import { AdminExchangeSettingModule }    from './a12-exchange-setting/module';
 import { WastageModule }                from './a3-menu/p7-wastage/module';
 import { AdminMeetingRoomModule }       from './a11-meeting-room/room.module';
 import { AdminMeetingRoomBookingModule } from './a12-meeting-room-booking/booking.module';
+import { AdminCoffeeRankModule }         from './a13-coffee-rank/module';
 
 // ======================================= >> Code Starts Here << ========================== //
 @Module({
@@ -44,6 +45,7 @@ import { AdminMeetingRoomBookingModule } from './a12-meeting-room-booking/bookin
         WastageModule,
         AdminMeetingRoomModule,
         AdminMeetingRoomBookingModule,
+        AdminCoffeeRankModule,
     ]
 })
 
