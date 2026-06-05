@@ -16,4 +16,10 @@ export class CustomerProfileController {
     async getProfile(@UserDecorator() user: User) {
         return await this._service.getProfile(user.id);
     }
+
+    // =============================================>> QR code for customer profile URL
+    @Get('qr')
+    async getQrCode(@UserDecorator() user: User) {
+        return await this._service.getQrCode(user.id);
+    }
 }

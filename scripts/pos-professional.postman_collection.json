@@ -154,9 +154,16 @@
         {
           "name": "Auth - Login as Super User",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"0999999999\",\n  \"password\": \"123456\",\n  \"platform\": \"Web\"\n}"
@@ -260,15 +267,46 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/admin/dashboard/profit?thisWeek=1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "admin", "dashboard", "profit"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "dashboard",
+                "profit"
+              ],
               "query": [
-                { "key": "thisWeek",      "value": "1",          "description": "Current week" },
-                { "key": "thisMonth",     "value": "",           "disabled": true },
-                { "key": "today",         "value": "",           "disabled": true },
-                { "key": "yesterday",     "value": "",           "disabled": true },
-                { "key": "threeMonthAgo", "value": "",           "disabled": true },
-                { "key": "sixMonthAgo",   "value": "",           "disabled": true }
+                {
+                  "key": "thisWeek",
+                  "value": "1",
+                  "description": "Current week"
+                },
+                {
+                  "key": "thisMonth",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "today",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "yesterday",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "threeMonthAgo",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "sixMonthAgo",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -445,7 +483,11 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Milk\",\n  \"unit\": \"ml\",\n  \"quantity\": 30,\n  \"unit_cost\": 0.05\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/admin/menu/ingredients"
           }
@@ -463,7 +505,11 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Milk Updated\",\n  \"unit\": \"ml\",\n  \"quantity\": 40,\n  \"unit_cost\": 0.06\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/admin/menu/ingredients/{{ingredientId}}"
           }
@@ -779,7 +825,12 @@
           "name": "Payments - Mark Success",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"note\": \"Confirmed via POS terminal\"\n}"
@@ -791,7 +842,12 @@
           "name": "Payments - Mark Failed",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"note\": \"Card declined\"\n}"
@@ -803,7 +859,12 @@
           "name": "Payments - Mark Expired",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"note\": \"Customer did not complete payment\"\n}"
@@ -824,18 +885,63 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/admin/reports/financial?thisMonth=1&granularity=daily",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "admin", "reports", "financial"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "reports",
+                "financial"
+              ],
               "query": [
-                { "key": "thisMonth",     "value": "1",          "description": "Current month" },
-                { "key": "granularity",   "value": "daily",      "description": "daily | weekly | monthly" },
-                { "key": "thisWeek",      "value": "",           "disabled": true },
-                { "key": "today",         "value": "",           "disabled": true },
-                { "key": "yesterday",     "value": "",           "disabled": true },
-                { "key": "threeMonthAgo", "value": "",           "disabled": true },
-                { "key": "sixMonthAgo",   "value": "",           "disabled": true },
-                { "key": "from",          "value": "",           "disabled": true, "description": "YYYY-MM-DD custom start" },
-                { "key": "to",            "value": "",           "disabled": true, "description": "YYYY-MM-DD custom end" }
+                {
+                  "key": "thisMonth",
+                  "value": "1",
+                  "description": "Current month"
+                },
+                {
+                  "key": "granularity",
+                  "value": "daily",
+                  "description": "daily | weekly | monthly"
+                },
+                {
+                  "key": "thisWeek",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "today",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "yesterday",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "threeMonthAgo",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "sixMonthAgo",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true,
+                  "description": "YYYY-MM-DD custom start"
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true,
+                  "description": "YYYY-MM-DD custom end"
+                }
               ]
             }
           }
@@ -846,12 +952,31 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/admin/reports/financial?from=2026-01-01&to=2026-04-30&granularity=monthly",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "admin", "reports", "financial"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "reports",
+                "financial"
+              ],
               "query": [
-                { "key": "from",        "value": "2026-01-01", "description": "Start date YYYY-MM-DD" },
-                { "key": "to",          "value": "2026-04-30", "description": "End date YYYY-MM-DD" },
-                { "key": "granularity", "value": "monthly",    "description": "daily | weekly | monthly" }
+                {
+                  "key": "from",
+                  "value": "2026-01-01",
+                  "description": "Start date YYYY-MM-DD"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-04-30",
+                  "description": "End date YYYY-MM-DD"
+                },
+                {
+                  "key": "granularity",
+                  "value": "monthly",
+                  "description": "daily | weekly | monthly"
+                }
               ]
             }
           }
@@ -862,15 +987,50 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/admin/reports/audit-logs?page=1&limit=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "admin", "reports", "audit-logs"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "reports",
+                "audit-logs"
+              ],
               "query": [
-                { "key": "page",     "value": "1",  "description": "Page number" },
-                { "key": "limit",    "value": "20", "description": "Items per page" },
-                { "key": "action",   "value": "",   "disabled": true, "description": "e.g. DEPOSIT_APPROVED" },
-                { "key": "actor_id", "value": "",   "disabled": true, "description": "Filter by admin user ID" },
-                { "key": "from",     "value": "",   "disabled": true, "description": "YYYY-MM-DD" },
-                { "key": "to",       "value": "",   "disabled": true, "description": "YYYY-MM-DD" }
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Items per page"
+                },
+                {
+                  "key": "action",
+                  "value": "",
+                  "disabled": true,
+                  "description": "e.g. DEPOSIT_APPROVED"
+                },
+                {
+                  "key": "actor_id",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by admin user ID"
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true,
+                  "description": "YYYY-MM-DD"
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true,
+                  "description": "YYYY-MM-DD"
+                }
               ]
             }
           }
@@ -886,11 +1046,20 @@
           "name": "Cash Drawer - Deposit",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"denominations\": {\n    \"usd_1\": 10,\n    \"usd_5\": 5,\n    \"usd_20\": 3,\n    \"usd_50\": 2,\n    \"usd_100\": 1,\n    \"khr_1000\": 20,\n    \"khr_2000\": 15,\n    \"khr_5000\": 10,\n    \"khr_10000\": 8,\n    \"khr_20000\": 5,\n    \"khr_50000\": 3,\n    \"khr_100000\": 2\n  },\n  \"note\": \"Opening float for today\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/admin/cash-drawer/deposit"
           }
@@ -901,11 +1070,26 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/admin/cash-drawer/logs?page=1&limit=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "admin", "cash-drawer", "logs"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "cash-drawer",
+                "logs"
+              ],
               "query": [
-                { "key": "page",  "value": "1",  "description": "Page number" },
-                { "key": "limit", "value": "20", "description": "Items per page" }
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Items per page"
+                }
               ]
             }
           }
@@ -922,11 +1106,20 @@
           "name": "Coupons - Create (manual code)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"code\": \"SUMMER20\",\n  \"discount_percent\": 20,\n  \"is_active\": true,\n  \"note\": \"Summer campaign — applies to all Coffee items\",\n  \"usage_limit\": 100,\n  \"expires_at\": \"2026-12-31T23:59:59.000Z\",\n  \"assigned_user_ids\": [],\n  \"menu_ids\": [],\n  \"category_ids\": [1]\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/admin/coupons"
           },
@@ -949,11 +1142,20 @@
           "name": "Coupons - Create (auto-generate code, user-assigned)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "[{{customerId}}]raw",
               "raw": "{\n  \"auto_generate_code\": true,\n  \"discount_percent\": 10,\n  \"is_active\": true,\n  \"note\": \"Personal welcome coupon — specific menu items only\",\n  \"usage_limit\": 1,\n  \"expires_at\": \"2026-12-31T23:59:59.000Z\",\n  \"assigned_user_ids\": [{{customerId}}, 2, 3],\n  \"menu_ids\": [1, 2],\n  \"category_ids\": []\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/admin/coupons",
             "description": "Creates a coupon restricted to specific customers. assigned_user_ids accepts multiple user IDs. Omit or pass [] to make it available to everyone."
@@ -977,11 +1179,20 @@
           "name": "Coupons - Update",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"is_active\": true,\n  \"discount_percent\": 15,\n  \"usage_limit\": 50,\n  \"expires_at\": \"2026-09-30T23:59:59.000Z\",\n  \"assigned_user_ids\": [{{customerId}}],\n  \"menu_ids\": [],\n  \"category_ids\": [1, 2],\n  \"note\": \"Updated note\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/admin/coupons/{{couponId}}",
             "description": "Partially updates a coupon. assigned_user_ids replaces the full list — pass [] to open it to everyone, omit the field to leave assignments unchanged."
@@ -1006,11 +1217,20 @@
           "name": "Meeting Rooms - Create",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Boardroom A\",\n  \"description\": \"Main boardroom with projector and whiteboard\",\n  \"capacity\": 20,\n  \"price_per_hour\": 50.00,\n  \"type\": \"conference\",\n  \"status\": \"available\",\n  \"notes\": \"Includes AV equipment and high-speed Wi-Fi\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/admin/meeting-rooms",
             "description": "type: standard | vip | conference | executive. status: available | maintenance | inactive."
@@ -1041,11 +1261,20 @@
           "name": "Meeting Rooms - Update",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"status\": \"maintenance\",\n  \"price_per_hour\": 60.00,\n  \"notes\": \"Under renovation until end of month\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/admin/meeting-rooms/{{roomId}}"
           }
@@ -1064,11 +1293,27 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/admin/meeting-rooms/{{roomId}}/availability?check_in=2025-06-01&check_out=2025-06-01",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "admin", "meeting-rooms", "{{roomId}}", "availability"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "meeting-rooms",
+                "{{roomId}}",
+                "availability"
+              ],
               "query": [
-                { "key": "check_in",  "value": "2025-06-01", "description": "YYYY-MM-DD" },
-                { "key": "check_out", "value": "2025-06-01", "description": "YYYY-MM-DD" }
+                {
+                  "key": "check_in",
+                  "value": "2025-06-01",
+                  "description": "YYYY-MM-DD"
+                },
+                {
+                  "key": "check_out",
+                  "value": "2025-06-01",
+                  "description": "YYYY-MM-DD"
+                }
               ]
             },
             "description": "Returns available: true/false plus any conflicting bookings for this room."
@@ -1080,10 +1325,20 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/admin/meeting-room-bookings?status=pending",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "admin", "meeting-room-bookings"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "meeting-room-bookings"
+              ],
               "query": [
-                { "key": "status", "value": "pending", "description": "pending | confirmed | cancelled | completed (omit for all)" }
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "description": "pending | confirmed | cancelled | completed (omit for all)"
+                }
               ]
             },
             "description": "Accessible by ADMIN and CASHIER roles. Filter by status query param."
@@ -1100,11 +1355,20 @@
           "name": "Meeting Room Bookings - Confirm",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"status\": \"confirmed\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/admin/meeting-room-bookings/{{bookingId}}/status",
             "description": "Allowed transitions: pending → confirmed | cancelled; confirmed → completed | cancelled. Confirming creates a Google Calendar event automatically."
@@ -1114,11 +1378,20 @@
           "name": "Meeting Room Bookings - Cancel",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"status\": \"cancelled\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/admin/meeting-room-bookings/{{bookingId}}/status",
             "description": "Cancelling a confirmed booking also removes the Google Calendar event."
@@ -1128,11 +1401,20 @@
           "name": "Meeting Room Bookings - Complete",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"status\": \"completed\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/admin/meeting-room-bookings/{{bookingId}}/status"
           }
@@ -1162,13 +1444,25 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type",    "value": "application/json" },
-              { "key": "Idempotency-Key", "value": "cashier-order-{{$guid}}", "description": "Optional — prevents duplicate order on retry", "disabled": true }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "cashier-order-{{$guid}}",
+                "description": "Optional — prevents duplicate order on retry",
+                "disabled": true
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"cart\": \"[{\\\"menu_id\\\":1,\\\"quantity\\\":2}]\",\n  \"channel\": \"walk_in\",\n  \"coupon_code\": \"SUMMER20\",\n  \"customer_id\": null\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/cashier/ordering/order",
             "description": "coupon_code is optional. customer_id is required only when the coupon has an assigned_user_id."
@@ -1256,12 +1550,19 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"order_id\": {{orderId}}\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/cashier/ordering/bakong/payment-intent",
             "description": "Generates a dynamic KHQR string for the order. Returns qr (display to customer), md5 (for polling), and expires_at. Order status → awaiting_payment."
@@ -1296,8 +1597,18 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/cashier/ordering/bakong/order/{{orderId}}/payment-state",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "cashier", "ordering", "bakong", "order", "{{orderId}}", "payment-state"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cashier",
+                "ordering",
+                "bakong",
+                "order",
+                "{{orderId}}",
+                "payment-state"
+              ]
             },
             "description": "Poll this endpoint every 3–5 seconds while showing the QR. Automatically checks Bakong API for confirmed payment. Returns order_status and bakong_transaction_status (pending → success)."
           },
@@ -1324,12 +1635,19 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"order_id\": {{orderId}}\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/cashier/ordering/baray/payment-intent",
             "description": "Generates a Baray pay-link for the order. Returns url (redirect/display to customer) and expires_at. Order status → awaiting_payment."
@@ -1360,8 +1678,18 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/cashier/ordering/baray/order/{{orderId}}/payment-state",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "cashier", "ordering", "baray", "order", "{{orderId}}", "payment-state"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cashier",
+                "ordering",
+                "baray",
+                "order",
+                "{{orderId}}",
+                "payment-state"
+              ]
             },
             "description": "Poll every 3–5 seconds while showing the Baray pay link. Returns order_status and baray_transaction_status (pending → success)."
           },
@@ -1388,12 +1716,19 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"order_id\": {{orderId}},\n  \"bank_name\": \"ABA\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/cashier/ordering/qr-table/pay",
             "description": "Cashier manually confirms the customer scanned a bank QR on the table (ABA, ACLEDA, Wing, Pi Pay, etc.). No gateway required — creates a SUCCESS payment transaction immediately. Use this as a fallback when Bakong/Baray is unavailable."
@@ -1426,11 +1761,20 @@
           "name": "Cash Drawer - Make Change",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"order_id\": {{orderId}},\n  \"exchange_rate\": 4100,\n  \"received\": {\n    \"usd_5\": 1,\n    \"khr_5000\": 1\n  },\n  \"note\": \"Customer paid with $5 + 5000 Riel\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/cashier/cash-drawer/change"
           },
@@ -1461,13 +1805,25 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type",    "value": "application/json" },
-              { "key": "Idempotency-Key", "value": "place-order-{{$guid}}", "description": "Optional — prevents duplicate order on retry", "disabled": true }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "place-order-{{$guid}}",
+                "description": "Optional — prevents duplicate order on retry",
+                "disabled": true
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"cart\": \"[{\\\"menu_id\\\":1,\\\"quantity\\\":1}]\",\n  \"channel\": \"WEBSITE\",\n  \"coupon_code\": \"SUMMER20\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/customer/orders",
             "description": "coupon_code is optional. The API validates expiry, usage limit, and user assignment automatically."
@@ -1544,11 +1900,20 @@
           "name": "Wallet - Baray Deposit Intent",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"amount\": 20.00,\n  \"note\": \"Top-up via Baray bank\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/customer/wallet/deposit/baray/intent",
             "description": "Generate a Baray pay-link for a wallet top-up. Returns url and expires_at."
@@ -1577,8 +1942,17 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/customer/wallet/deposit/{{depositId}}/payment-state",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "customer", "wallet", "deposit", "{{depositId}}", "payment-state"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "wallet",
+                "deposit",
+                "{{depositId}}",
+                "payment-state"
+              ]
             },
             "description": "Poll payment state for a wallet deposit (works for both Baray and Bakong channels)."
           }
@@ -1587,11 +1961,20 @@
           "name": "Wallet - Bakong Deposit Intent",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"amount\": 20.00,\n  \"note\": \"Top-up via KHQR\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/customer/wallet/deposit/bakong/intent",
             "description": "Generate a KHQR QR code for a wallet top-up. Returns qr, md5, and expires_at."
@@ -1628,8 +2011,18 @@
             "method": "POST",
             "url": {
               "raw": "{{baseUrl}}/api/customer/wallet/deposit/bakong/{{depositId}}/abandon",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "customer", "wallet", "deposit", "bakong", "{{depositId}}", "abandon"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "wallet",
+                "deposit",
+                "bakong",
+                "{{depositId}}",
+                "abandon"
+              ]
             },
             "description": "Cancel a specific pending KHQR wallet deposit intent."
           }
@@ -1704,12 +2097,29 @@
           }
         },
         {
+          "name": "Profile - QR Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/customer/profile/qr",
+            "description": "Returns a base64 PNG data URI QR code encoding the customer profile URL. Generated once and cached on the user record."
+          }
+        },
+        {
           "name": "Payments - Initiate",
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type",    "value": "application/json" },
-              { "key": "Idempotency-Key", "value": "pay-order-{{orderId}}-{{$guid}}", "description": "Optional — prevents duplicate payment initiation on retry", "disabled": true }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "pay-order-{{orderId}}-{{$guid}}",
+                "description": "Optional — prevents duplicate payment initiation on retry",
+                "disabled": true
+              }
             ],
             "body": {
               "mode": "raw",
@@ -1736,11 +2146,20 @@
           "name": "Payments - Baray Intent",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"order_id\": {{orderId}}\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/customer/payments/baray/intent",
             "description": "Generate a Baray pay-link for the order. Customer opens URL to complete bank payment."
@@ -1769,8 +2188,18 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/customer/payments/baray/order/{{orderId}}/payment-state",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "customer", "payments", "baray", "order", "{{orderId}}", "payment-state"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "payments",
+                "baray",
+                "order",
+                "{{orderId}}",
+                "payment-state"
+              ]
             },
             "description": "Poll every 3–5 seconds while showing the Baray pay link. Scoped to the order owner."
           }
@@ -1779,11 +2208,20 @@
           "name": "Payments - Bakong Intent",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"order_id\": {{orderId}}\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/customer/payments/bakong/intent",
             "description": "Generate a KHQR QR code for the order. Returns qr, md5, and expires_at."
@@ -1812,8 +2250,18 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/customer/payments/bakong/order/{{orderId}}/payment-state",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "customer", "payments", "bakong", "order", "{{orderId}}", "payment-state"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "payments",
+                "bakong",
+                "order",
+                "{{orderId}}",
+                "payment-state"
+              ]
             },
             "description": "Poll every 3–5 seconds while showing the KHQR. Scoped to the order owner."
           }
@@ -1824,8 +2272,18 @@
             "method": "POST",
             "url": {
               "raw": "{{baseUrl}}/api/customer/payments/bakong/order/{{orderId}}/abandon",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "customer", "payments", "bakong", "order", "{{orderId}}", "abandon"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customer",
+                "payments",
+                "bakong",
+                "order",
+                "{{orderId}}",
+                "abandon"
+              ]
             },
             "description": "Cancel the pending KHQR for this order so a new QR or different payment method can be used."
           }
@@ -1855,11 +2313,20 @@
           "name": "Meeting Room Bookings - Submit",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"room_id\": {{roomId}},\n  \"guest_name\": \"Sokha Chan\",\n  \"guest_phone\": \"012345678\",\n  \"guest_email\": \"sokha@example.com\",\n  \"guest_origin\": \"Phnom Penh\",\n  \"check_in_date\": \"2025-06-15\",\n  \"check_out_date\": \"2025-06-15\",\n  \"meeting_start_time\": \"09:00\",\n  \"meeting_end_time\": \"12:00\",\n  \"num_guests\": 10,\n  \"num_rooms\": 1,\n  \"purpose\": \"Quarterly Strategy Meeting\",\n  \"payment_method\": \"baray\",\n  \"notes\": \"Please prepare projector and whiteboard markers\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/customer/meeting-room-bookings",
             "description": "Creates a booking with status=pending. Admin/cashier must confirm it. Conflict check prevents double-booking."
@@ -1966,7 +2433,9 @@
         {
           "name": "Meeting Rooms - Public List (available only)",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "url": "{{baseUrl}}/api/share/meeting-rooms",
             "description": "No auth required. Returns all rooms whose status is 'available'."
@@ -1975,15 +2444,32 @@
         {
           "name": "Meeting Rooms - Availability Check",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/share/meeting-rooms/availability?check_in=2025-06-15&check_out=2025-06-15",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "share", "meeting-rooms", "availability"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "share",
+                "meeting-rooms",
+                "availability"
+              ],
               "query": [
-                { "key": "check_in",  "value": "2025-06-15", "description": "YYYY-MM-DD" },
-                { "key": "check_out", "value": "2025-06-15", "description": "YYYY-MM-DD" }
+                {
+                  "key": "check_in",
+                  "value": "2025-06-15",
+                  "description": "YYYY-MM-DD"
+                },
+                {
+                  "key": "check_out",
+                  "value": "2025-06-15",
+                  "description": "YYYY-MM-DD"
+                }
               ]
             },
             "description": "No auth required. Returns every available room annotated with is_available: true/false for the requested date range."
@@ -2284,8 +2770,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/admin/wastages/ingredients",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "admin", "wastages", "ingredients"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "wastages",
+                "ingredients"
+              ]
             }
           }
         },
@@ -2296,10 +2789,20 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/admin/wastages/ingredients?ingredient_id={{ingredientId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "admin", "wastages", "ingredients"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "wastages",
+                "ingredients"
+              ],
               "query": [
-                { "key": "ingredient_id", "value": "{{ingredientId}}" }
+                {
+                  "key": "ingredient_id",
+                  "value": "{{ingredientId}}"
+                }
               ]
             }
           }
@@ -2309,7 +2812,10 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -2325,8 +2831,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/admin/wastages/recipes",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "admin", "wastages", "recipes"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "wastages",
+                "recipes"
+              ]
             }
           }
         },
@@ -2337,10 +2850,20 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/admin/wastages/recipes?menu_id={{menuId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "admin", "wastages", "recipes"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "wastages",
+                "recipes"
+              ],
               "query": [
-                { "key": "menu_id", "value": "{{menuId}}" }
+                {
+                  "key": "menu_id",
+                  "value": "{{menuId}}"
+                }
               ]
             }
           }
@@ -2350,7 +2873,10 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -2388,11 +2914,20 @@
           "name": "Payroll - Create Employee",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"user_id\": 2,\n  \"position\": \"Barista\",\n  \"department\": \"Operations\",\n  \"base_salary\": 350.00,\n  \"hourly_rate\": 2.00,\n  \"hire_date\": \"2026-01-01\",\n  \"contract_type\": \"full_time\",\n  \"bank_account\": \"000123456789\",\n  \"bank_name\": \"ABA Bank\",\n  \"notes\": \"Senior barista\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/erp/payroll/employees",
             "description": "Links an existing system user as an ERP employee. contract_type: full_time | part_time | contract | internship."
@@ -2414,11 +2949,20 @@
           "name": "Payroll - Update Employee",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"position\": \"Senior Barista\",\n  \"base_salary\": 400.00,\n  \"hourly_rate\": 2.50,\n  \"status\": \"active\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/erp/payroll/employees/{{employeeId}}"
           }
@@ -2436,12 +2980,31 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/erp/payroll/attendance?employee_id={{employeeId}}&start_date=2026-05-01&end_date=2026-05-31",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "erp", "payroll", "attendance"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "erp",
+                "payroll",
+                "attendance"
+              ],
               "query": [
-                { "key": "employee_id", "value": "{{employeeId}}", "description": "Optional — filter by employee" },
-                { "key": "start_date",  "value": "2026-05-01",     "description": "YYYY-MM-DD" },
-                { "key": "end_date",    "value": "2026-05-31",     "description": "YYYY-MM-DD" }
+                {
+                  "key": "employee_id",
+                  "value": "{{employeeId}}",
+                  "description": "Optional — filter by employee"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2026-05-01",
+                  "description": "YYYY-MM-DD"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2026-05-31",
+                  "description": "YYYY-MM-DD"
+                }
               ]
             }
           }
@@ -2450,11 +3013,20 @@
           "name": "Payroll - Mark Attendance",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"employee_id\": {{employeeId}},\n  \"date\": \"2026-05-27\",\n  \"clock_in\": \"08:00\",\n  \"clock_out\": \"17:30\",\n  \"overtime_hours\": 1.5,\n  \"status\": \"present\",\n  \"notes\": \"Normal working day\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/erp/payroll/attendance",
             "description": "Creates or updates today's attendance record. hours_worked is auto-calculated from clock_in/clock_out.\nstatus: present | absent | late | half_day | holiday | on_leave."
@@ -2466,11 +3038,26 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/erp/payroll/leaves?status=pending",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "erp", "payroll", "leaves"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "erp",
+                "payroll",
+                "leaves"
+              ],
               "query": [
-                { "key": "status",      "value": "pending",         "description": "pending | approved | rejected | cancelled" },
-                { "key": "employee_id", "value": "",                "disabled": true }
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "description": "pending | approved | rejected | cancelled"
+                },
+                {
+                  "key": "employee_id",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -2479,11 +3066,20 @@
           "name": "Payroll - Request Leave",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"employee_id\": {{employeeId}},\n  \"type\": \"annual\",\n  \"start_date\": \"2026-06-10\",\n  \"end_date\": \"2026-06-12\",\n  \"days\": 3,\n  \"reason\": \"Family vacation\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/erp/payroll/leaves",
             "description": "Leave types: annual | sick | unpaid | maternity | paternity | other."
@@ -2505,11 +3101,20 @@
           "name": "Payroll - Approve Leave",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"status\": \"approved\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/erp/payroll/leaves/{{leaveId}}/status"
           }
@@ -2518,11 +3123,20 @@
           "name": "Payroll - Reject Leave",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"status\": \"rejected\",\n  \"rejection_reason\": \"Peak season — staffing too low\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/erp/payroll/leaves/{{leaveId}}/status"
           }
@@ -2547,11 +3161,20 @@
           "name": "Payroll - Generate Payroll",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"period_start\": \"2026-05-01\",\n  \"period_end\": \"2026-05-31\",\n  \"notes\": \"May 2026 payroll\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/erp/payroll/payrolls/generate",
             "description": "Auto-calculates salary for ALL active employees.\n\nFormula per employee:\n  overtime_pay   = overtime_hours × hourly_rate × 1.5\n  leave_deduction= (unpaid_leave_days / working_days) × base_salary\n  net_salary     = base_salary + overtime_pay − leave_deduction"
@@ -2595,10 +3218,22 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/erp/purchasing/suppliers",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "erp", "purchasing", "suppliers"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "erp",
+                "purchasing",
+                "suppliers"
+              ],
               "query": [
-                { "key": "active", "value": "true", "disabled": true, "description": "true = active only" }
+                {
+                  "key": "active",
+                  "value": "true",
+                  "disabled": true,
+                  "description": "true = active only"
+                }
               ]
             }
           }
@@ -2615,11 +3250,20 @@
           "name": "Purchasing - Create Supplier",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Fresh Dairy Co.\",\n  \"contact_person\": \"Mr. Sovan\",\n  \"phone\": \"0123456789\",\n  \"email\": \"sovan@freshdairy.com\",\n  \"address\": \"Phnom Penh, Cambodia\",\n  \"payment_terms\": \"Net 15 days\",\n  \"notes\": \"Primary milk supplier\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/erp/purchasing/suppliers"
           },
@@ -2640,11 +3284,20 @@
           "name": "Purchasing - Update Supplier",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"phone\": \"0987654321\",\n  \"payment_terms\": \"Cash on delivery\",\n  \"is_active\": true\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/erp/purchasing/suppliers/{{supplierId}}"
           }
@@ -2655,11 +3308,27 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/erp/purchasing/purchase-orders",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "erp", "purchasing", "purchase-orders"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "erp",
+                "purchasing",
+                "purchase-orders"
+              ],
               "query": [
-                { "key": "supplier_id", "value": "",        "disabled": true },
-                { "key": "status",      "value": "ordered", "disabled": true, "description": "draft | ordered | partial | received | cancelled" }
+                {
+                  "key": "supplier_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "ordered",
+                  "disabled": true,
+                  "description": "draft | ordered | partial | received | cancelled"
+                }
               ]
             }
           }
@@ -2675,11 +3344,20 @@
           "name": "Purchasing - Create Purchase Order",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"supplier_id\": {{supplierId}},\n  \"order_date\": \"2026-05-27\",\n  \"expected_date\": \"2026-05-30\",\n  \"notes\": \"Monthly milk restock\",\n  \"items\": [\n    {\n      \"ingredient_id\": 2,\n      \"item_name\": \"Fresh Milk\",\n      \"quantity\": 50,\n      \"unit\": \"litre\",\n      \"unit_cost\": 1.20\n    },\n    {\n      \"ingredient_id\": 1,\n      \"item_name\": \"Coffee Beans\",\n      \"quantity\": 10,\n      \"unit\": \"kg\",\n      \"unit_cost\": 8.50\n    }\n  ]\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/erp/purchasing/purchase-orders",
             "description": "Purchase Total = Σ(Item Cost × Quantity). Auto-generates PO number (PO-{timestamp})."
@@ -2701,11 +3379,20 @@
           "name": "Purchasing - Update PO Status",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"status\": \"ordered\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/erp/purchasing/purchase-orders/{{purchaseOrderId}}/status",
             "description": "Status flow: draft → ordered → partial → received. Or draft/ordered → cancelled."
@@ -2715,11 +3402,20 @@
           "name": "Purchasing - Receive Goods",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"received_date\": \"2026-05-30\",\n  \"notes\": \"All items received in good condition\",\n  \"items\": [\n    {\n      \"item_id\": 1,\n      \"received_quantity\": 50\n    },\n    {\n      \"item_id\": 2,\n      \"received_quantity\": 10\n    }\n  ]\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/erp/purchasing/purchase-orders/{{purchaseOrderId}}/receive",
             "description": "Records goods received and auto-updates ingredient stock quantities and unit_cost. PO status → partial or received."
@@ -2740,11 +3436,20 @@
           "name": "P&L - Create Expense Category",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Rent\",\n  \"type\": \"fixed\",\n  \"description\": \"Monthly shop rental\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/erp/pl/expense-categories",
             "description": "type: fixed | variable"
@@ -2766,11 +3471,20 @@
           "name": "P&L - Update Expense Category",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"description\": \"Monthly shop rental — updated\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/erp/pl/expense-categories/{{expenseCategoryId}}"
           }
@@ -2788,12 +3502,29 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/erp/pl/expenses?start_date=2026-05-01&end_date=2026-05-31",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "erp", "pl", "expenses"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "erp",
+                "pl",
+                "expenses"
+              ],
               "query": [
-                { "key": "start_date",   "value": "2026-05-01" },
-                { "key": "end_date",     "value": "2026-05-31" },
-                { "key": "category_id",  "value": "",          "disabled": true }
+                {
+                  "key": "start_date",
+                  "value": "2026-05-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2026-05-31"
+                },
+                {
+                  "key": "category_id",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -2802,11 +3533,20 @@
           "name": "P&L - Create Expense",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"category_id\": {{expenseCategoryId}},\n  \"amount\": 800.00,\n  \"currency\": \"USD\",\n  \"description\": \"May 2026 shop rent\",\n  \"date\": \"2026-05-01\",\n  \"reference\": \"RENT-2026-05\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/erp/pl/expenses"
           },
@@ -2836,11 +3576,26 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/erp/pl/report?start_date=2026-05-01&end_date=2026-05-31",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "erp", "pl", "report"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "erp",
+                "pl",
+                "report"
+              ],
               "query": [
-                { "key": "start_date", "value": "2026-05-01", "description": "YYYY-MM-DD" },
-                { "key": "end_date",   "value": "2026-05-31", "description": "YYYY-MM-DD" }
+                {
+                  "key": "start_date",
+                  "value": "2026-05-01",
+                  "description": "YYYY-MM-DD"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2026-05-31",
+                  "description": "YYYY-MM-DD"
+                }
               ]
             },
             "description": "Full Profit & Loss statement.\n\nFormulas applied:\n  Revenue        = Σ(order amounts)\n  COGS           = Σ(ingredient cost × qty used)\n  Gross Profit   = Revenue − COGS\n  Gross Margin % = (Gross Profit / Revenue) × 100\n  OpEx           = Σ(operating expenses in period)\n  Payroll Cost   = Σ(net_salary from finalized payrolls)\n  Net Profit     = Revenue − (COGS + OpEx + Payroll Cost)\n  Net Margin %   = (Net Profit / Revenue) × 100"
@@ -2908,11 +3663,24 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/erp/analytics/dashboard?start_date=2026-05-01&end_date=2026-05-31",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "erp", "analytics", "dashboard"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "erp",
+                "analytics",
+                "dashboard"
+              ],
               "query": [
-                { "key": "start_date", "value": "2026-05-01" },
-                { "key": "end_date",   "value": "2026-05-31" }
+                {
+                  "key": "start_date",
+                  "value": "2026-05-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2026-05-31"
+                }
               ]
             },
             "description": "Single-request ERP dashboard: financials + best sellers + sales trend + peak hours + waste analysis."
@@ -2924,12 +3692,29 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/erp/analytics/best-sellers?start_date=2026-05-01&end_date=2026-05-31&limit=10",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "erp", "analytics", "best-sellers"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "erp",
+                "analytics",
+                "best-sellers"
+              ],
               "query": [
-                { "key": "start_date", "value": "2026-05-01" },
-                { "key": "end_date",   "value": "2026-05-31" },
-                { "key": "limit",      "value": "10",          "description": "Top N items (default 10)" }
+                {
+                  "key": "start_date",
+                  "value": "2026-05-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2026-05-31"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Top N items (default 10)"
+                }
               ]
             },
             "description": "Ranked by total quantity sold. Returns menu name, total_qty, total_revenue."
@@ -2941,12 +3726,29 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/erp/analytics/sales-trend?start_date=2026-05-01&end_date=2026-05-31&granularity=daily",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "erp", "analytics", "sales-trend"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "erp",
+                "analytics",
+                "sales-trend"
+              ],
               "query": [
-                { "key": "start_date",  "value": "2026-05-01" },
-                { "key": "end_date",    "value": "2026-05-31" },
-                { "key": "granularity", "value": "daily", "description": "daily | weekly | monthly" }
+                {
+                  "key": "start_date",
+                  "value": "2026-05-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2026-05-31"
+                },
+                {
+                  "key": "granularity",
+                  "value": "daily",
+                  "description": "daily | weekly | monthly"
+                }
               ]
             }
           }
@@ -2957,12 +3759,28 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/erp/analytics/sales-trend?start_date=2026-01-01&end_date=2026-12-31&granularity=monthly",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "erp", "analytics", "sales-trend"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "erp",
+                "analytics",
+                "sales-trend"
+              ],
               "query": [
-                { "key": "start_date",  "value": "2026-01-01" },
-                { "key": "end_date",    "value": "2026-12-31" },
-                { "key": "granularity", "value": "monthly" }
+                {
+                  "key": "start_date",
+                  "value": "2026-01-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2026-12-31"
+                },
+                {
+                  "key": "granularity",
+                  "value": "monthly"
+                }
               ]
             }
           }
@@ -2973,11 +3791,24 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/erp/analytics/peak-hours?start_date=2026-05-01&end_date=2026-05-31",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "erp", "analytics", "peak-hours"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "erp",
+                "analytics",
+                "peak-hours"
+              ],
               "query": [
-                { "key": "start_date", "value": "2026-05-01" },
-                { "key": "end_date",   "value": "2026-05-31" }
+                {
+                  "key": "start_date",
+                  "value": "2026-05-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2026-05-31"
+                }
               ]
             },
             "description": "Orders grouped by hour of day. Reveals busiest and slowest hours for staffing decisions."
@@ -2989,11 +3820,24 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/erp/analytics/profit-by-product?start_date=2026-05-01&end_date=2026-05-31",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "erp", "analytics", "profit-by-product"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "erp",
+                "analytics",
+                "profit-by-product"
+              ],
               "query": [
-                { "key": "start_date", "value": "2026-05-01" },
-                { "key": "end_date",   "value": "2026-05-31" }
+                {
+                  "key": "start_date",
+                  "value": "2026-05-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2026-05-31"
+                }
               ]
             },
             "description": "Per-menu: revenue, COGS, gross_profit, margin_pct.\nFormula: Profit Margin = (Net Profit / Revenue) × 100"
@@ -3005,11 +3849,24 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/api/erp/analytics/waste-analysis?start_date=2026-05-01&end_date=2026-05-31",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "erp", "analytics", "waste-analysis"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "erp",
+                "analytics",
+                "waste-analysis"
+              ],
               "query": [
-                { "key": "start_date", "value": "2026-05-01" },
-                { "key": "end_date",   "value": "2026-05-31" }
+                {
+                  "key": "start_date",
+                  "value": "2026-05-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2026-05-31"
+                }
               ]
             },
             "description": "Ingredient waste records with waste percentage.\nFormula: Waste % = (Waste / Total Inventory) × 100"
@@ -3028,12 +3885,19 @@
             },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/webhooks/baray",
             "description": "Baray payment gateway webhook. Register this URL in the Baray dashboard. Excluded from JWT auth."

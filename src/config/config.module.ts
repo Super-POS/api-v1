@@ -23,6 +23,7 @@ import { MeetingRoomBookingPaymentSchemaPatchService } from './meeting-room-book
 import { UserRoleSeedPatchService } from './user-role-seed.patch';
 import { QrTablePaymentEnumPatchService } from './qr-table-payment-enum.patch';
 import { ErpSchemaPatchService } from './erp-schema.patch';
+import { UserQrSchemaPatchService } from './user-qr-schema.patch';
 
 /** @noded We use Global that allow all module can access and use all models */
 @Global()
@@ -56,6 +57,7 @@ import { ErpSchemaPatchService } from './erp-schema.patch';
         UserRoleSeedPatchService,
         QrTablePaymentEnumPatchService,
         ErpSchemaPatchService,
+        UserQrSchemaPatchService,
     ],
     exports: [
         FileService,

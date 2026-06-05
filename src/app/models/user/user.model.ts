@@ -33,6 +33,9 @@ class User extends Model<User> {
     @Column({ allowNull: true, type: DataType.INTEGER })                                            creator_id: number;
     @Column({ allowNull: true, type: DataType.INTEGER })                                            updater_id: number;
 
+    // ============================================================================================= QR Code (cached base64 data URI)
+    @Column({ allowNull: true, type: DataType.TEXT })                                                qr_code?: string;
+
     // ============================================================================================= Telegram Mini App identity (optional)
     @Column({ allowNull: true, type: DataType.BIGINT, unique: true })                                telegram_user_id?: number;
     @Column({ allowNull: true, type: DataType.STRING(64) })                                          telegram_username?: string;

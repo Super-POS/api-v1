@@ -1,8 +1,11 @@
 // ===========================================================================>> Core Library
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 // ===========================================================================>> Third Party Library
-import { literal, Op } from 'sequelize';
+import * as QRCode from 'qrcode';
+
+// ===========================================================================>> Third Party Library
+import { literal } from 'sequelize';
 
 // ===========================================================================>> Custom Library
 import Order            from '@app/models/order/order.model';
@@ -87,5 +90,22 @@ export class CustomerProfileService {
                 recent_orders,
             },
         };
+    }
+
+    async getQrCode(customer_id: number): Promise<{ data: { qr_code: string } }> {
+        const user = await User.findByPk(customer_id, { attributes: ['id', 'qr_code'] });
+        if (!user) throw new NotFoundException('Customer not found');
+
+        if (user.qr_code) {
+            return { data: { qr_code: user.qr_code } };
+        }
+
+        const appUrl    = process.env.APP_URL ?? 'http://localhost:3000';
+        const targetUrl = `${appUrl}/customer/${customer_id}`;
+        const qr_code   = await QRCode.toDataURL(targetUrl, { width: 300, margin: 2 });
+
+        await user.update({ qr_code });
+
+        return { data: { qr_code } };
     }
 }
