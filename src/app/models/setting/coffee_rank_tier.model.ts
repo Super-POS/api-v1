@@ -15,6 +15,9 @@ export default class CoffeeRankTier extends Model<CoffeeRankTier> {
     @Column({ allowNull: false, type: DataType.INTEGER })
     min_points: number;
 
+    @Column({ allowNull: true, type: DataType.STRING(500) })
+    icon: string | null;
+
     @CreatedAt
     @Column({ type: DataType.DATE })
     created_at: Date;

@@ -18,6 +18,12 @@ export class CustomerRewardController {
         return await this._service.getProfile(user.id);
     }
 
+    // =============================================>> All rank tiers (journey view)
+    @Get('tiers')
+    async getTiers() {
+        return await this._service.getTiers();
+    }
+
     // =============================================>> Current rank only
     @Get('rank')
     async getRank(@UserDecorator() user: User) {

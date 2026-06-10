@@ -10,4 +10,9 @@ export class UpdateCoffeeRankTierDto {
     @IsInt()
     @Min(0)
     min_points?: number;
+
+    @IsOptional()
+    @IsString()
+    @MaxLength(500)
+    icon?: string;
 }

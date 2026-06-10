@@ -75,6 +75,19 @@ export class CustomerRewardService {
         };
     }
 
+    // ==========================================>> All rank tiers (for journey display)
+    async getTiers(): Promise<any> {
+        const tiers = await this._rankTierService.findAll();
+        return {
+            data: tiers.map(t => ({
+                tier       : t.tier,
+                label      : t.label,
+                min_points : t.min_points,
+                icon       : (t as any).icon ?? null,
+            })),
+        };
+    }
+
     // ==========================================>> Current rank
     async getRank(customer_id: number): Promise<any> {
         const totalEarned = await this._totalEarned(customer_id);

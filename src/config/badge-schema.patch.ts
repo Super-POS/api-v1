@@ -26,6 +26,7 @@ export class BadgeSchemaPatchService implements OnModuleInit {
             `ALTER TABLE reward_point ADD COLUMN IF NOT EXISTS badge VARCHAR(200) DEFAULT NULL;`,
             `ALTER TABLE reward_point ADD COLUMN IF NOT EXISTS rank_tier INTEGER NOT NULL DEFAULT 1;`,
             `ALTER TABLE reward_point ADD COLUMN IF NOT EXISTS badge_answers TEXT DEFAULT NULL;`,
+            `ALTER TABLE reward_point ADD COLUMN IF NOT EXISTS rank_tier_icon VARCHAR(500) DEFAULT NULL;`,
         ];
         for (const sql of stmts) {
             try { await this.sequelize.query(sql); } catch (e) {
@@ -36,9 +37,10 @@ export class BadgeSchemaPatchService implements OnModuleInit {
 
     private async patchMysql(): Promise<void> {
         const cols = [
-            { name: 'badge',         ddl: 'VARCHAR(200) DEFAULT NULL' },
-            { name: 'rank_tier',     ddl: 'INTEGER NOT NULL DEFAULT 1' },
-            { name: 'badge_answers', ddl: 'TEXT DEFAULT NULL' },
+            { name: 'badge',           ddl: 'VARCHAR(200) DEFAULT NULL' },
+            { name: 'rank_tier',       ddl: 'INTEGER NOT NULL DEFAULT 1' },
+            { name: 'badge_answers',   ddl: 'TEXT DEFAULT NULL' },
+            { name: 'rank_tier_icon',  ddl: 'VARCHAR(500) DEFAULT NULL' },
         ];
         for (const col of cols) {
             try {

@@ -17,7 +17,7 @@ export class CoffeeRankTierService {
         return CoffeeRankTier.findAll({ order: [['tier', 'ASC']] });
     }
 
-    async update(id: number, data: { label?: string; min_points?: number }): Promise<CoffeeRankTier> {
+    async update(id: number, data: { label?: string; min_points?: number; icon?: string }): Promise<CoffeeRankTier> {
         const row = await CoffeeRankTier.findByPk(id);
         if (!row) throw new NotFoundException(`Rank tier #${id} not found.`);
         await row.update(data);

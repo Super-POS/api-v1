@@ -36,10 +36,15 @@ export class CoffeeRankTierSchemaPatchService implements OnModuleInit {
                     tier        INTEGER NOT NULL UNIQUE,
                     label       VARCHAR(200) NOT NULL,
                     min_points  INTEGER NOT NULL DEFAULT 0,
+                    icon        VARCHAR(500) DEFAULT NULL,
                     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
                 )
             `);
+
+            await this.sequelize.query(
+                `ALTER TABLE coffee_rank_tier ADD COLUMN IF NOT EXISTS icon VARCHAR(500) DEFAULT NULL;`
+            );
 
             for (const row of INITIAL_TIERS) {
                 await this.sequelize.query(`
