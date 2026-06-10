@@ -26,6 +26,7 @@ import { ErpSchemaPatchService } from './erp-schema.patch';
 import { UserQrSchemaPatchService } from './user-qr-schema.patch';
 import { CoffeeRankTierSchemaPatchService } from './coffee-rank-tier-schema.patch';
 import { CoffeeRankTierService } from '@app/services/coffee-rank-tier.service';
+import { RankRewardSchemaPatchService } from './rank-reward-schema.patch';
 
 /** @noded We use Global that allow all module can access and use all models */
 @Global()
@@ -61,6 +62,7 @@ import { CoffeeRankTierService } from '@app/services/coffee-rank-tier.service';
         ErpSchemaPatchService,
         UserQrSchemaPatchService,
         CoffeeRankTierSchemaPatchService,
+        RankRewardSchemaPatchService,
         CoffeeRankTierService,
     ],
     exports: [

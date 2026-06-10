@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import CoffeeRankTier from '@app/models/setting/coffee_rank_tier.model';
+import CoffeeRankTierReward from '@app/models/setting/coffee_rank_tier_reward.model';
+import Menu from '@app/models/menu/menu.model';
 
 export interface RankInfo {
     level          : number;
@@ -14,7 +16,20 @@ export interface RankInfo {
 export class CoffeeRankTierService {
 
     async findAll(): Promise<CoffeeRankTier[]> {
-        return CoffeeRankTier.findAll({ order: [['tier', 'ASC']] });
+        return CoffeeRankTier.findAll({
+            order  : [['tier', 'ASC']],
+            include: [{
+                model   : CoffeeRankTierReward,
+                as      : 'rewards',
+                required: false,
+                include : [{ model: Menu, as: 'menu', attributes: ['id', 'name', 'code', 'image'] }],
+            }],
+        });
+    }
+
+    async tierIdFromTierNumber(tierNumber: number): Promise<number | null> {
+        const row = await CoffeeRankTier.findOne({ where: { tier: tierNumber } });
+        return row?.id ?? null;
     }
 
     async update(id: number, data: { label?: string; min_points?: number; icon?: string }): Promise<CoffeeRankTier> {

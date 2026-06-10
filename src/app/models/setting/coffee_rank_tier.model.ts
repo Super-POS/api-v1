@@ -1,4 +1,5 @@
-import { Column, CreatedAt, DataType, Model, Table, UpdatedAt } from 'sequelize-typescript';
+import { Column, CreatedAt, DataType, HasMany, Model, Table, UpdatedAt } from 'sequelize-typescript';
+import CoffeeRankTierReward from './coffee_rank_tier_reward.model';
 
 @Table({ tableName: 'coffee_rank_tier', createdAt: 'created_at', updatedAt: 'updated_at' })
 export default class CoffeeRankTier extends Model<CoffeeRankTier> {
@@ -17,6 +18,9 @@ export default class CoffeeRankTier extends Model<CoffeeRankTier> {
 
     @Column({ allowNull: true, type: DataType.STRING(500) })
     icon: string | null;
+
+    @HasMany(() => CoffeeRankTierReward, { foreignKey: 'tier_id', as: 'rewards' })
+    rewards: CoffeeRankTierReward[];
 
     @CreatedAt
     @Column({ type: DataType.DATE })

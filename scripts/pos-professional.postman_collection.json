@@ -1447,18 +1447,124 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/admin/rank-tiers/{{rankTierId}}",
+              "raw": "{{baseUrl}}/api/admin/coffee-rank/{{rankTierId}}",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "admin", "rank-tiers", "{{rankTierId}}"],
-              "variable": [
-                {
-                  "key": "rankTierId",
-                  "value": "1",
-                  "description": "ID of the rank tier row (use List All to find IDs)"
-                }
-              ]
+              "path": ["api", "admin", "coffee-rank", "{{rankTierId}}"]
             },
-            "description": "Edit the label or min_points threshold for a rank tier. Both fields are optional — send only the ones you want to change."
+            "description": "Edit the label, min_points, or icon for a rank tier. All fields are optional — send only the ones you want to change."
+          }
+        },
+        {
+          "name": "Rank Tier Rewards - List",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/coffee-rank/{{rankTierId}}/rewards",
+            "description": "Returns all rewards (coupon and item types) configured for the given tier."
+          }
+        },
+        {
+          "name": "Rank Tier Rewards - Add Coupon Reward",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"coupon\",\n  \"label\": \"10% Off Welcome Coupon\",\n  \"description\": \"Enjoy 10% off your next order as a thank-you for reaching this tier.\",\n  \"coupon_discount_percent\": 10,\n  \"coupon_expires_days\": 30,\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/admin/coffee-rank/{{rankTierId}}/rewards",
+            "description": "type: coupon — requires coupon_discount_percent. coupon_expires_days (optional) sets how many days the auto-generated user coupon is valid."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.id) {",
+                  "  pm.collectionVariables.set('rankRewardId', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rank Tier Rewards - Add Item Reward",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"item\",\n  \"label\": \"Free Signature Latte\",\n  \"description\": \"A complimentary Signature Latte on us!\",\n  \"menu_id\": {{menuId}},\n  \"quantity\": 1,\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/admin/coffee-rank/{{rankTierId}}/rewards",
+            "description": "type: item — requires menu_id. quantity defaults to 1."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.id) {",
+                  "  pm.collectionVariables.set('rankRewardId', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rank Tier Rewards - Update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"15% Off Welcome Coupon\",\n  \"coupon_discount_percent\": 15,\n  \"coupon_expires_days\": 60,\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/admin/coffee-rank/{{rankTierId}}/rewards/{{rankRewardId}}",
+            "description": "Partially update a reward. All fields are optional. Toggling is_active=false hides it from new rank-ups without deleting issued rewards."
+          }
+        },
+        {
+          "name": "Rank Tier Rewards - Delete",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/coffee-rank/{{rankTierId}}/rewards/{{rankRewardId}}",
+            "description": "Permanently removes a reward from the tier. Already-issued user_rank_rewards are not affected."
           }
         }
       ]
@@ -2129,6 +2235,26 @@
               "raw": "{\n  \"points\": 100,\n  \"reference\": \"{{orderId}}\"\n}"
             },
             "url": "{{baseUrl}}/api/customer/rewards/redeem"
+          }
+        },
+        {
+          "name": "Rewards - My Rank Rewards",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customer/rewards/my-rewards",
+            "description": "Returns all rank-up rewards issued to the authenticated customer. Each entry shows the reward type (coupon / item), status (pending / claimed / expired), the tier it was earned from, and — for coupon rewards — the auto-generated coupon code and its expiry."
+          }
+        },
+        {
+          "name": "Rewards - Claim Item Reward",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/customer/rewards/my-rewards/{{rankRewardId}}/claim",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "customer", "rewards", "my-rewards", "{{rankRewardId}}", "claim"]
+            },
+            "description": "Mark a pending item reward as claimed. Use the id from the My Rank Rewards list. Coupon rewards are auto-activated on rank-up and do not require a separate claim step."
           }
         },
         {
@@ -4084,6 +4210,14 @@
     },
     {
       "key": "expenseId",
+      "value": "1"
+    },
+    {
+      "key": "rankTierId",
+      "value": "1"
+    },
+    {
+      "key": "rankRewardId",
       "value": "1"
     }
   ]

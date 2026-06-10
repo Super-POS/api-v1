@@ -7,11 +7,17 @@ import { Op } from 'sequelize';
 // ===========================================================================>> Custom Library
 import RewardPoint                        from '@app/models/reward/reward_point.model';
 import RewardTransaction, { RewardTransactionType } from '@app/models/reward/reward_transaction.model';
+import UserRankReward, { UserRankRewardStatus } from '@app/models/setting/user_rank_reward.model';
+import CoffeeRankTierReward               from '@app/models/setting/coffee_rank_tier_reward.model';
+import CoffeeRankTier                     from '@app/models/setting/coffee_rank_tier.model';
+import Coupon                             from '@app/models/coupon/coupon.model';
+import Menu                               from '@app/models/menu/menu.model';
 import { RewardEngineService }            from '@app/services/reward-engine.service';
 import { BadgeAiService, BADGE_QUESTIONS } from '@app/services/badge-ai.service';
 import { CoffeeRankTierService }           from '@app/services/coffee-rank-tier.service';
 import { AssignBadgeDto, RedeemRewardDto } from './dto';
 import User from '@app/models/user/user.model';
+import { NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class CustomerRewardService {
@@ -128,6 +134,41 @@ export class CustomerRewardService {
             data   : { badge: { name: badge }, rank },
             message: `Your badge "${badge}" has been assigned!`,
         };
+    }
+
+    // ==========================================>> My rank rewards (pending/claimed/expired)
+    async getMyRewards(customer_id: number): Promise<any> {
+        const rows = await UserRankReward.findAll({
+            where  : { customer_id },
+            order  : [['created_at', 'DESC']],
+            include: [
+                {
+                    model  : CoffeeRankTierReward,
+                    as     : 'reward',
+                    include: [{ model: Menu, as: 'menu', attributes: ['id', 'name', 'code', 'image'] }],
+                },
+                { model: CoffeeRankTier, as: 'tier', attributes: ['id', 'tier', 'label', 'icon'] },
+                { model: Coupon, as: 'issued_coupon', attributes: ['id', 'code', 'discount_percent', 'expires_at', 'is_active'] },
+            ],
+        });
+
+        return { data: rows };
+    }
+
+    // ==========================================>> Claim a pending item reward
+    async claimItemReward(customer_id: number, userRewardId: number): Promise<any> {
+        const row = await UserRankReward.findOne({
+            where  : { id: userRewardId, customer_id },
+            include: [{ model: CoffeeRankTierReward, as: 'reward' }],
+        });
+
+        if (!row) throw new NotFoundException('Reward not found.');
+        if (row.status !== UserRankRewardStatus.PENDING) {
+            throw new NotFoundException(`Reward is already ${row.status}.`);
+        }
+
+        await row.update({ status: UserRankRewardStatus.CLAIMED, claimed_at: new Date() });
+        return { data: row, message: 'Reward claimed successfully.' };
     }
 
     // ==========================================>> Internal: sum all earn transactions

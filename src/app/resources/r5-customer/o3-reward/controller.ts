@@ -1,5 +1,5 @@
 // ===========================================================================>> Core Library
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 
 // ===========================================================================>> Custom Library
 import UserDecorator             from '@app/core/decorators/user.decorator';
@@ -52,5 +52,17 @@ export class CustomerRewardController {
     @Post('redeem')
     async redeem(@Body() body: RedeemRewardDto, @UserDecorator() user: User) {
         return await this._service.redeem(user.id, body);
+    }
+
+    // =============================================>> My rank rewards (coupons & items earned from rank-ups)
+    @Get('my-rewards')
+    async getMyRewards(@UserDecorator() user: User) {
+        return await this._service.getMyRewards(user.id);
+    }
+
+    // =============================================>> Claim a pending item reward
+    @Post('my-rewards/:id/claim')
+    async claimItemReward(@Param('id') id: string, @UserDecorator() user: User) {
+        return await this._service.claimItemReward(user.id, Number(id));
     }
 }

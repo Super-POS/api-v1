@@ -1,10 +1,17 @@
 // ===========================================================================>> Core Library
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 
 // ===========================================================================>> Custom Library
 import RewardPoint                        from '@app/models/reward/reward_point.model';
 import RewardTransaction, { RewardTransactionType } from '@app/models/reward/reward_transaction.model';
+import CoffeeRankTierReward, { RankRewardType } from '@app/models/setting/coffee_rank_tier_reward.model';
+import UserRankReward                     from '@app/models/setting/user_rank_reward.model';
+import Coupon                             from '@app/models/coupon/coupon.model';
+import CouponAssignedUser                 from '@app/models/coupon/coupon_assigned_user.model';
 import { CoffeeRankTierService }          from '@app/services/coffee-rank-tier.service';
+
+const REWARD_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 // 1 point earned per this many currency units spent
 const POINTS_PER_UNIT = 1;
@@ -16,13 +23,14 @@ const REDEMPTION_RATE = 100;
 const EXPIRY_DAYS = 365;
 
 export interface EarnResult {
-    transaction  : RewardTransaction | null;
-    rankedUp     : boolean;
-    prevTier     : number;
-    newTier      : number;
-    newRankLabel : string;
-    badgeAnswers : string | null;   // stored Q&A for auto-badge reassignment
-    rewardPointId: number;
+    transaction   : RewardTransaction | null;
+    rankedUp      : boolean;
+    prevTier      : number;
+    newTier       : number;
+    newRankLabel  : string;
+    badgeAnswers  : string | null;
+    rewardPointId : number;
+    issuedRewards : UserRankReward[];
 }
 
 @Injectable()
@@ -36,7 +44,7 @@ export class RewardEngineService {
         if (points <= 0) {
             const rp = await RewardPoint.findOne({ where: { customer_id } });
             const { tier, label } = await this._rankTierService.tierFromTotal(rp?.rank_tier ?? 0);
-            return { transaction: null, rankedUp: false, prevTier: rp?.rank_tier ?? 1, newTier: tier, newRankLabel: label, badgeAnswers: null, rewardPointId: rp?.id ?? 0 };
+            return { transaction: null, rankedUp: false, prevTier: rp?.rank_tier ?? 1, newTier: tier, newRankLabel: label, badgeAnswers: null, rewardPointId: rp?.id ?? 0, issuedRewards: [] };
         }
 
         const [rewardPoint] = await RewardPoint.findOrCreate({
@@ -71,8 +79,11 @@ export class RewardEngineService {
         const { tier: newTier, label: newRankLabel } = await this._rankTierService.tierFromTotal(totalEarned);
 
         const rankedUp = newTier > prevTier;
+        let issuedRewards: UserRankReward[] = [];
+
         if (rankedUp) {
             await RewardPoint.update({ rank_tier: newTier }, { where: { id: rewardPoint.id } });
+            issuedRewards = await this._issueRankRewards(customer_id, newTier);
         }
 
         return {
@@ -83,6 +94,7 @@ export class RewardEngineService {
             newRankLabel,
             badgeAnswers : rewardPoint.badge_answers ?? null,
             rewardPointId: rewardPoint.id,
+            issuedRewards,
         };
     }
 
@@ -127,6 +139,71 @@ export class RewardEngineService {
     // ===================================================>> Conversion helper exposed for controllers
     pointsToDiscount(points: number): number {
         return points / REDEMPTION_RATE;
+    }
+
+    // ===================================================>> Internal: issue active rewards for a newly reached tier
+    private async _issueRankRewards(customer_id: number, newTier: number): Promise<UserRankReward[]> {
+        const tierId = await this._rankTierService.tierIdFromTierNumber(newTier);
+        if (!tierId) return [];
+
+        const rewards = await CoffeeRankTierReward.findAll({ where: { tier_id: tierId, is_active: true } });
+        if (!rewards.length) return [];
+
+        const issued: UserRankReward[] = [];
+
+        for (const reward of rewards) {
+            if (reward.type === RankRewardType.COUPON) {
+                const code = await this._generateRewardCouponCode();
+                const expiresAt = reward.coupon_expires_days
+                    ? new Date(Date.now() + reward.coupon_expires_days * 86_400_000)
+                    : null;
+
+                const coupon = await Coupon.create({
+                    code,
+                    discount_percent: Number(reward.coupon_discount_percent),
+                    is_active       : true,
+                    note            : `Rank reward: ${reward.label}`,
+                    usage_limit     : 1,
+                    expires_at      : expiresAt,
+                } as any);
+
+                await CouponAssignedUser.create({ coupon_id: coupon.id, user_id: customer_id } as any);
+
+                const entry = await UserRankReward.create({
+                    customer_id,
+                    tier_id         : tierId,
+                    reward_id       : reward.id,
+                    status          : 'pending',
+                    issued_coupon_id: coupon.id,
+                    expires_at      : expiresAt,
+                } as any);
+                issued.push(entry);
+
+            } else if (reward.type === RankRewardType.ITEM) {
+                const entry = await UserRankReward.create({
+                    customer_id,
+                    tier_id  : tierId,
+                    reward_id: reward.id,
+                    status   : 'pending',
+                } as any);
+                issued.push(entry);
+            }
+        }
+
+        return issued;
+    }
+
+    private async _generateRewardCouponCode(maxAttempts = 24): Promise<string> {
+        for (let i = 0; i < maxAttempts; i++) {
+            const buf = randomBytes(10);
+            let code = '';
+            for (let j = 0; j < 10; j++) {
+                code += REWARD_CODE_ALPHABET[buf[j] % REWARD_CODE_ALPHABET.length];
+            }
+            const exists = await Coupon.findOne({ where: { code } });
+            if (!exists) return code;
+        }
+        throw new BadRequestException('Could not generate a unique coupon code for rank reward.');
     }
 
     // ===================================================>> Internal: expire points past their expiry date
