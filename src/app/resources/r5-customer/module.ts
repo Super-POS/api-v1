@@ -10,9 +10,10 @@ import { CustomerRewardModule }  from './o3-reward/module';
 import { CustomerProfileModule } from './o4-profile/module';
 import { CustomerPaymentModule }            from './o5-payment/module';
 import { CustomerMeetingRoomBookingModule } from './o6-meeting-room-booking/module';
+import { CustomerMissionModule }            from './o7-mission/module';
 
 @Module({
-    imports: [CustomerOrderModule, CustomerWalletModule, CustomerRewardModule, CustomerProfileModule, CustomerPaymentModule, CustomerMeetingRoomBookingModule],
+    imports: [CustomerOrderModule, CustomerWalletModule, CustomerRewardModule, CustomerProfileModule, CustomerPaymentModule, CustomerMeetingRoomBookingModule, CustomerMissionModule],
 })
 export class CustomerModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {

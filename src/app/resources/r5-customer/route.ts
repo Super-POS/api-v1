@@ -8,6 +8,7 @@ import { CustomerRewardModule }  from './o3-reward/module';
 import { CustomerProfileModule } from './o4-profile/module';
 import { CustomerPaymentModule }             from './o5-payment/module';
 import { CustomerMeetingRoomBookingModule }  from './o6-meeting-room-booking/module';
+import { CustomerMissionModule }             from './o7-mission/module';
 
 export const customerRoutes: Routes = [
     {
@@ -33,5 +34,9 @@ export const customerRoutes: Routes = [
     {
         path  : 'meeting-room-bookings',
         module: CustomerMeetingRoomBookingModule,
+    },
+    {
+        path  : 'missions',
+        module: CustomerMissionModule,
     },
 ];

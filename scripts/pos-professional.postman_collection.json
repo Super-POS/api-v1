@@ -1566,6 +1566,177 @@
             "url": "{{baseUrl}}/api/admin/coffee-rank/{{rankTierId}}/rewards/{{rankRewardId}}",
             "description": "Permanently removes a reward from the tier. Already-issued user_rank_rewards are not affected."
           }
+        },
+        {
+          "name": "Stamps - List All",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/missions/stamps",
+            "description": "Returns all stamp type definitions. Stamps are the collectible achievements customers earn (e.g. First Cup Stamp, Future Peach Spark Stamp)."
+          }
+        },
+        {
+          "name": "Stamps - Get One",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/missions/stamps/{{stampId}}"
+          }
+        },
+        {
+          "name": "Stamps - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Future Peach Spark Stamp\",\n  \"description\": \"Awarded when you buy Future Peach Spark for the first time.\",\n  \"category\": \"drink\",\n  \"trigger_condition\": \"Purchase Future Peach Spark\",\n  \"points_bonus\": 10,\n  \"icon\": \"static/stamps/future-peach-spark.png\",\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/admin/missions/stamps",
+            "description": "category: drink | event | community | milestone | referral"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.id) {",
+                  "  pm.collectionVariables.set('stampId', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Stamps - Update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Future Peach Spark Stamp\",\n  \"points_bonus\": 15,\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/admin/missions/stamps/{{stampId}}"
+          }
+        },
+        {
+          "name": "Stamps - Delete",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/missions/stamps/{{stampId}}"
+          }
+        },
+        {
+          "name": "Missions - List All",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/missions",
+            "description": "Returns all missions with their reward_stamp included. Missions drive customer behaviour (e.g. Signature Taste Mission: buy 3 signature drinks)."
+          }
+        },
+        {
+          "name": "Missions - Get One",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/missions/{{missionId}}"
+          }
+        },
+        {
+          "name": "Missions - Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Signature Taste Mission\",\n  \"description\": \"Buy 3 different signature drinks to complete this mission.\",\n  \"requirement_type\": \"purchase\",\n  \"target_value\": 3,\n  \"reward_points\": 50,\n  \"reward_stamp_id\": {{stampId}},\n  \"status\": \"active\",\n  \"start_date\": \"2026-06-01T00:00:00Z\",\n  \"end_date\": \"2026-12-31T23:59:59Z\",\n  \"max_completions_per_user\": 1,\n  \"icon\": \"static/missions/signature-taste.png\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/admin/missions",
+            "description": "requirement_type: purchase | referral | event_checkin | visit | profile_action\nstatus: draft | active | inactive\nreward_stamp_id is optional — the stamp to issue on completion.\nmax_completions_per_user null = unlimited."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.id) {",
+                  "  pm.collectionVariables.set('missionId', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missions - Update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Signature Taste Mission\",\n  \"status\": \"active\",\n  \"reward_points\": 75,\n  \"target_value\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/admin/missions/{{missionId}}",
+            "description": "All fields are optional. Change status to inactive to hide the mission from customers without deleting it."
+          }
+        },
+        {
+          "name": "Missions - Delete",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/missions/{{missionId}}"
+          }
+        },
+        {
+          "name": "Missions - List Participants",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/missions/{{missionId}}/participants",
+            "description": "Returns all customers who have accepted this mission, with their current progress and status."
+          }
         }
       ]
     },
@@ -2535,6 +2706,39 @@
             "method": "PATCH",
             "url": "{{baseUrl}}/api/customer/meeting-room-bookings/{{bookingId}}/cancel",
             "description": "Customer can cancel their own pending or confirmed booking. Completed bookings cannot be cancelled."
+          }
+        },
+        {
+          "name": "Missions - Available (with my progress)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customer/missions",
+            "description": "Returns all active missions within their date range. Each item includes my_progress, my_status, and accepted flag so the Telegram miniapp can render progress bars and accept buttons."
+          }
+        },
+        {
+          "name": "Missions - My Accepted Missions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customer/missions/my",
+            "description": "Returns missions the customer has accepted, with full progress details and the mission object including reward_stamp."
+          }
+        },
+        {
+          "name": "Missions - Accept a Mission",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/customer/missions/{{missionId}}/accept",
+            "description": "Customer joins a mission. Returns 400 if already accepted (in_progress) or if max completions have been reached."
+          }
+        },
+        {
+          "name": "Stamps - My Passport (stamp collection)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/customer/missions/stamps",
+            "description": "Returns the customer's full stamp collection (Impact Passport), ordered by earned_date descending. Each stamp includes category, icon, description, and the mission that triggered it (if any)."
           }
         }
       ]
@@ -4218,6 +4422,14 @@
     },
     {
       "key": "rankRewardId",
+      "value": "1"
+    },
+    {
+      "key": "stampId",
+      "value": "1"
+    },
+    {
+      "key": "missionId",
       "value": "1"
     }
   ]
