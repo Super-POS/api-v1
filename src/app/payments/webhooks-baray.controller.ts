@@ -1,13 +1,11 @@
+/** Baray webhook disabled — controller commented out below. */
+/*
 // ===========================================================================>> Core Library
 import { Body, Controller, HttpCode, HttpStatus, Logger, Post } from "@nestjs/common";
 
 // ===========================================================================>> Custom Library
 import { BarayService } from "src/app/services/baray.service";
 
-/**
- * Mounted under `api/webhooks` via RouterModule. Full path: `POST /api/webhooks/baray`.
- * Excludes JWT in AppModule. Register this URL in the Baray dashboard.
- */
 @Controller()
 export class BarayWebhookController {
   private readonly logger = new Logger(BarayWebhookController.name);
@@ -26,3 +24,4 @@ export class BarayWebhookController {
     return { ok: true };
   }
 }
+*/

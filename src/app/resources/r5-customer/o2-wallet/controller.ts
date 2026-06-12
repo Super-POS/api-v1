@@ -1,14 +1,14 @@
 // ===========================================================================>> Core Library
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, BadRequestException } from '@nestjs/common';
 
 // ===========================================================================>> Custom Library
 import UserDecorator           from '@app/core/decorators/user.decorator';
 import User                    from '@app/models/user/user.model';
 import { BakongService } from 'src/app/services/bakong.service';
-import { BarayService } from 'src/app/services/baray.service';
+// Baray disabled: import { BarayService } from 'src/app/services/baray.service';
 import {
     CreateBakongWalletDepositIntentDto,
-    CreateBarayWalletDepositIntentDto,
+    // CreateBarayWalletDepositIntentDto,
     RequestDepositDto,
 } from './dto';
 import { CustomerWalletService } from './service';
@@ -18,7 +18,7 @@ export class CustomerWalletController {
 
     constructor(
         private readonly _service: CustomerWalletService,
-        private readonly _baray: BarayService,
+        // Baray disabled: private readonly _baray: BarayService,
         private readonly _bakong: BakongService,
     ) {}
 
@@ -37,6 +37,7 @@ export class CustomerWalletController {
         return await this._service.requestDeposit(user.id, body);
     }
 
+    /* Baray disabled
     @Post('deposit/baray/intent')
     async createBarayIntent(
         @Body() body: CreateBarayWalletDepositIntentDto,
@@ -48,6 +49,7 @@ export class CustomerWalletController {
             message: 'Open or scan the QR to complete your deposit.',
         };
     }
+    */
 
     @Post('deposit/bakong/intent')
     async createBakongIntent(
@@ -70,7 +72,8 @@ export class CustomerWalletController {
         if (channel === 'bakong') {
             return await this._bakong.getWalletDepositPaymentState(user.id, id);
         }
-        return await this._baray.getWalletDepositPaymentState(user.id, id);
+        // Baray disabled: return await this._baray.getWalletDepositPaymentState(user.id, id);
+        throw new BadRequestException('Baray wallet deposits are disabled.');
     }
 
     @Post('deposit/bakong/abandon-pending')

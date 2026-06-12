@@ -1,3 +1,5 @@
+/** Baray payment disabled — controller commented out below. */
+/*
 // ===========================================================================>> Core Library
 import { Body, Controller, Get, Param, ParseIntPipe, Post } from "@nestjs/common";
 
@@ -7,7 +9,6 @@ import User from "@app/models/user/user.model";
 import { CreateBarayIntentDto } from "src/app/payments/dto/create-baray-intent.dto";
 import { BarayService } from "src/app/services/baray.service";
 
-/** Baray QR / bank link — mirrors cashier `ordering/baray/*` but scoped to order owner. */
 @Controller("baray")
 export class CustomerBarayPaymentController {
   constructor(private readonly _baray: BarayService) {}
@@ -21,10 +22,10 @@ export class CustomerBarayPaymentController {
     };
   }
 
-  /** Poll while customer completes payment (same payload shape as cashier POS). */
   @Get("order/:id/payment-state")
   async paymentState(@Param("id", ParseIntPipe) id: number, @UserDecorator() user: User) {
     await this._baray.assertCustomerOwnsOrder(user.id, id);
     return await this._baray.getPaymentStateForPos(id);
   }
 }
+*/

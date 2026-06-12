@@ -46,6 +46,15 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
     this.server.emit("bakong-payment-success", payload);
   }
 
+  /** Emits when ABA PayWay QR payment is confirmed. */
+  emitPaywayPaymentSuccess(payload: {
+    orderId: number;
+    receiptNumber: string;
+    cashierId: number;
+  }): void {
+    this.server.emit("payway-payment-success", payload);
+  }
+
   /** Tell the customer display device to show a KHQR code. */
   emitCustomerDisplayShowKhqr(payload: {
     orderId: number;

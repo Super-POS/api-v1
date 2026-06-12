@@ -5,10 +5,10 @@ import { forwardRef, Module } from '@nestjs/common';
 import { CustomerWalletController } from './controller';
 import { CustomerWalletService }    from './service';
 import { BakongModule } from 'src/app/payments/bakong.module';
-import { BarayModule } from 'src/app/payments/baray.module';
+// Baray disabled: import { BarayModule } from 'src/app/payments/baray.module';
 
 @Module({
-    imports     : [forwardRef(() => BarayModule), forwardRef(() => BakongModule)],
+    imports     : [forwardRef(() => BakongModule)], // Baray disabled: forwardRef(() => BarayModule),
     controllers: [CustomerWalletController],
     providers  : [CustomerWalletService],
 })
